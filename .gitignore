@@ -18,6 +18,7 @@ htmlcov/
 
 # Node/Frontend
 frontend/node_modules/
+frontend/build/
 frontend/dist/
 frontend/.cache/
 frontend/.vite/
@@ -49,3 +50,4 @@ backend/dist/
 # Temporary files
 *.bak
 *.tmp
+python-*.exe
