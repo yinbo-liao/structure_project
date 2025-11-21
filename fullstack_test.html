@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPDMS Full-Stack Testing Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            color: #333;
+        }
+        .section-content {
+            padding: 15px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .test-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .test-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .test-card button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 5px;
+        }
+        .test-card button:hover {
+            background: #0056b3;
+        }
+        .test-card button.danger {
+            background: #dc3545;
+        }
+        .test-card button.danger:hover {
+            background: #c82333;
+        }
+        .test-card button.success {
+            background: #28a745;
+        }
+        .test-card button.success:hover {
+            background: #1e7e34;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .token-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 12px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .feature-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .feature-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .feature-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .feature-card .status {
+            margin-top: 10px;
+        }
+        .api-endpoints {
+            margin-top: 20px;
+        }
+        .endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .login-form {
+            display: grid;
+            gap: 10px;
+            max-width: 300px;
+        }
+        .login-form input, .login-form select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .workflow-demo {
+            background: #e8f4fd;
+            border: 1px solid #b3d7ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .workflow-demo h4 {
+            margin: 0 0 10px 0;
+            color: #0056b3;
+        }
+        .workflow-steps {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .workflow-step {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            text-align: center;
+            flex: 1;
+            min-width: 80px;
+        }
+        .workflow-step.completed {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .workflow-step.active {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MPDMS Full-Stack Testing Interface</h1>
+            <p>Comprehensive testing suite for Multi-Project Data Management System v3.0</p>
+        </div>
+        
+        <div class="content">
+            <!-- Backend API Testing Section -->
+            <div class="section">
+                <div class="section-header">
+                    🛠️ Backend API Testing (FastAPI)
+                </div>
+                <div class="section-content">
+                    <div class="test-grid">
+                        <div class="test-card">
+                            <h4>Server Health</h4>
+                            <button onclick="testHealth()">Test Health</button>
+                            <div id="health-status"></div>
+                        </div>
+                        
+                        <div class="test-card">
+                            <h4>Authentication</h4>
+                            <div class="login-form">
+                                <select id="user-role">
+                                    <option value="admin">Admin</option>
+                                    <option value="inspector">Inspector</option>
+                                    <option value="visitor">Visitor</option>
+                                </select>
+                                <input type="password" id="user-password" placeholder="Password (test_ + role)" value="admin">
+                                <button onclick="testLogin()">Login</button>
+                                <button onclick="testLogout()">Logout</button>
+                            </div>
+                            <div id="auth-status"></div>
+                            <div id="token-display" style="display: none;"></div>
+                        </div>
+                        
+                        <div class="test-card">
+                            <h4>Users Management</h4>
+                            <button onclick="testGetUsers()">Get All Users</button>
+                            <button onclick="testGetCurrentUser()">Get Current User</button>
+                            <div id="users-status"></div>
+                        </div>
+                        
+                        <div class="test-card">
+                            <h4>Projects</h4>
+                            <button onclick="testGetProjects()">Get Projects</button>
+                            <button onclick="testCreateProject()">Create Project</button>
+                            <div id="projects-status"></div>
+                        </div>
+                        
+                        <div class="test-card">
+                            <h4>Inspection Workflow</h4>
+                            <button onclick="testMaterialRegister()">Material Register</button>
+                            <button onclick="testFitUp()">Fit-up Inspection</button>
+                            <button onclick="testFinal()">Final Inspection</button>
+                            <button onclick="testNDT()">NDT Requests</button>
+                            <div id="workflow-status"></div>
+                        </div>
+                        
+                        <div class="test-card">
+                            <h4>API Documentation</h4>
+                            <button onclick="openDocs()">Open Swagger UI</button>
+                            <button onclick="openReDoc()">Open ReDoc</button>
+                            <div id="docs-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frontend Components Testing Section -->
+            <div class="section">
+                <div class="section-header">
+                    🎨 Frontend Components Testing (React + TypeScript)
+                </div>
+                <div class="section-content">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <h4>🔐 Authentication</h4>
+                            <p>Login with JWT token validation</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <h4>📊 Dashboard</h4>
+                            <p>Project overview and statistics</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <h4>👥 User Management</h4>
+                            <p>Admin-only user administration</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <h4>📁 Project Management</h4>
+                            <p>Project creation and assignment</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <h4>📋 Data Tables</h4>
+                            <p>Inline editing and real-time updates</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <h4>🔍 Inspection Workflow</h4>
+                            <p>Material → Fit-up → Final → NDT</p>
+                            <div class="status info">Ready for testing</div>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-demo">
+                        <h4>Complete Inspection Workflow</h4>
+                        <p>Simulated workflow progression through all inspection stages:</p>
+                        <div class="workflow-steps">
+                            <div class="workflow-step" id="step-material">Material Register</div>
+                            <div class="workflow-step" id="step-fitup">Fit-up Inspection</div>
+                            <div class="workflow-step" id="step-final">Final Inspection</div>
+                            <div class="workflow-step" id="step-ndt">NDT Requests</div>
+                        </div>
+                        <button onclick="simulateWorkflow()" style="margin-top: 15px;">Simulate Complete Workflow</button>
+                        <button onclick="resetWorkflow()" class="danger">Reset Workflow</button>
+                        <div id="workflow-demo-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integration Testing Section -->
+            <div class="section">
+                <div class="section-header">
+                    🔗 Full-Stack Integration Testing
+                </div>
+                <div class="section-content">
+                    <div class="api-endpoints">
+                        <h4>Key API Endpoints:</h4>
+                        <div class="endpoint">POST /api/v1/login - User authentication</div>
+                        <div class="endpoint">GET /api/v1/users - Get all users (admin only)</div>
+                        <div class="endpoint">GET /api/v1/projects - Get user projects</div>
+                        <div class="endpoint">POST /api/v1/projects - Create new project</div>
+                        <div class="endpoint">GET/POST /api/v1/materials - Material register</div>
+                        <div class="endpoint">GET/POST /api/v1/fit-ups - Fit-up inspections</div>
+                        <div class="endpoint">GET/POST /api/v1/finals - Final inspections</div>
+                        <div class="endpoint">GET/POST /api/v1/ndt-requests - NDT requests</div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="runFullIntegrationTest()" class="success" style="padding: 12px 24px; font-size: 16px;">
+                            🚀 Run Full Integration Test
+                        </button>
+                        <button onclick="runLoadTest()" class="info" style="padding: 12px 24px; font-size: 16px;">
+                            📊 Run Load Test
+                        </button>
+                        <div id="integration-status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let authToken = null;
+        let currentUser = null;
+        
+        // API Base URL
+        const API_BASE = 'http://localhost:8000/api/v1';
+        
+        // Utility function to display status
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Test health endpoint
+        async function testHealth() {
+            try {
+                showStatus('health-status', 'Testing health endpoint...', 'info');
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                showStatus('health-status', `✅ Health check passed: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                showStatus('health-status', `❌ Health check failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test login
+        async function testLogin() {
+            const role = document.getElementById('user-role').value;
+            const password = document.getElementById('user-password').value;
+            
+            try {
+                showStatus('auth-status', 'Attempting login...', 'info');
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${role}@mpdms.com&password=${password}`
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    currentUser = data.user;
+                    
+                    // Store token in localStorage
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('current_user', JSON.stringify(currentUser));
+                    
+                    showStatus('auth-status', `✅ Login successful: ${currentUser.full_name} (${currentUser.role})`, 'success');
+                    
+                    // Display token
+                    const tokenDisplay = document.getElementById('token-display');
+                    tokenDisplay.innerHTML = `
+                        <strong>JWT Token:</strong><br>
+                        <code>${authToken.substring(0, 50)}...</code>
+                    `;
+                    tokenDisplay.style.display = 'block';
+                    
+                } else {
+                    showStatus('auth-status', `❌ Login failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                showStatus('auth-status', `❌ Login error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test logout
+        function testLogout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('current_user');
+            showStatus('auth-status', '✅ Logged out successfully', 'success');
+            document.getElementById('token-display').style.display = 'none';
+        }
+        
+        // Get auth headers
+        function getAuthHeaders() {
+            const token = authToken || localStorage.getItem('auth_token');
+            return token ? {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            } : {
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        // Test get users
+        async function testGetUsers() {
+            try {
+                showStatus('users-status', 'Fetching users...', 'info');
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    showStatus('users-status', `✅ Users fetched: ${users.length} users found`, 'success');
+                } else {
+                    showStatus('users-status', `❌ Failed to fetch users: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus('users-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test get current user
+        async function testGetCurrentUser() {
+            try {
+                showStatus('users-status', 'Fetching current user...', 'info');
+                const response = await fetch(`${API_BASE}/me`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    showStatus('users-status', `✅ Current user: ${user.full_name} (${user.role})`, 'success');
+                } else {
+                    showStatus('users-status', `❌ Failed to fetch current user: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus('users-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test get projects
+        async function testGetProjects() {
+            try {
+                showStatus('projects-status', 'Fetching projects...', 'info');
+                const response = await fetch(`${API_BASE}/projects`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const projects = await response.json();
+                    showStatus('projects-status', `✅ Projects fetched: ${projects.length} projects found`, 'success');
+                } else {
+                    showStatus('projects-status', `❌ Failed to fetch projects: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus('projects-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test create project
+        async function testCreateProject() {
+            const projectData = {
+                name: `Test Project ${Date.now()}`,
+                description: 'Created by testing interface',
+                status: 'active'
+            };
+            
+            try {
+                showStatus('projects-status', 'Creating project...', 'info');
+                const response = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(projectData)
+                });
+                
+                if (response.ok) {
+                    const project = await response.json();
+                    showStatus('projects-status', `✅ Project created: ${project.name}`, 'success');
+                } else {
+                    showStatus('projects-status', `❌ Failed to create project: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus('projects-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test inspection workflow endpoints
+        async function testMaterialRegister() {
+            await testInspectionEndpoint('materials', 'Material Register');
+        }
+        
+        async function testFitUp() {
+            await testInspectionEndpoint('fit-ups', 'Fit-up Inspection');
+        }
+        
+        async function testFinal() {
+            await testInspectionEndpoint('finals', 'Final Inspection');
+        }
+        
+        async function testNDT() {
+            await testInspectionEndpoint('ndt-requests', 'NDT Requests');
+        }
+        
+        async function testInspectionEndpoint(endpoint, name) {
+            try {
+                showStatus('workflow-status', `Testing ${name}...`, 'info');
+                const response = await fetch(`${API_BASE}/${endpoint}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showStatus('workflow-status', `✅ ${name} endpoint working: ${data.length || 0} records`, 'success');
+                } else {
+                    showStatus('workflow-status', `❌ ${name} failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showStatus('workflow-status', `❌ ${name} error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Open API documentation
+        function openDocs() {
+            window.open('http://localhost:8000/docs', '_blank');
+            showStatus('docs-status', '✅ Swagger UI opened in new tab', 'success');
+        }
+        
+        function openReDoc() {
+            window.open('http://localhost:8000/redoc', '_blank');
+            showStatus('docs-status', '✅ ReDoc opened in new tab', 'success');
+        }
+        
+        // Workflow simulation
+        function simulateWorkflow() {
+            const steps = ['material', 'fitup', 'final', 'ndt'];
+            const stepNames = {
+                material: 'Material Register',
+                fitup: 'Fit-up Inspection',
+                final: 'Final Inspection',
+                ndt: 'NDT Requests'
+            };
+            
+            let currentStep = 0;
+            showStatus('workflow-demo-status', 'Starting workflow simulation...', 'info');
+            
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    // Reset all steps
+                    steps.forEach(step => {
+                        document.getElementById(`step-${step}`).classList.remove('active', 'completed');
+                    });
+                    
+                    // Mark current step as active
+                    document.getElementById(`step-${steps[currentStep]}`).classList.add('active');
+                    
+                    showStatus('workflow-demo-status', `Processing: ${stepNames[steps[currentStep]]}...`, 'info');
+                    
+                    // After 2 seconds, mark as completed and move to next
+                    setTimeout(() => {
+                        document.getElementById(`step-${steps[currentStep]}`).classList.remove('active');
+                        document.getElementById(`step-${steps[currentStep]}`).classList.add('completed');
+                        
+                        currentStep++;
+                        
+                        if (currentStep >= steps.length) {
+                            clearInterval(interval);
+                            showStatus('workflow-demo-status', '✅ Complete workflow simulation finished!', 'success');
+                        }
+                    }, 2000);
+                }
+            }, 3000);
+        }
+        
+        function resetWorkflow() {
+            const steps = ['material', 'fitup', 'final', 'ndt'];
+            steps.forEach(step => {
+                document.getElementById(`step-${step}`).classList.remove('active', 'completed');
+            });
+            showStatus('workflow-demo-status', 'Workflow reset', 'info');
+        }
+        
+        // Full integration test
+        async function runFullIntegrationTest() {
+            showStatus('integration-status', '🚀 Starting full integration test...', 'info');
+            
+            const tests = [
+                { name: 'Health Check', fn: () => fetch('/api/health').then(r => r.ok) },
+                { name: 'Authentication', fn: () => testLoginAndVerify() },
+                { name: 'User Management', fn: () => fetch(`${API_BASE}/users`, { headers: getAuthHeaders() }).then(r => r.ok) },
+                { name: 'Project Management', fn: () => fetch(`${API_BASE}/projects`, { headers: getAuthHeaders() }).then(r => r.ok) },
+                { name: 'Material Register', fn: () => fetch(`${API_BASE}/materials`, { headers: getAuthHeaders() }).then(r => r.ok) },
+                { name: 'Fit-up Inspection', fn: () => fetch(`${API_BASE}/fit-ups`, { headers: getAuthHeaders() }).then(r => r.ok) },
+                { name: 'Final Inspection', fn: () => fetch(`${API_BASE}/finals`, { headers: getAuthHeaders() }).then(r => r.ok) },
+                { name: 'NDT Requests', fn: () => fetch(`${API_BASE}/ndt-requests`, { headers: getAuthHeaders() }).then(r => r.ok) }
+            ];
+            
+            let completed = 0;
+            let passed = 0;
+            
+            for (const test of tests) {
+                try {
+                    showStatus('integration-status', `Testing: ${test.name}...`, 'info');
+                    const result = await test.fn();
+                    if (result) {
+                        passed++;
+                    }
+                } catch (error) {
+                    console.error(`Test ${test.name} failed:`, error);
+                }
+                completed++;
+            }
+            
+            showStatus('integration-status', 
+                `✅ Integration test completed: ${passed}/${tests.length} tests passed`, 
+                passed === tests.length ? 'success' : 'error');
+        }
+        
+        async function testLoginAndVerify() {
+            const response = await fetch(`${API_BASE}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'username=admin@mpdms.com&password=admin'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                authToken = data.access_token;
+                return true;
+            }
+            return false;
+        }
+        
+        // Load test
+        function runLoadTest() {
+            showStatus('integration-status', '📊 Starting load test (10 concurrent requests)...', 'info');
+            
+            const promises = [];
+            for (let i = 0; i < 10; i++) {
+                promises.push(
+                    fetch(`${API_BASE}/me`, { headers: getAuthHeaders() })
+                        .then(response => response.ok)
+                        .catch(() => false)
+                );
+            }
+            
+            Promise.all(promises).then(results => {
+                const passed = results.filter(r => r).length;
+                showStatus('integration-status', 
+                    `📊 Load test completed: ${passed}/10 requests successful`, 
+                    passed >= 8 ? 'success' : 'error');
+            });
+        }
+        
+        // Initialize the interface
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if we have a stored token
+            const storedToken = localStorage.getItem('auth_token');
+            const storedUser = localStorage.getItem('current_user');
+            
+            if (storedToken && storedUser) {
+                authToken = storedToken;
+                currentUser = JSON.parse(storedUser);
+                showStatus('auth-status', `🔄 Restored session: ${currentUser.full_name} (${currentUser.role})`, 'info');
+                
+                const tokenDisplay = document.getElementById('token-display');
+                tokenDisplay.innerHTML = `
+                    <strong>JWT Token:</strong><br>
+                    <code>${authToken.substring(0, 50)}...</code>
+                `;
+                tokenDisplay.style.display = 'block';
+            }
+            
+            // Test health immediately
+            testHealth();
+        });
+    </script>
+</body>
+</html>

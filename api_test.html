@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPDMS API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #1976d2;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1565c0;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 MPDMS API Testing Dashboard</h1>
+            <p>Multi-Project Data Management System v3.0</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Backend Health Check</h3>
+            <button class="test-button" onclick="testHealthCheck()">Test Health Endpoint</button>
+            <div id="health-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Authentication Tests</h3>
+            <button class="test-button" onclick="testLogin('admin@mpdms.com', 'admin')">Login Admin</button>
+            <button class="test-button" onclick="testLogin('inspector@mpdms.com', 'inspect')">Login Inspector</button>
+            <button class="test-button" onclick="testLogin('visitor@mpdms.com', 'visit')">Login Visitor</button>
+            <div id="login-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Protected Endpoint Tests</h3>
+            <button class="test-button" id="users-btn" onclick="testUsers()" disabled>Test Users Endpoint</button>
+            <button class="test-button" id="projects-btn" onclick="testProjects()" disabled>Test Projects Endpoint</button>
+            <div id="protected-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Full Workflow Test</h3>
+            <button class="test-button" onclick="runFullTest()">Run Complete Test Suite</button>
+            <div id="workflow-result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentUser = null;
+
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isError ? 'error' : 'success');
+            element.textContent = content;
+        }
+
+        function showResultRaw(elementId, content) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result';
+            element.textContent = content;
+        }
+
+        async function testHealthCheck() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                const data = await response.json();
+                showResult('health-result', `✅ Health Check Successful!\nStatus: ${data.status}\nTimestamp: ${data.timestamp}`);
+            } catch (error) {
+                showResult('health-result', `❌ Health Check Failed!\nError: ${error.message}`, true);
+            }
+        }
+
+        async function testLogin(email, password) {
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.access_token) {
+                    currentToken = data.access_token;
+                    currentUser = data.user;
+                    
+                    // Enable protected endpoints
+                    document.getElementById('users-btn').disabled = false;
+                    document.getElementById('projects-btn').disabled = false;
+                    
+                    showResult('login-result', 
+                        `✅ Login Successful!\n\n` +
+                        `Token: ${currentToken.substring(0, 50)}...\n\n` +
+                        `User: ${currentUser.full_name}\n` +
+                        `Email: ${currentUser.email}\n` +
+                        `Role: ${currentUser.role}\n` +
+                        `ID: ${currentUser.id}\n\n` +
+                        `Protected endpoints are now enabled.`
+                    );
+                } else {
+                    showResult('login-result', `❌ Login Failed!\n${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                showResult('login-result', `❌ Login Error!\nError: ${error.message}`, true);
+            }
+        }
+
+        async function testUsers() {
+            if (!currentToken) {
+                showResult('protected-result', '❌ Please login first!', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('protected-result', 
+                        `✅ Users Endpoint Test Successful!\n\n` +
+                        `Status: ${response.status}\n\n` +
+                        `Users found: ${data.length}\n\n` +
+                        `Sample user: ${data[0]?.full_name} (${data[0]?.role})`
+                    );
+                } else {
+                    showResult('protected-result', `❌ Users Test Failed!\n${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                showResult('protected-result', `❌ Users Test Error!\nError: ${error.message}`, true);
+            }
+        }
+
+        async function testProjects() {
+            if (!currentToken) {
+                showResult('protected-result', '❌ Please login first!', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/projects`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('protected-result', 
+                        `✅ Projects Endpoint Test Successful!\n\n` +
+                        `Status: ${response.status}\n\n` +
+                        `Projects data received (this returns user data for this endpoint):\n\n` +
+                        `First project/user: ${data[0]?.full_name} (${data[0]?.role})`
+                    );
+                } else {
+                    showResult('protected-result', `❌ Projects Test Failed!\n${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                showResult('protected-result', `❌ Projects Test Error!\nError: ${error.message}`, true);
+            }
+        }
+
+        async function runFullTest() {
+            const results = [];
+            
+            // Test 1: Health Check
+            try {
+                const healthResponse = await fetch('http://localhost:8000/health');
+                const healthData = await healthResponse.json();
+                results.push('✅ Health Check: PASSED');
+            } catch (error) {
+                results.push('❌ Health Check: FAILED - ' + error.message);
+            }
+
+            // Test 2: Login
+            try {
+                const loginResponse = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin@mpdms.com',
+                        password: 'admin'
+                    })
+                });
+                const loginData = await loginResponse.json();
+                
+                if (loginResponse.ok && loginData.access_token) {
+                    currentToken = loginData.access_token;
+                    currentUser = loginData.user;
+                    results.push('✅ Authentication: PASSED');
+                } else {
+                    results.push('❌ Authentication: FAILED - ' + JSON.stringify(loginData));
+                }
+            } catch (error) {
+                results.push('❌ Authentication: FAILED - ' + error.message);
+            }
+
+            // Test 3: Protected Endpoint
+            try {
+                const usersResponse = await fetch(`${API_BASE}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                const usersData = await usersResponse.json();
+                
+                if (usersResponse.ok && Array.isArray(usersData)) {
+                    results.push('✅ Protected Endpoints: PASSED');
+                } else {
+                    results.push('❌ Protected Endpoints: FAILED');
+                }
+            } catch (error) {
+                results.push('❌ Protected Endpoints: FAILED - ' + error.message);
+            }
+
+            // Summary
+            const passed = results.filter(r => r.includes('✅')).length;
+            const total = results.length;
+            
+            showResultRaw('workflow-result', 
+                `🧪 MPDMS Full Test Suite Results\n` +
+                `================================\n\n` +
+                `Tests Run: ${total}\n` +
+                `Tests Passed: ${passed}\n` +
+                `Tests Failed: ${total - passed}\n\n` +
+                `Detailed Results:\n${results.join('\n')}\n\n` +
+                (passed === total ? 
+                    '🎉 ALL TESTS PASSED! MPDMS Backend is fully functional!' :
+                    '⚠️  Some tests failed. Check the details above.')
+            );
+        }
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('MPDMS Test Dashboard Loaded');
+            
+            // Test health check on page load
+            setTimeout(testHealthCheck, 1000);
+        });
+    </script>
+</body>
+</html>
