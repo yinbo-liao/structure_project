@@ -8,7 +8,7 @@ import sys
 import os
 
 # Add the current directory to Python path
-sys.path.append('/workspace/backend')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.database import SessionLocal, create_tables
 from app.models import User
