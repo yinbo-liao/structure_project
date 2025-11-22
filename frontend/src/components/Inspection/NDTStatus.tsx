@@ -6,7 +6,7 @@ import ApiService from '../../services/api';
 import { NDTStatusRecord, NDTTest, NDTRequest } from '../../types';
 
 const NDTStatus: React.FC = () => {
-  const { selectedProject, canEdit } = useAuth();
+  const { selectedProject, canEdit, user, isAdmin, canDelete } = useAuth();
   const [rows, setRows] = useState<NDTStatusRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -463,13 +463,22 @@ const NDTStatus: React.FC = () => {
                   </TableCell>
                 {canEdit() && (
                   <TableCell>
-                    <IconButton size="small" color="primary" onClick={() => ensureEdit(d.final_id, d.method || '')}>
-                      <Edit />
-                    </IconButton>
-                    {isDup && <Chip label="Duplicate" color="warning" size="small" sx={{ ml: 1 }} />}
-                    <IconButton size="small" color="error" sx={{ ml: 0.5 }} onClick={() => { setDeleteRow(d); setDeleteOpen(true); }}>
-                      <Delete />
-                    </IconButton>
+                    {(() => {
+                      const accepted = (d.result || '').toLowerCase() === 'accepted';
+                      const allowEdit = isAdmin() || ((user?.role || '').toLowerCase() === 'inspector' && !accepted);
+                      const allowDelete = canDelete();
+                      return (
+                        <Box>
+                          <IconButton size="small" color="primary" onClick={() => ensureEdit(d.final_id, d.method || '')} disabled={!allowEdit}>
+                            <Edit />
+                          </IconButton>
+                          {isDup && <Chip label="Duplicate" color="warning" size="small" sx={{ ml: 1 }} />}
+                          <IconButton size="small" color="error" sx={{ ml: 0.5 }} onClick={() => { setDeleteRow(d); setDeleteOpen(true); }} disabled={!allowDelete}>
+                            <Delete />
+                          </IconButton>
+                        </Box>
+                      );
+                    })()}
                   </TableCell>
                 )}
               </TableRow>

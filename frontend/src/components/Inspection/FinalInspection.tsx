@@ -36,7 +36,7 @@ import { FinalInspection as FinalInspectionType, FitUpInspection } from '../../t
 type NewFinalInspection = Omit<FinalInspectionType, 'id' | 'created_at'>;
 
 const FinalInspection: React.FC = () => {
-  const { selectedProject } = useAuth();
+  const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
   const [records, setRecords] = useState<FinalInspectionType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +54,7 @@ const FinalInspection: React.FC = () => {
     weld_type: '',
     wps_no: '',
     welder_no: '',
+    weld_site: '',
     final_date: '',
     final_report_no: '',
     final_result: '',
@@ -173,6 +174,7 @@ const FinalInspection: React.FC = () => {
       weld_type: '',
       wps_no: '',
       welder_no: '',
+      weld_site: '',
       welder_validity: '',
       final_date: '',
       final_report_no: '',
@@ -197,6 +199,7 @@ const FinalInspection: React.FC = () => {
       weld_type: record.weld_type || '',
       wps_no: record.wps_no || '',
       welder_no: record.welder_no || '',
+      weld_site: record.weld_site || '',
       welder_validity: record.welder_validity || '',
       final_date: record.final_date || '',
       final_report_no: record.final_report_no || '',
@@ -403,6 +406,7 @@ const FinalInspection: React.FC = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleAddClick}
+            disabled={!canEdit()}
           >
             Add Final Inspection
           </Button>
@@ -587,6 +591,7 @@ const FinalInspection: React.FC = () => {
               <TableCell><strong>Welder No</strong></TableCell>
               <TableCell><strong>Welder Validity</strong></TableCell>
               <TableCell><strong>NDT Type</strong></TableCell>
+              <TableCell><strong>Weld Site</strong></TableCell>
               <TableCell><strong>Weld Length</strong></TableCell>
               <TableCell><strong>Pipe Dia</strong></TableCell>
               <TableCell><strong>Final Date</strong></TableCell>
@@ -634,6 +639,13 @@ const FinalInspection: React.FC = () => {
                     <TableCell>{record.welder_validity || 'N/A'}</TableCell>
                     <TableCell>{record.ndt_type || 'N/A'}</TableCell>
                     <TableCell>
+                      <Chip 
+                        label={record.weld_site || 'N/A'} 
+                        size="small" 
+                        color={record.weld_site === 'shop weld' ? 'primary' : 'secondary'}
+                      />
+                    </TableCell>
+                    <TableCell>
                       {record.weld_length ? `${record.weld_length} mm` : 'N/A'}
                     </TableCell>
                     <TableCell>{record.pipe_dia || 'N/A'}</TableCell>
@@ -663,12 +675,21 @@ const FinalInspection: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" color="primary" onClick={() => handleEditClick(record)}>
-                        <Edit />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)}>
-                        <Delete />
-                      </IconButton>
+                      {(() => {
+                        const accepted = (record.final_result || '').toLowerCase() === 'accepted';
+                        const allowEdit = isAdmin() || ((user?.role || '').toLowerCase() === 'inspector' && !accepted);
+                        const allowDelete = canDelete();
+                        return (
+                          <Box>
+                            <IconButton size="small" color="primary" onClick={() => handleEditClick(record)} disabled={!allowEdit}>
+                              <Edit />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)} disabled={!allowDelete}>
+                              <Delete />
+                            </IconButton>
+                          </Box>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))
@@ -868,6 +889,18 @@ const FinalInspection: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Weld Site"
+                value={formData.weld_site || ''}
+                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
+                fullWidth
+              >
+                <MenuItem value="shop weld">shop weld</MenuItem>
+                <MenuItem value="float weld">float weld</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -1119,6 +1152,18 @@ const FinalInspection: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Weld Site"
+                value={formData.weld_site || ''}
+                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
+                fullWidth
+              >
+                <MenuItem value="shop weld">shop weld</MenuItem>
+                <MenuItem value="float weld">float weld</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

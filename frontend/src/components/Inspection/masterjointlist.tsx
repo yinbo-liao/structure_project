@@ -175,28 +175,8 @@ const MasterJointList: React.FC = () => {
     { field: 'weld_type', headerName: 'Weld Type', width: 120, editable: true },
     { field: 'part1_piece_mark_no', headerName: 'Part 1 Piece Mark', width: 150, editable: true },
     { field: 'part2_piece_mark_no', headerName: 'Part 2 Piece Mark', width: 150, editable: true },
-    { 
-      field: 'fitup_status', 
-      headerName: 'Fit-up Status', 
-      width: 120, 
-      editable: true, 
-      type: 'select', 
-      options: [
-        { value: 'pending', label: 'Pending' },
-        { value: 'done', label: 'Fit Up Done' }
-      ]
-    },
-    { 
-      field: 'final_status', 
-      headerName: 'Final Status', 
-      width: 120, 
-      editable: true, 
-      type: 'select', 
-      options: [
-        { value: 'pending', label: 'Pending' },
-        { value: 'done', label: 'Final Done' }
-      ]
-    },
+    { field: 'fitup_status', headerName: 'Fit-up Status', width: 160, editable: false },
+    { field: 'final_status', headerName: 'Final Status', width: 160, editable: false },
     { field: 'created_at', headerName: 'Created', width: 120, type: 'date' }
   ];
 
@@ -268,7 +248,7 @@ const MasterJointList: React.FC = () => {
               variant="outlined" 
             />
             <Chip 
-              label={`Fit Up Done: ${joints.filter(j => j.fitup_status === 'done').length}`} 
+              label={`Fit Up Done: ${joints.filter(j => (j.fitup_status && j.fitup_status !== 'pending')).length}`} 
               color="success" 
               variant="outlined"
             />
@@ -278,7 +258,7 @@ const MasterJointList: React.FC = () => {
               variant="outlined"
             />
             <Chip 
-              label={`Final Done: ${joints.filter(j => j.final_status === 'done').length}`} 
+              label={`Final Done: ${joints.filter(j => (j.final_status && j.final_status !== 'pending')).length}`} 
               color="success" 
               variant="outlined"
             />

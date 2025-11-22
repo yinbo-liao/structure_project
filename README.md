@@ -26,7 +26,7 @@ A comprehensive digital inspection management system designed for fabrication pr
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   React Frontend │───▶│  FastAPI Backend  │───▶│   PostgreSQL    │
+│   React Frontend │───▶│  FastAPI Backend  │───▶│   sql_lite    │
 │                 │    │                  │    │                 │
 │ - TypeScript    │    │ - Python 3.9+    │    │ - Main Database │
 │ - Material-UI   │    │ - SQLAlchemy     │    │ - Audit Logs    │
@@ -36,8 +36,7 @@ A comprehensive digital inspection management system designed for fabrication pr
          │                        │
          ▼                        ▼
 ┌─────────────────┐    ┌──────────────────┐
-│   Nginx Proxy   │    │  Qwen AI Service │
-│                 │    │                  │
+│   Nginx Proxy   │    │  deepseek AI service               │
 │ - SSL Termination│   │ - DashScope API  │
 │ - Static Files   │   │ - Report Gen     │
 └─────────────────┘    └──────────────────┘

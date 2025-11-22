@@ -701,21 +701,23 @@ def create_fitup_inspection(
         db.commit()
         db.refresh(db_fitup)
         try:
-            if db_fitup.fit_up_report_no:
-                joint = None
-                if db_fitup.master_joint_id:
-                    joint = db.query(MasterJointList).filter(MasterJointList.id == db_fitup.master_joint_id).first()
-                if not joint:
-                    joint = db.query(MasterJointList).filter(
-                        MasterJointList.project_id == db_fitup.project_id,
-                        MasterJointList.system_no == (db_fitup.system_no or ""),
-                        MasterJointList.line_no == (db_fitup.line_no or ""),
-                        MasterJointList.spool_no == (db_fitup.spool_no or ""),
-                        MasterJointList.joint_no == (db_fitup.joint_no or "")
-                    ).first()
-                if joint:
+            joint = None
+            if db_fitup.master_joint_id:
+                joint = db.query(MasterJointList).filter(MasterJointList.id == db_fitup.master_joint_id).first()
+            if not joint:
+                joint = db.query(MasterJointList).filter(
+                    MasterJointList.project_id == db_fitup.project_id,
+                    MasterJointList.system_no == (db_fitup.system_no or ""),
+                    MasterJointList.line_no == (db_fitup.line_no or ""),
+                    MasterJointList.spool_no == (db_fitup.spool_no or ""),
+                    MasterJointList.joint_no == (db_fitup.joint_no or "")
+                ).first()
+            if joint:
+                if db_fitup.fit_up_report_no:
                     joint.fit_up_report_no = db_fitup.fit_up_report_no
-                    db.commit()
+                if (db_fitup.fit_up_result or '').lower() == 'accepted' and db_fitup.fit_up_report_no:
+                    joint.fitup_status = db_fitup.fit_up_report_no
+                db.commit()
         except Exception:
             pass
         return db_fitup
@@ -738,6 +740,11 @@ def update_fitup_inspection(
     project = db.query(ProjectModel).filter(ProjectModel.id == fitup.project_id).first()
     if current_user.role != 'admin' and project not in current_user.assigned_projects:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
+    
+    if (current_user.role or '').lower() == 'inspector':
+        s = (fitup.fit_up_result or '').lower()
+        if s == 'accepted':
+            raise HTTPException(status_code=403, detail="Not authorized to edit accepted fit-up as inspector")
     
     update_data = fitup_update if isinstance(fitup_update, dict) else fitup_update.model_dump(exclude_unset=True)
     immutable = {'id', 'project_id', 'created_at'}
@@ -805,21 +812,23 @@ def update_fitup_inspection(
     db.commit()
     db.refresh(fitup)
     try:
-        if fitup.fit_up_report_no:
-            joint = None
-            if fitup.master_joint_id:
-                joint = db.query(MasterJointList).filter(MasterJointList.id == fitup.master_joint_id).first()
-            if not joint:
-                joint = db.query(MasterJointList).filter(
-                    MasterJointList.project_id == fitup.project_id,
-                    MasterJointList.system_no == (fitup.system_no or ""),
-                    MasterJointList.line_no == (fitup.line_no or ""),
-                    MasterJointList.spool_no == (fitup.spool_no or ""),
-                    MasterJointList.joint_no == (fitup.joint_no or "")
-                ).first()
-            if joint:
+        joint = None
+        if fitup.master_joint_id:
+            joint = db.query(MasterJointList).filter(MasterJointList.id == fitup.master_joint_id).first()
+        if not joint:
+            joint = db.query(MasterJointList).filter(
+                MasterJointList.project_id == fitup.project_id,
+                MasterJointList.system_no == (fitup.system_no or ""),
+                MasterJointList.line_no == (fitup.line_no or ""),
+                MasterJointList.spool_no == (fitup.spool_no or ""),
+                MasterJointList.joint_no == (fitup.joint_no or "")
+            ).first()
+        if joint:
+            if fitup.fit_up_report_no:
                 joint.fit_up_report_no = fitup.fit_up_report_no
-                db.commit()
+            if (fitup.fit_up_result or '').lower() == 'accepted' and fitup.fit_up_report_no:
+                joint.fitup_status = fitup.fit_up_report_no
+            db.commit()
     except Exception:
         pass
     return fitup
@@ -828,7 +837,7 @@ def update_fitup_inspection(
 def delete_fitup_inspection(
     fitup_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     fitup = db.query(FitUpInspection).filter(FitUpInspection.id == fitup_id).first()
     if not fitup:
@@ -994,6 +1003,25 @@ def create_final_inspection(
         )
         db.add(rec)
         db.commit()
+    try:
+        joint = None
+        if db_final.fitup_id:
+            fitup = db.query(FitUpInspection).filter(FitUpInspection.id == db_final.fitup_id).first()
+            if getattr(fitup, 'master_joint_id', None):
+                joint = db.query(MasterJointList).filter(MasterJointList.id == fitup.master_joint_id).first()
+        if not joint:
+            joint = db.query(MasterJointList).filter(
+                MasterJointList.project_id == db_final.project_id,
+                MasterJointList.system_no == (db_final.system_no or getattr(fitup, 'system_no', '') or ''),
+                MasterJointList.line_no == (db_final.line_no or getattr(fitup, 'line_no', '') or ''),
+                MasterJointList.spool_no == (db_final.spool_no or getattr(fitup, 'spool_no', '') or ''),
+                MasterJointList.joint_no == (db_final.joint_no or getattr(fitup, 'joint_no', '') or ''),
+            ).first()
+        if joint and (db_final.final_result or '').lower() == 'accepted' and db_final.final_report_no:
+            joint.final_status = db_final.final_report_no
+            db.commit()
+    except Exception:
+        pass
     return db_final
 
 @router.put("/final-inspection/{final_id}", response_model=FinalInspectionSchema)
@@ -1012,6 +1040,10 @@ def update_final_inspection(
     if current_user.role != 'admin' and project not in current_user.assigned_projects:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     
+    if (current_user.role or '').lower() == 'inspector':
+        s = (final.final_result or '').lower()
+        if s == 'accepted':
+            raise HTTPException(status_code=403, detail="Not authorized to edit accepted final as inspector")
     update_data = final_update if isinstance(final_update, dict) else final_update.model_dump(exclude_unset=True)
     immutable = {'id', 'project_id', 'created_at'}
     for k in list(update_data.keys()):
@@ -1049,13 +1081,33 @@ def update_final_inspection(
     
     db.commit()
     db.refresh(final)
+    try:
+        joint = None
+        fitup = None
+        if final.fitup_id:
+            fitup = db.query(FitUpInspection).filter(FitUpInspection.id == final.fitup_id).first()
+            if getattr(fitup, 'master_joint_id', None):
+                joint = db.query(MasterJointList).filter(MasterJointList.id == fitup.master_joint_id).first()
+        if not joint:
+            joint = db.query(MasterJointList).filter(
+                MasterJointList.project_id == final.project_id,
+                MasterJointList.system_no == (final.system_no or getattr(fitup, 'system_no', '') or ''),
+                MasterJointList.line_no == (final.line_no or getattr(fitup, 'line_no', '') or ''),
+                MasterJointList.spool_no == (final.spool_no or getattr(fitup, 'spool_no', '') or ''),
+                MasterJointList.joint_no == (final.joint_no or getattr(fitup, 'joint_no', '') or ''),
+            ).first()
+        if joint and (final.final_result or '').lower() == 'accepted' and final.final_report_no:
+            joint.final_status = final.final_report_no
+            db.commit()
+    except Exception:
+        pass
     return final
 
 @router.delete("/final-inspection/{final_id}")
 def delete_final_inspection(
     final_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     final = db.query(FinalInspection).filter(FinalInspection.id == final_id).first()
     if not final:
@@ -1205,6 +1257,10 @@ def update_ndt_status_record(
     project = db.query(ProjectModel).filter(ProjectModel.id == rec.project_id).first()
     if current_user.role != 'admin' and project not in current_user.assigned_projects:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
+    if (current_user.role or '').lower() == 'inspector':
+        s = (rec.ndt_result or '').lower()
+        if s == 'accepted':
+            raise HTTPException(status_code=403, detail="Not authorized to edit accepted NDT status as inspector")
     allowed = {"welder_no", "weld_size", "weld_site", "ndt_type", "ndt_report_no", "ndt_result", "rejected_length"}
     incoming = (payload if isinstance(payload, dict) else payload.model_dump(exclude_unset=True))
     for k, v in incoming.items():
@@ -1271,7 +1327,7 @@ def update_ndt_status_record(
 def delete_ndt_status_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     rec = db.query(NDTStatusRecord).filter(NDTStatusRecord.id == record_id).first()
     if not rec:
@@ -1564,7 +1620,7 @@ def update_ndt_request(
 def delete_ndt_request(
     ndt_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     ndt = db.query(NDTRequest).filter(NDTRequest.id == ndt_id).first()
     if not ndt:
@@ -1650,7 +1706,7 @@ def update_ndt_test(
 def delete_ndt_test(
     test_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     ndt = db.query(NDTTest).filter(NDTTest.id == test_id).first()
     if not ndt:

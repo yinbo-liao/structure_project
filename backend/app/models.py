@@ -180,6 +180,7 @@ class FinalInspection(Base):
     wps_no = Column(String(50))
     welder_no = Column(String(50))
     welder_validity = Column(String(20))
+    weld_site = Column(String(20))
     final_date = Column(DateTime)
     final_report_no = Column(String(50))
     final_result = Column(String(50))

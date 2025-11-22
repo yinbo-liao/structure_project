@@ -127,6 +127,7 @@ export interface FinalInspection {
   wps_no?: string;
   welder_no?: string;
   welder_validity?: string;
+  weld_site?: string;
   final_date?: string;
   final_report_no?: string;
   final_result?: string;

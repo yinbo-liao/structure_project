@@ -36,7 +36,7 @@ import { FitUpInspection as FitUpInspectionType, MaterialRegister as MaterialReg
 type NewFitUpInspection = Omit<FitUpInspectionType, 'id' | 'project_id' | 'created_at' | 'updated_at'>;
 
 const FitUpInspection: React.FC = () => {
-  const { selectedProject } = useAuth();
+  const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
   const [records, setRecords] = useState<FitUpInspectionType[]>([]);
   const [materials, setMaterials] = useState<MaterialRegisterType[]>([]);
   const [masterJoints, setMasterJoints] = useState<MasterJointListType[]>([]);
@@ -443,6 +443,7 @@ const FitUpInspection: React.FC = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleAddClick}
+            disabled={!canEdit()}
           >
             Add Fit-up
           </Button>
@@ -709,7 +710,7 @@ const FitUpInspection: React.FC = () => {
                       <Chip 
                         label={record.weld_site || 'N/A'} 
                         size="small" 
-                        color={record.weld_site === 'shop' ? 'primary' : 'secondary'}
+                        color={record.weld_site === 'shop weld' ? 'primary' : 'secondary'}
                       />
                     </TableCell>
                     <TableCell>
@@ -743,12 +744,21 @@ const FitUpInspection: React.FC = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" color="primary" onClick={() => handleEditClick(record)}>
-                        <Edit />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)}>
-                        <Delete />
-                      </IconButton>
+                      {(() => {
+                        const accepted = (record.fit_up_result || '').toLowerCase() === 'accepted';
+                        const allowEdit = isAdmin() || ((user?.role || '').toLowerCase() === 'inspector' && !accepted);
+                        const allowDelete = canDelete();
+                        return (
+                          <Box>
+                            <IconButton size="small" color="primary" onClick={() => handleEditClick(record)} disabled={!allowEdit}>
+                              <Edit />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)} disabled={!allowDelete}>
+                              <Delete />
+                            </IconButton>
+                          </Box>
+                        );
+                      })()}
                     </TableCell>
                   </TableRow>
                 ))
@@ -1092,11 +1102,15 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                select
                 label="Weld Site"
-                value={formData.weld_site}
+                value={formData.weld_site || ''}
                 onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
                 fullWidth
-              />
+              >
+                <MenuItem value="shop weld">shop weld</MenuItem>
+                <MenuItem value="float weld">float weld</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField

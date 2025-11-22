@@ -233,6 +233,7 @@ class FinalInspectionBase(BaseModel):
     wps_no: Optional[str] = None
     welder_no: Optional[str] = None
     welder_validity: Optional[str] = None
+    weld_site: Optional[str] = None
     final_date: Optional[datetime] = None
     final_report_no: Optional[str] = None
     final_result: Optional[str] = None

@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from app.database import engine
-from app.models import Base
+from app.database import engine, SessionLocal
+from app.models import Base, MasterJointList, FitUpInspection, FinalInspection
 from app.routes import auth, users, projects, inspections, ai
 
 Base.metadata.create_all(bind=engine)
@@ -77,6 +77,8 @@ def _ensure_final_inspection_columns():
         existing = [r[1] for r in rows]
         if 'welder_validity' not in existing:
             conn.exec_driver_sql("ALTER TABLE final_inspection ADD COLUMN welder_validity TEXT")
+        if 'weld_site' not in existing:
+            conn.exec_driver_sql("ALTER TABLE final_inspection ADD COLUMN weld_site TEXT")
 
 def _ensure_fitup_inspection_columns():
     if engine.dialect.name != 'sqlite':
@@ -220,3 +222,54 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+else:
+    import threading, time
+    def _sync_master_joint_status_loop():
+        while True:
+            try:
+                db = SessionLocal()
+                try:
+                    fits = db.query(FitUpInspection).filter(FitUpInspection.fit_up_result.ilike('accepted')).all()
+                    for f in fits:
+                        joint = None
+                        if getattr(f, 'master_joint_id', None):
+                            joint = db.query(MasterJointList).filter(MasterJointList.id == f.master_joint_id).first()
+                        if not joint:
+                            joint = db.query(MasterJointList).filter(
+                                MasterJointList.project_id == f.project_id,
+                                MasterJointList.system_no == (f.system_no or ''),
+                                MasterJointList.line_no == (f.line_no or ''),
+                                MasterJointList.spool_no == (f.spool_no or ''),
+                                MasterJointList.joint_no == (f.joint_no or ''),
+                            ).first()
+                        if joint and f.fit_up_report_no:
+                            if getattr(joint, 'fit_up_report_no', None) != f.fit_up_report_no:
+                                joint.fit_up_report_no = f.fit_up_report_no
+                            if getattr(joint, 'fitup_status', None) != f.fit_up_report_no:
+                                joint.fitup_status = f.fit_up_report_no
+                    finals = db.query(FinalInspection).filter(FinalInspection.final_result.ilike('accepted')).all()
+                    for fin in finals:
+                        joint = None
+                        f = None
+                        if getattr(fin, 'fitup_id', None):
+                            f = db.query(FitUpInspection).filter(FitUpInspection.id == fin.fitup_id).first()
+                            if getattr(f, 'master_joint_id', None):
+                                joint = db.query(MasterJointList).filter(MasterJointList.id == f.master_joint_id).first()
+                        if not joint:
+                            joint = db.query(MasterJointList).filter(
+                                MasterJointList.project_id == fin.project_id,
+                                MasterJointList.system_no == (fin.system_no or getattr(f, 'system_no', '') or ''),
+                                MasterJointList.line_no == (fin.line_no or getattr(f, 'line_no', '') or ''),
+                                MasterJointList.spool_no == (fin.spool_no or getattr(f, 'spool_no', '') or ''),
+                                MasterJointList.joint_no == (fin.joint_no or getattr(f, 'joint_no', '') or ''),
+                            ).first()
+                        if joint and fin.final_report_no:
+                            if getattr(joint, 'final_status', None) != fin.final_report_no:
+                                joint.final_status = fin.final_report_no
+                    db.commit()
+                finally:
+                    db.close()
+            except Exception:
+                pass
+            time.sleep(60)
+    threading.Thread(target=_sync_master_joint_status_loop, daemon=True).start()
