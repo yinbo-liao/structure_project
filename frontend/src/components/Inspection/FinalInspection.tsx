@@ -26,20 +26,26 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Tooltip
 } from '@mui/material';
-import { Checklist, Refresh, Add, Edit, Delete } from '@mui/icons-material';
+import { Checklist, Refresh, Add, Edit, Delete, Warning, Info } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { FinalInspection as FinalInspectionType, FitUpInspection } from '../../types';
+import { calculateWeldLengthFromDiameter, validateWeldLength, isPipeProject } from '../../utils/weldLengthCalculator';
 
 type NewFinalInspection = Omit<FinalInspectionType, 'id' | 'created_at'>;
 
 const FinalInspection: React.FC = () => {
   const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
+  const isStructureProject = selectedProject?.project_type === 'structure';
   const [records, setRecords] = useState<FinalInspectionType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,8 +67,17 @@ const FinalInspection: React.FC = () => {
     ndt_type: '',
     weld_length: 0,
     pipe_dia: '',
-    remarks: ''
+    remarks: '',
+    inspection_category: 'type-I'
   });
+  const [repairWorkOverride, setRepairWorkOverride] = useState<boolean>(false);
+  const [weldLengthValidation, setWeldLengthValidation] = useState<{
+    isValid: boolean;
+    calculatedLength?: number;
+    difference?: number;
+    percentageDiff?: number;
+    message: string;
+  } | null>(null);
   const [fitupRecords, setFitupRecords] = useState<FitUpInspection[]>([]);
   const [wpsList, setWpsList] = useState<any[]>([]);
   const [welderList, setWelderList] = useState<any[]>([]);
@@ -77,9 +92,14 @@ const FinalInspection: React.FC = () => {
   const [filterOptions, setFilterOptions] = useState<{ system_no: string[]; spool_no: string[]; joint_no: string[]; final_report_no: string[]; final_result: string[] }>({
     system_no: [], spool_no: [], joint_no: [], final_report_no: [], final_result: []
   });
+  const [editGroupIds, setEditGroupIds] = useState<number[]>([]);
+  const [editGroupIndex, setEditGroupIndex] = useState<number>(0);
 
   const keyFor = (obj: { system_no?: string; line_no?: string; spool_no?: string; joint_no?: string }) =>
     `${(obj.system_no||'').trim()}-${(obj.line_no||'').trim()}-${(obj.spool_no||'').trim()}-${(obj.joint_no||'').trim()}`;
+
+  const makeJointKey = (line?: string | null, spool?: string | null, joint?: string | null) =>
+    `${(line || '').trim().toLowerCase()}-${(spool || '').trim().toLowerCase()}-${(joint || '').trim().toLowerCase()}`;
 
   const findFitupByForm = () => {
     return fitupRecords.find(m =>
@@ -90,9 +110,22 @@ const FinalInspection: React.FC = () => {
     );
   };
 
+  // Update weld length validation when pipe_dia or weld_length changes
+  useEffect(() => {
+    if (isPipeProject(selectedProject?.project_type)) {
+      const validation = validateWeldLength(formData.weld_length, formData.pipe_dia, repairWorkOverride ? 1000 : 0.1);
+      setWeldLengthValidation(validation);
+    } else {
+      setWeldLengthValidation(null);
+    }
+  }, [formData.weld_length, formData.pipe_dia, repairWorkOverride, selectedProject?.project_type]);
+
   const applyFitupJoint = (fitupId: number) => {
     const fu = fitupRecords.find(j => j.id === fitupId);
     if (!fu) return;
+    
+    const calculatedLength = calculateWeldLengthFromDiameter(fu.dia || '');
+    
     setFormData({
       ...formData,
       fitup_id: fu.id,
@@ -101,7 +134,7 @@ const FinalInspection: React.FC = () => {
       spool_no: fu.spool_no || '',
       joint_no: fu.joint_no || '',
       weld_type: fu.weld_type || '',
-      weld_length: fu.weld_length || 0,
+      weld_length: calculatedLength || fu.weld_length || 0,
       pipe_dia: fu.dia || ''
     });
   };
@@ -182,12 +215,20 @@ const FinalInspection: React.FC = () => {
       ndt_type: '',
       weld_length: 0,
       pipe_dia: '',
-      remarks: ''
+      remarks: '',
+      inspection_category: 'type-I'
     });
     setAddDialogOpen(true);
   };
 
   const handleEditClick = (record: FinalInspectionType) => {
+    const groupIds =
+      selectedRows.includes(record.id) && selectedRows.length > 0
+        ? selectedRows
+        : [record.id];
+    setEditGroupIds(groupIds);
+    const idx = groupIds.indexOf(record.id);
+    setEditGroupIndex(idx >= 0 ? idx : 0);
     setSelectedRecord(record);
     setFormData({
       fitup_id: record.fitup_id || 0,
@@ -207,7 +248,8 @@ const FinalInspection: React.FC = () => {
       ndt_type: record.ndt_type || '',
       weld_length: record.weld_length || 0,
       pipe_dia: record.pipe_dia || '',
-      remarks: record.remarks || ''
+      remarks: record.remarks || '',
+      inspection_category: record.inspection_category || 'type-I'
     });
     setEditDialogOpen(true);
   };
@@ -218,19 +260,45 @@ const FinalInspection: React.FC = () => {
   };
 
   const handleAddSubmit = async () => {
+    if (selectedProject?.project_type === 'pipe') {
+      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
+      if (key !== '--') {
+        const exists = records.some(r => makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
+        if (exists) {
+          setError('Duplicate joint in final inspection: same line, spool and joint already exists');
+          return;
+        }
+      }
+    }
     try {
       const f = findFitupByForm();
-      const payload = {
+      const payload: any = {
         ...formData,
         project_id: selectedProject!.id,
         fitup_id: f?.id || 0,
         remarks: f ? formData.remarks : `${formData.remarks ? formData.remarks + ' • ' : ''}fit up not done`
-      } as any;
+      };
+      if (!payload.final_date) {
+        delete payload.final_date;
+      } else {
+        try {
+          payload.final_date = new Date(payload.final_date).toISOString();
+        } catch {
+          delete payload.final_date;
+        }
+      }
       await ApiService.createFinalInspection(payload);
       setAddDialogOpen(false);
       fetchFinalRecords();
-    } catch (err) {
-      setError('Failed to create final inspection record');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : detail && detail.msg
+          ? detail.msg
+          : err?.message || 'Failed to create final inspection record';
+      setError(message);
       console.error('Error creating final inspection record:', err);
     }
   };
@@ -238,19 +306,85 @@ const FinalInspection: React.FC = () => {
   const handleEditSubmit = async () => {
     if (!selectedRecord) return;
     
+    if (selectedProject?.project_type === 'pipe') {
+      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
+      if (key !== '--') {
+        const exists = records.some(r => r.id !== selectedRecord.id && makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
+        if (exists) {
+          setError('Duplicate joint in final inspection: same line, spool and joint already exists');
+          return;
+        }
+      }
+    }
     try {
       const f = findFitupByForm();
-      const payload = {
+      const payload: any = {
         ...formData,
         fitup_id: f?.id || 0,
         remarks: f ? formData.remarks : `${formData.remarks ? formData.remarks + ' • ' : ''}fit up not done`
-      } as any;
+      };
+      if (!payload.final_date) {
+        delete payload.final_date;
+      } else {
+        try {
+          payload.final_date = new Date(payload.final_date).toISOString();
+        } catch {
+          delete payload.final_date;
+        }
+      }
       await ApiService.updateFinalInspection(selectedRecord.id, payload);
-      setEditDialogOpen(false);
-      setSelectedRecord(null);
-      fetchFinalRecords();
-    } catch (err) {
-      setError('Failed to update final inspection record');
+      const groupSize = editGroupIds.length;
+      const currentIndex = editGroupIndex;
+      const hasNext = groupSize > 0 && currentIndex < groupSize - 1;
+      if (hasNext) {
+        const nextId = editGroupIds[currentIndex + 1];
+        const nextRecord = records.find(r => r.id === nextId);
+        if (nextRecord) {
+          setSelectedRecord(nextRecord);
+          setFormData({
+            fitup_id: nextRecord.fitup_id || 0,
+            project_id: nextRecord.project_id,
+            system_no: nextRecord.system_no || '',
+            line_no: nextRecord.line_no || '',
+            spool_no: nextRecord.spool_no || '',
+            joint_no: nextRecord.joint_no || '',
+            weld_type: nextRecord.weld_type || '',
+            wps_no: nextRecord.wps_no || '',
+            welder_no: nextRecord.welder_no || '',
+            weld_site: nextRecord.weld_site || '',
+            welder_validity: nextRecord.welder_validity || '',
+            final_date: nextRecord.final_date || '',
+            final_report_no: nextRecord.final_report_no || '',
+            final_result: nextRecord.final_result || '',
+            ndt_type: nextRecord.ndt_type || '',
+            weld_length: nextRecord.weld_length || 0,
+            pipe_dia: nextRecord.pipe_dia || '',
+            remarks: nextRecord.remarks || ''
+          });
+          setEditGroupIndex(currentIndex + 1);
+        } else {
+          setEditDialogOpen(false);
+          setSelectedRecord(null);
+          setEditGroupIds([]);
+          setEditGroupIndex(0);
+          fetchFinalRecords();
+        }
+      } else {
+        setEditDialogOpen(false);
+        setSelectedRecord(null);
+        setEditGroupIds([]);
+        setEditGroupIndex(0);
+        fetchFinalRecords();
+      }
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : detail && detail.msg
+          ? detail.msg
+          : err?.message || 'Failed to update final inspection record';
+      setError(message);
       console.error('Error updating final inspection record:', err);
     }
   };
@@ -263,8 +397,15 @@ const FinalInspection: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedRecord(null);
       fetchFinalRecords();
-    } catch (err) {
-      setError('Failed to delete final inspection record');
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : detail && detail.msg
+          ? detail.msg
+          : err?.message || 'Failed to delete final inspection record';
+      setError(message);
       console.error('Error deleting final inspection record:', err);
     }
   };
@@ -306,23 +447,41 @@ const FinalInspection: React.FC = () => {
   });
 
   const downloadCSV = () => {
-    const headers = [
-      'System No',
-      'Line No',
-      'Spool No',
-      'Joint No',
-      'Weld Type',
-      'WPS No',
-      'Welder No',
-      'Welder Validity',
-      'NDT Type',
-      'Weld Length',
-      'Pipe Dia',
-      'Final Date',
-      'Report No',
-      'Result',
-      'Fit-up Link'
-    ];
+    const headers = isStructureProject
+      ? [
+          'Drawing No',
+          'Structure Category',
+          'Page No',
+          'Joint No',
+          'Weld Type',
+          'WPS No',
+          'Welder No',
+          'Welder Validity',
+          'NDT Type',
+          'Weld Length',
+          'Size',
+          'Final Date',
+          'Report No',
+          'Result',
+          'Fit-up Link'
+        ]
+      : [
+          'System No',
+          'Line No',
+          'Spool No',
+          'Joint No',
+          'Weld Type',
+          'WPS No',
+          'Welder No',
+          'Welder Validity',
+          'NDT Type',
+          'Weld Length',
+          ...(selectedProject?.project_type === 'pipe' ? ['Pipe Dia'] : []),
+          'Final Date',
+          'Report No',
+          'Result',
+          'Fit-up Link'
+        ];
     const rows = filteredRecords.map(record => {
       const inFitup = fitupRecords.length > 0 ? (
         fitupRecords.some(m =>
@@ -335,23 +494,41 @@ const FinalInspection: React.FC = () => {
       const fitupLink = fitupRecords.length === 0 ? '-' : (inFitup ? 'In Fit-up' : 'Fit-up Missing');
       const lengthStr = record.weld_length ? `${record.weld_length} mm` : '';
       const dateStr = formatDate(record.final_date);
-      return [
-        record.system_no || '',
-        record.line_no || '',
-        record.spool_no || '',
-        record.joint_no || '',
-        record.weld_type || '',
-        record.wps_no || '',
-        record.welder_no || '',
-        record.welder_validity || '',
-        record.ndt_type || '',
-        lengthStr,
-        record.pipe_dia || '',
-        dateStr,
-        record.final_report_no || '',
-        record.final_result || '',
-        fitupLink
-      ];
+      return isStructureProject
+        ? [
+            record.spool_no || '',
+            record.system_no || '',
+            record.line_no || '',
+            record.joint_no || '',
+            record.weld_type || '',
+            record.wps_no || '',
+            record.welder_no || '',
+            record.welder_validity || '',
+            record.ndt_type || '',
+            lengthStr,
+            record.pipe_dia || '',
+            dateStr,
+            record.final_report_no || '',
+            record.final_result || '',
+            fitupLink
+          ]
+        : [
+            record.system_no || '',
+            record.line_no || '',
+            record.spool_no || '',
+            record.joint_no || '',
+            record.weld_type || '',
+            record.wps_no || '',
+            record.welder_no || '',
+            record.welder_validity || '',
+            record.ndt_type || '',
+            lengthStr,
+            ...(selectedProject?.project_type === 'pipe' ? [record.pipe_dia || ''] : []),
+            dateStr,
+            record.final_report_no || '',
+            record.final_result || '',
+            fitupLink
+          ];
     });
     const escape = (v: string) => {
       const s = String(v ?? '');
@@ -385,7 +562,7 @@ const FinalInspection: React.FC = () => {
           <Checklist sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
-              Final Inspection
+              {isStructureProject ? 'Structure Final Inspection' : 'Pipe Final Inspection'}
             </Typography>
             <Typography variant="subtitle1" color="textSecondary">
               {selectedProject.name} ({selectedProject.code})
@@ -483,9 +660,9 @@ const FinalInspection: React.FC = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>System No</InputLabel>
+              <InputLabel>{isStructureProject ? 'Structure Category' : 'System No'}</InputLabel>
               <Select
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={search.system_no}
                 onChange={(e) => setSearch({ ...search, system_no: String(e.target.value) })}
               >
@@ -498,9 +675,9 @@ const FinalInspection: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>Spool No</InputLabel>
+              <InputLabel>{isStructureProject ? 'Drawing No' : 'Spool No'}</InputLabel>
               <Select
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={search.spool_no}
                 onChange={(e) => setSearch({ ...search, spool_no: String(e.target.value) })}
               >
@@ -582,18 +759,32 @@ const FinalInspection: React.FC = () => {
           <Table sx={{ minWidth: 650 }} aria-label="final inspection records table">
           <TableHead>
             <TableRow>
-              <TableCell><strong>System No</strong></TableCell>
-              <TableCell><strong>Line No</strong></TableCell>
-              <TableCell><strong>Spool No</strong></TableCell>
+              <TableCell padding="checkbox" />
+              {isStructureProject ? (
+                <>
+                  <TableCell><strong>Drawing No</strong></TableCell>
+                  <TableCell><strong>Structure Category</strong></TableCell>
+                  <TableCell><strong>Page No</strong></TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell><strong>System No</strong></TableCell>
+                  <TableCell><strong>Line No</strong></TableCell>
+                  <TableCell><strong>Spool No</strong></TableCell>
+                </>
+              )}
               <TableCell><strong>Joint No</strong></TableCell>
               <TableCell><strong>Weld Type</strong></TableCell>
+              <TableCell><strong>Inspection Category</strong></TableCell>
               <TableCell><strong>WPS No</strong></TableCell>
               <TableCell><strong>Welder No</strong></TableCell>
               <TableCell><strong>Welder Validity</strong></TableCell>
               <TableCell><strong>NDT Type</strong></TableCell>
               <TableCell><strong>Weld Site</strong></TableCell>
               <TableCell><strong>Weld Length</strong></TableCell>
-              <TableCell><strong>Pipe Dia</strong></TableCell>
+              {selectedProject?.project_type === 'pipe' && (
+                <TableCell><strong>Pipe Dia</strong></TableCell>
+              )}
               <TableCell><strong>Final Date</strong></TableCell>
               <TableCell><strong>Report No</strong></TableCell>
               <TableCell><strong>Result</strong></TableCell>
@@ -604,7 +795,7 @@ const FinalInspection: React.FC = () => {
           <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
                       No final inspection records found for this project.
                     </Typography>
@@ -620,7 +811,7 @@ const FinalInspection: React.FC = () => {
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
                       No records match current search.
                     </Typography>
@@ -628,12 +819,35 @@ const FinalInspection: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => (
-                  <TableRow key={record.id} hover>
-                    <TableCell>{record.system_no || 'N/A'}</TableCell>
-                    <TableCell>{record.line_no || 'N/A'}</TableCell>
-                    <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                  <TableRow key={record.id} hover selected={selectedRows.includes(record.id)}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedRows.includes(record.id)}
+                        onChange={() => {
+                          setSelectedRows(prev =>
+                            prev.includes(record.id)
+                              ? prev.filter(id => id !== record.id)
+                              : [...prev, record.id]
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    {isStructureProject ? (
+                      <>
+                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                        <TableCell>{record.system_no || 'N/A'}</TableCell>
+                        <TableCell>{record.line_no || 'N/A'}</TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell>{record.system_no || 'N/A'}</TableCell>
+                        <TableCell>{record.line_no || 'N/A'}</TableCell>
+                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                      </>
+                    )}
                     <TableCell>{record.joint_no || 'N/A'}</TableCell>
                     <TableCell>{record.weld_type || 'N/A'}</TableCell>
+                    <TableCell>{record.inspection_category || 'type-I'}</TableCell>
                     <TableCell>{record.wps_no || 'N/A'}</TableCell>
                     <TableCell>{record.welder_no || 'N/A'}</TableCell>
                     <TableCell>{record.welder_validity || 'N/A'}</TableCell>
@@ -648,7 +862,9 @@ const FinalInspection: React.FC = () => {
                     <TableCell>
                       {record.weld_length ? `${record.weld_length} mm` : 'N/A'}
                     </TableCell>
-                    <TableCell>{record.pipe_dia || 'N/A'}</TableCell>
+                    {selectedProject?.project_type === 'pipe' && (
+                      <TableCell>{record.pipe_dia || 'N/A'}</TableCell>
+                    )}
                     <TableCell>{formatDate(record.final_date)}</TableCell>
                     <TableCell>{record.final_report_no || 'N/A'}</TableCell>
                     <TableCell>
@@ -709,7 +925,7 @@ const FinalInspection: React.FC = () => {
 
       {/* Add Final Inspection Dialog */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New Final Inspection</DialogTitle>
+        <DialogTitle>Add New {isStructureProject ? 'Structure Final' : 'Final'} Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -728,7 +944,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -736,7 +952,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Line No"
+                label={isStructureProject ? 'Page No' : 'Line No'}
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -744,7 +960,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -902,23 +1118,76 @@ const FinalInspection: React.FC = () => {
                 <MenuItem value="float weld">float weld</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Weld Length (mm)"
-                type="number"
-                value={formData.weld_length}
-                onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Pipe Dia"
-                value={formData.pipe_dia}
-                onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
-                fullWidth
-              />
-            </Grid>
+            {selectedProject?.project_type === 'pipe' && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Pipe Dia"
+                    value={formData.pipe_dia}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const calculatedLength = calculateWeldLengthFromDiameter(v);
+                      setFormData({ 
+                        ...formData, 
+                        pipe_dia: v, 
+                        weld_length: calculatedLength || formData.weld_length 
+                      });
+                    }}
+                    fullWidth
+                    helperText={'Enter diameter with unit (e.g., 12" or 300mm)'}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Weld Length (mm)"
+                    type="number"
+                    value={formData.weld_length}
+                    onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
+                    fullWidth
+                    error={!!(weldLengthValidation && !weldLengthValidation.isValid)}
+                    helperText={weldLengthValidation?.message}
+                    InputProps={{
+                      endAdornment: weldLengthValidation && (
+                        <Tooltip title={weldLengthValidation.message}>
+                          {weldLengthValidation.isValid ? (
+                            <Info color="success" sx={{ mr: 1 }} />
+                          ) : (
+                            <Warning color="error" sx={{ mr: 1 }} />
+                          )}
+                        </Tooltip>
+                      )
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={repairWorkOverride}
+                        onChange={(e) => setRepairWorkOverride(e.target.checked)}
+                      />
+                    }
+                    label="Repair Work - Allow manual weld length override"
+                  />
+                  {repairWorkOverride && (
+                    <Typography variant="caption" color="textSecondary" sx={{ ml: 4, display: 'block' }}>
+                      Manual override enabled. Weld length validation is disabled for repair work.
+                    </Typography>
+                  )}
+                </Grid>
+              </>
+            )}
+            {selectedProject?.project_type !== 'pipe' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Weld Length (mm)"
+                  type="number"
+                  value={formData.weld_length}
+                  onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
+                  fullWidth
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Final Date"
@@ -936,6 +1205,20 @@ const FinalInspection: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, final_report_no: e.target.value })}
                 fullWidth
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Inspection Category"
+                value={formData.inspection_category || 'type-I'}
+                onChange={(e) => setFormData({ ...formData, inspection_category: e.target.value as NewFinalInspection['inspection_category'] })}
+                fullWidth
+              >
+                <MenuItem value="type-I">Type I</MenuItem>
+                <MenuItem value="type-II">Type II</MenuItem>
+                <MenuItem value="type-III">Type III</MenuItem>
+                <MenuItem value="type-IV">Special</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
@@ -973,7 +1256,7 @@ const FinalInspection: React.FC = () => {
 
       {/* Edit Final Inspection Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Final Inspection</DialogTitle>
+        <DialogTitle>Edit {isStructureProject ? 'Structure Final' : 'Final'} Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -992,7 +1275,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -1000,7 +1283,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Line No"
+                label={isStructureProject ? 'Page No' : 'Line No'}
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -1008,7 +1291,7 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -1174,14 +1457,16 @@ const FinalInspection: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Pipe Dia"
-                value={formData.pipe_dia}
-                onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
-                fullWidth
-              />
-            </Grid>
+            {selectedProject?.project_type === 'pipe' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Pipe Dia"
+                  value={formData.pipe_dia}
+                  onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
+                  fullWidth
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Final Date"

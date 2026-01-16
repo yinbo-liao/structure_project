@@ -7,10 +7,11 @@ import { NDTRequest, FinalInspection } from '../../types';
 
 const NDTRequests: React.FC = () => {
   const { selectedProject, canEdit } = useAuth();
+  const isStructureProject = selectedProject?.project_type === 'structure';
   const [rows, setRows] = useState<NDTRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Partial<NDTRequest>>({ department: 'pipe', contractor: 'GW', status: 'pending', requirement: 'full joint', weld_process: 'GTAW' });
+  const [form, setForm] = useState<Partial<NDTRequest>>({ department: 'pipe', contractor: 'GW', status: 'pending', requirement: 'full joint', weld_process: 'GTAW', inspection_category: 'type-I' });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [finals, setFinals] = useState<FinalInspection[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -190,24 +191,42 @@ const NDTRequests: React.FC = () => {
   }, [requiredFromFinals, methodFilter]);
 
   const downloadCSV = () => {
-    const headers = [
-      'NDT-Contractor',
-      'Dept',
-      'System No',
-      'Line No',
-      'Spool No',
-      'Joint No',
-      'Weld Type',
-      'Welder No',
-      'Pipe Dia',
-      'Weld Length',
-      'Requirement',
-      'NDT Method',
-      'Request Status',
-      'Request Date',
-      'RFI No'
-    ];
-    const rows = filteredRequired.map(e => {
+    const headers = isStructureProject
+      ? [
+          'NDT-Contractor',
+          'Dept',
+          'Drawing No',
+          'Structure Category',
+          'Page No',
+          'Joint No',
+          'Weld Type',
+          'Welder No',
+          'Size',
+          'Weld Length',
+          'Requirement',
+          'NDT Method',
+          'Request Status',
+          'Request Date',
+          'RFI No'
+        ]
+      : [
+          'NDT-Contractor',
+          'Dept',
+          'System No',
+          'Line No',
+          'Spool No',
+          'Joint No',
+          'Weld Type',
+          'Welder No',
+          'Pipe Dia',
+          'Weld Length',
+          'Requirement',
+          'NDT Method',
+          'Request Status',
+          'Request Date',
+          'RFI No'
+        ];
+    const csvRows = filteredRequired.map(e => {
       const status = e.exists ? 'RFI raised' : 'pending';
       const reqDate = e.exists ? (existingMap.get(e.key)?.request_time ? new Date(existingMap.get(e.key).request_time).toLocaleDateString() : '') : (selectedKeys.has(e.key) ? (drafts[e.key]?.request_time || '') : '');
       const rfiNo = e.exists ? (existingMap.get(e.key)?.ndt_report_no || '') : (selectedKeys.has(e.key) ? (drafts[e.key]?.rfi_no || '') : '');
@@ -220,7 +239,7 @@ const NDTRequests: React.FC = () => {
         e.final.joint_no || '',
         e.final.weld_type || '',
         e.final.welder_no || '',
-        (e.final as any).pipe_dia || '',
+        (e.final as any).pipe_dia || (e.final as any).size || '',
         e.final.weld_length != null ? String(e.final.weld_length) : '',
         bulk.requirement || '',
         e.method || '',
@@ -233,7 +252,7 @@ const NDTRequests: React.FC = () => {
       const s = String(v ?? '');
       return '"' + s.replace(/\"/g, '""') + '"';
     };
-    const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\r\n');
+    const csv = [headers.map(escape).join(','), ...csvRows.map(r => r.map(escape).join(','))].join('\r\n');
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -516,7 +535,8 @@ const NDTRequests: React.FC = () => {
       weld_process: r.weld_process as any,
       weld_size: r.weld_size,
       detail_description: r.detail_description,
-      status: r.status
+      status: r.status,
+      inspection_category: r.inspection_category || 'type-I'
     });
     setEditingId(r.id);
     setOpen(true);
@@ -566,7 +586,7 @@ const NDTRequests: React.FC = () => {
               <RequestQuote sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
               <Box>
                 <Typography variant="h4" component="h1" gutterBottom>
-                  NDT Requests
+                  {isStructureProject ? 'Structure NDT Requests' : 'Pipe NDT Requests'}
                 </Typography>
                 <Typography variant="subtitle1" color="textSecondary">
                   {selectedProject.name} ({selectedProject.code})
@@ -609,13 +629,16 @@ const NDTRequests: React.FC = () => {
                   <TableCell><strong>Select</strong></TableCell>
                   <TableCell><strong>NDT-Contractor</strong></TableCell>
                   <TableCell><strong>Dept</strong></TableCell>
-                  <TableCell><strong>System No</strong></TableCell>
-                  <TableCell><strong>Line No</strong></TableCell>
-                  <TableCell><strong>Spool No</strong></TableCell>
+                  <TableCell><strong>{isStructureProject ? 'Drawing No' : 'System No'}</strong></TableCell>
+                  <TableCell><strong>{isStructureProject ? 'Structure Category' : 'Line No'}</strong></TableCell>
+                  <TableCell><strong>{isStructureProject ? 'Page No' : 'Spool No'}</strong></TableCell>
                   <TableCell><strong>Joint No</strong></TableCell>
                   <TableCell><strong>Weld Type</strong></TableCell>
+                  <TableCell><strong>Inspection Category</strong></TableCell>
                   <TableCell><strong>Welder No</strong></TableCell>
-                  <TableCell><strong>Pipe Dia</strong></TableCell>
+                  {selectedProject?.project_type === 'pipe' && (
+                    <TableCell><strong>Pipe Dia</strong></TableCell>
+                  )}
                   <TableCell><strong>Weld Length</strong></TableCell>
                   <TableCell><strong>Requirement</strong></TableCell>
                   <TableCell><strong>NDT Method</strong></TableCell>
@@ -641,8 +664,11 @@ const NDTRequests: React.FC = () => {
                     <TableCell>{e.final.spool_no || '-'}</TableCell>
                     <TableCell>{e.final.joint_no || '-'}</TableCell>
                     <TableCell>{e.final.weld_type || '-'}</TableCell>
+                    <TableCell>{e.final.inspection_category || 'type-I'}</TableCell>
                     <TableCell>{e.final.welder_no || '-'}</TableCell>
-                    <TableCell>{(e.final as any).pipe_dia || '-'}</TableCell>
+                    {selectedProject?.project_type === 'pipe' && (
+                      <TableCell>{(e.final as any).pipe_dia || '-'}</TableCell>
+                    )}
                     <TableCell>{e.final.weld_length || '-'}</TableCell>
                     <TableCell>{bulk.requirement}</TableCell>
                     <TableCell>{e.method}</TableCell>
@@ -703,7 +729,7 @@ const NDTRequests: React.FC = () => {
           
 
           <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-            <DialogTitle>{editingId ? 'Edit NDT Request' : 'New NDT Request'}</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit' : 'New'} {isStructureProject ? 'Structure NDT' : 'NDT'} Request</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="Joint (Final Accepted)" value={form.final_id as any || ''} onChange={e => {
@@ -745,10 +771,24 @@ const NDTRequests: React.FC = () => {
                 </TextField></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth type="datetime-local" label="Request Time" value={form.request_time as any || ''} onChange={e => setForm({ ...form, request_time: e.target.value })} InputLabelProps={{ shrink: true }} /></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth type="datetime-local" label="Test Time" value={form.test_time as any || ''} onChange={e => setForm({ ...form, test_time: e.target.value })} InputLabelProps={{ shrink: true }} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="System No" value={form.system_no || ''} onChange={e => setForm({ ...form, system_no: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Line No" value={form.line_no || ''} onChange={e => setForm({ ...form, line_no: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="Spool No" value={form.spool_no || ''} onChange={e => setForm({ ...form, spool_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Drawing No' : 'System No'} value={form.system_no || ''} onChange={e => setForm({ ...form, system_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Structure Category' : 'Line No'} value={form.line_no || ''} onChange={e => setForm({ ...form, line_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Page No' : 'Spool No'} value={form.spool_no || ''} onChange={e => setForm({ ...form, spool_no: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth label="Joint No" value={form.joint_no || ''} onChange={e => setForm({ ...form, joint_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Inspection Category"
+                    value={form.inspection_category || 'type-I'}
+                    onChange={e => setForm({ ...form, inspection_category: e.target.value as NDTRequest['inspection_category'] })}
+                  >
+                    <MenuItem value="type-I">Type I</MenuItem>
+                    <MenuItem value="type-II">Type II</MenuItem>
+                    <MenuItem value="type-III">Type III</MenuItem>
+                    <MenuItem value="type-IV">Special</MenuItem>
+                  </TextField>
+                </Grid>
                 <Grid item xs={12}><TextField fullWidth label="Detail" value={form.detail_description || ''} onChange={e => setForm({ ...form, detail_description: e.target.value })} multiline rows={3} /></Grid>
               </Grid>
             </DialogContent>

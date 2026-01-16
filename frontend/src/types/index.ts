@@ -4,6 +4,7 @@ export interface User {
   full_name: string;
   role: 'admin' | 'inspector' | 'visitor';
   is_active: boolean;
+  password_change_required: boolean;
   created_at: string;
   assigned_projects: Project[];
   owned_projects: Project[];
@@ -14,6 +15,7 @@ export interface Project {
   name: string;
   code: string;
   description: string;
+  project_type: 'pipe' | 'structure';
   owner_id: number;
   created_at: string;
   updated_at: string;
@@ -66,6 +68,7 @@ export interface MasterJointList {
   fit_up_report_no?: string;
   fitup_status: 'pending' | 'done';
   final_status: 'pending' | 'done';
+  inspection_category: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
   created_at: string;
 }
 
@@ -80,6 +83,10 @@ export interface MaterialRegister {
   spec?: string;
   category?: string;
   pipe_dia?: string;
+  drawing_no?: string;  // Added for structure projects
+  structure_category?: string;  // Added for structure projects
+  drawing_rev?: string;  // Added for structure projects
+  material_report_no?: string;  // Added for material report number
   inspection_status: 'pending' | 'inspected' | 'rejected';
   created_at: string;
 }
@@ -110,6 +117,7 @@ export interface FitUpInspection {
   fit_up_result?: string;
   remarks?: string;
   master_joint_id?: number;
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
   created_at: string;
   updated_at?: string;
   updated_by?: string;
@@ -135,6 +143,7 @@ export interface FinalInspection {
   weld_length?: number;
   pipe_dia?: string;
   remarks?: string;
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
   created_at: string;
 }
 
@@ -167,6 +176,7 @@ export interface NDTRequest {
   weld_size?: number;
   weld_process?: string;
   pipe_dia?: string;
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
   created_at: string;
 }
 
@@ -255,6 +265,7 @@ export interface NDTStatusRecord {
   ndt_report_no?: string;
   ndt_result?: string;
   rejected_length?: number;
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
   created_at: string;
   updated_at?: string;
 }
@@ -279,4 +290,24 @@ export interface LoginRequest {
 export interface PasswordChange {
   current_password: string;
   new_password: string;
+}
+
+export interface WeeklyNDTSummary {
+  week_start: string;
+  week_end: string;
+  week_label: string;
+  rt_success_rate: number;
+  ut_success_rate: number;
+  rt_tested_length: number;
+  ut_tested_length: number;
+  rt_rejected_length: number;
+  ut_rejected_length: number;
+  rt_accepted_length: number;
+  ut_accepted_length: number;
+  rt_joints_tested: number;
+  ut_joints_tested: number;
+  rt_joints_accepted: number;
+  ut_joints_accepted: number;
+  rt_joints_rejected: number;
+  ut_joints_rejected: number;
 }

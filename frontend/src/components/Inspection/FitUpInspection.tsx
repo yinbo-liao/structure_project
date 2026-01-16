@@ -26,20 +26,26 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Tooltip
 } from '@mui/material';
-import { Assignment, Refresh, Add, Edit, Delete } from '@mui/icons-material';
+import { Assignment, Refresh, Add, Edit, Delete, Warning, Info } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { FitUpInspection as FitUpInspectionType, MaterialRegister as MaterialRegisterType, MasterJointList as MasterJointListType } from '../../types';
+import { calculateWeldLengthFromDiameter, validateWeldLength, isPipeProject } from '../../utils/weldLengthCalculator';
 
 type NewFitUpInspection = Omit<FitUpInspectionType, 'id' | 'project_id' | 'created_at' | 'updated_at'>;
 
 const FitUpInspection: React.FC = () => {
   const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
+  const isStructureProject = selectedProject?.project_type === 'structure';
   const [records, setRecords] = useState<FitUpInspectionType[]>([]);
   const [materials, setMaterials] = useState<MaterialRegisterType[]>([]);
   const [masterJoints, setMasterJoints] = useState<MasterJointListType[]>([]);
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -69,8 +75,17 @@ const FitUpInspection: React.FC = () => {
     fit_up_report_no: '',
     fit_up_result: '',
     remarks: '',
-    master_joint_id: undefined
+    master_joint_id: undefined,
+    inspection_category: 'type-I'
   });
+  const [repairWorkOverride, setRepairWorkOverride] = useState<boolean>(false);
+  const [weldLengthValidation, setWeldLengthValidation] = useState<{
+    isValid: boolean;
+    calculatedLength?: number;
+    difference?: number;
+    percentageDiff?: number;
+    message: string;
+  } | null>(null);
   const [search, setSearch] = useState({
     system_no: '',
     spool_no: '',
@@ -81,6 +96,18 @@ const FitUpInspection: React.FC = () => {
   const [filterOptions, setFilterOptions] = useState<{ system_no: string[]; spool_no: string[]; joint_no: string[]; fit_up_report_no: string[]; fit_up_result: string[] }>({
     system_no: [], spool_no: [], joint_no: [], fit_up_report_no: [], fit_up_result: []
   });
+  const [editGroupIds, setEditGroupIds] = useState<number[]>([]);
+  const [editGroupIndex, setEditGroupIndex] = useState<number>(0);
+
+  // Update weld length validation when dia or weld_length changes
+  useEffect(() => {
+    if (isPipeProject(selectedProject?.project_type)) {
+      const validation = validateWeldLength(formData.weld_length, formData.dia, repairWorkOverride ? 1000 : 0.1);
+      setWeldLengthValidation(validation);
+    } else {
+      setWeldLengthValidation(null);
+    }
+  }, [formData.weld_length, formData.dia, repairWorkOverride, selectedProject?.project_type]);
 
   const fetchFitUpRecords = async () => {
     if (!selectedProject) return;
@@ -123,6 +150,9 @@ const FitUpInspection: React.FC = () => {
   }, [selectedProject]);
 
   // Handler functions
+  const makeJointKey = (line?: string | null, spool?: string | null, joint?: string | null) =>
+    `${(line || '').trim().toLowerCase()}-${(spool || '').trim().toLowerCase()}-${(joint || '').trim().toLowerCase()}`;
+
   const handleAddClick = () => {
     setFormData({
       system_no: '',
@@ -147,12 +177,20 @@ const FitUpInspection: React.FC = () => {
       fit_up_report_no: '',
       fit_up_result: '',
       remarks: '',
-      master_joint_id: undefined
+      master_joint_id: undefined,
+      inspection_category: 'type-I'
     });
     setAddDialogOpen(true);
   };
 
   const handleEditClick = (record: FitUpInspectionType) => {
+    const groupIds =
+      selectedRows.includes(record.id) && selectedRows.length > 0
+        ? selectedRows
+        : [record.id];
+    setEditGroupIds(groupIds);
+    const idx = groupIds.indexOf(record.id);
+    setEditGroupIndex(idx >= 0 ? idx : 0);
     setSelectedRecord(record);
     setFormData({
       system_no: record.system_no || '',
@@ -177,7 +215,8 @@ const FitUpInspection: React.FC = () => {
       fit_up_report_no: record.fit_up_report_no || '',
       fit_up_result: record.fit_up_result || '',
       remarks: record.remarks || '',
-      master_joint_id: record.master_joint_id
+      master_joint_id: record.master_joint_id,
+      inspection_category: record.inspection_category || 'type-I'
     });
     setEditDialogOpen(true);
   };
@@ -232,13 +271,11 @@ const FitUpInspection: React.FC = () => {
   const applyMasterJoint = (jointId: number) => {
     const mj = masterJoints.find(j => j.id === jointId);
     if (!mj) return;
-    const calc = (s: string) => {
-      const m = s?.match(/([0-9]+(?:\.[0-9]+)?)/);
-      const v = m ? parseFloat(m[1]) : 0;
-      const factor = s?.includes('"') ? 25.4 : 1;
-      return parseFloat((3.14 * v * factor).toFixed(3));
-    };
-    setFormData({
+    
+    const calculatedLength = calculateWeldLengthFromDiameter(mj.pipe_dia || '');
+    
+    // Create updated form data with master joint information
+    const updatedFormData = {
       ...formData,
       system_no: mj.system_no || '',
       line_no: mj.line_no || '',
@@ -246,9 +283,35 @@ const FitUpInspection: React.FC = () => {
       joint_no: mj.joint_no || '',
       weld_type: mj.weld_type || '',
       dia: mj.pipe_dia || '',
-      weld_length: calc(mj.pipe_dia || ''),
-      master_joint_id: mj.id
-    });
+      weld_length: calculatedLength || 0,
+      master_joint_id: mj.id,
+      part1_piece_mark_no: mj.part1_piece_mark_no || '',
+      part2_piece_mark_no: mj.part2_piece_mark_no || '',
+      inspection_category: mj.inspection_category || 'type-I'
+    };
+    
+    // Look up material details for piece marks
+    if (mj.part1_piece_mark_no) {
+      const material1 = materials.find(m => (m.piece_mark_no || '').trim() === (mj.part1_piece_mark_no || '').trim());
+      if (material1) {
+        updatedFormData.part1_material_type = material1.material_type || '';
+        updatedFormData.part1_grade = material1.grade || '';
+        updatedFormData.part1_thickness = material1.thickness || '';
+        updatedFormData.part1_heat_no = material1.heat_no || '';
+      }
+    }
+    
+    if (mj.part2_piece_mark_no) {
+      const material2 = materials.find(m => (m.piece_mark_no || '').trim() === (mj.part2_piece_mark_no || '').trim());
+      if (material2) {
+        updatedFormData.part2_material_type = material2.material_type || '';
+        updatedFormData.part2_grade = material2.grade || '';
+        updatedFormData.part2_thickness = material2.thickness || '';
+        updatedFormData.part2_heat_no = material2.heat_no || '';
+      }
+    }
+    
+    setFormData(updatedFormData);
   };
 
   const handleDeleteClick = (record: FitUpInspectionType) => {
@@ -256,20 +319,63 @@ const FitUpInspection: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
+  const getErrorMessage = (err: any, fallback: string) => {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      const parts = detail.map((d: any) => d?.msg || JSON.stringify(d));
+      return parts.join('; ');
+    }
+    if (detail && typeof detail === 'object') {
+      if (detail.msg && typeof detail.msg === 'string') {
+        return detail.msg;
+      }
+      try {
+        return JSON.stringify(detail);
+      } catch {
+      }
+    }
+    if (err?.message && typeof err.message === 'string') {
+      return err.message;
+    }
+    return fallback;
+  };
+
   const handleAddSubmit = async () => {
+    if (selectedProject?.project_type === 'pipe') {
+      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
+      if (key !== '--') {
+        const exists = records.some(r => makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
+        if (exists) {
+          setError('Duplicate joint in fit-up: same line, spool and joint already exists');
+          return;
+        }
+      }
+    }
     try {
       const mj = findMasterByForm();
-      const payload = {
+      const payload: any = {
         ...formData,
         project_id: selectedProject!.id,
         master_joint_id: mj?.id,
         remarks: mj ? formData.remarks : `${formData.remarks ? formData.remarks + ' • ' : ''}Not in master joint list`
-      } as any;
+      };
+      if (!payload.fit_up_date) {
+        delete payload.fit_up_date;
+      } else {
+        try {
+          payload.fit_up_date = new Date(payload.fit_up_date).toISOString();
+        } catch {
+          delete payload.fit_up_date;
+        }
+      }
       await ApiService.createFitUpInspection(payload);
       setAddDialogOpen(false);
       fetchFitUpRecords();
-    } catch (err) {
-      setError('Failed to create fit-up record');
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to create fit-up record'));
       console.error('Error creating fit-up record:', err);
     }
   };
@@ -277,19 +383,84 @@ const FitUpInspection: React.FC = () => {
   const handleEditSubmit = async () => {
     if (!selectedRecord) return;
     
+    if (selectedProject?.project_type === 'pipe') {
+      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
+      if (key !== '--') {
+        const exists = records.some(r => r.id !== selectedRecord.id && makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
+        if (exists) {
+          setError('Duplicate joint in fit-up: same line, spool and joint already exists');
+          return;
+        }
+      }
+    }
     try {
       const mj = findMasterByForm();
-      const payload = {
+      const payload: any = {
         ...formData,
         master_joint_id: mj?.id,
         remarks: mj ? formData.remarks : `${formData.remarks ? formData.remarks + ' • ' : ''}Not in master joint list`
-      } as any;
+      };
+      if (!payload.fit_up_date) {
+        delete payload.fit_up_date;
+      } else {
+        try {
+          payload.fit_up_date = new Date(payload.fit_up_date).toISOString();
+        } catch {
+          delete payload.fit_up_date;
+        }
+      }
       await ApiService.updateFitUpInspection(selectedRecord.id, payload);
-      setEditDialogOpen(false);
-      setSelectedRecord(null);
-      fetchFitUpRecords();
-    } catch (err) {
-      setError('Failed to update fit-up record');
+      const groupSize = editGroupIds.length;
+      const currentIndex = editGroupIndex;
+      const hasNext = groupSize > 0 && currentIndex < groupSize - 1;
+      if (hasNext) {
+        const nextId = editGroupIds[currentIndex + 1];
+        const nextRecord = records.find(r => r.id === nextId);
+        if (nextRecord) {
+          setSelectedRecord(nextRecord);
+          setFormData({
+            system_no: nextRecord.system_no || '',
+            line_no: nextRecord.line_no || '',
+            spool_no: nextRecord.spool_no || '',
+            joint_no: nextRecord.joint_no || '',
+            weld_type: nextRecord.weld_type || '',
+            part1_piece_mark_no: nextRecord.part1_piece_mark_no || '',
+            part2_piece_mark_no: nextRecord.part2_piece_mark_no || '',
+            part1_material_type: nextRecord.part1_material_type || '',
+            part1_grade: nextRecord.part1_grade || '',
+            part1_thickness: nextRecord.part1_thickness || '',
+            part1_heat_no: nextRecord.part1_heat_no || '',
+            part2_material_type: nextRecord.part2_material_type || '',
+            part2_grade: nextRecord.part2_grade || '',
+            part2_thickness: nextRecord.part2_thickness || '',
+            part2_heat_no: nextRecord.part2_heat_no || '',
+            weld_site: nextRecord.weld_site || '',
+            weld_length: nextRecord.weld_length || 0,
+            dia: nextRecord.dia || '',
+            fit_up_date: nextRecord.fit_up_date || '',
+            fit_up_report_no: nextRecord.fit_up_report_no || '',
+            fit_up_result: nextRecord.fit_up_result || '',
+            remarks: nextRecord.remarks || '',
+            master_joint_id: nextRecord.master_joint_id,
+            inspection_category: nextRecord.inspection_category || 'type-I'
+          });
+          setEditGroupIndex(currentIndex + 1);
+        } else {
+          setEditDialogOpen(false);
+          setSelectedRecord(null);
+          setEditGroupIds([]);
+          setEditGroupIndex(0);
+          fetchFitUpRecords();
+        }
+      } else {
+        setEditDialogOpen(false);
+        setSelectedRecord(null);
+        setEditGroupIds([]);
+        setEditGroupIndex(0);
+        fetchFitUpRecords();
+      }
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to update fit-up record'));
       console.error('Error updating fit-up record:', err);
     }
   };
@@ -302,8 +473,8 @@ const FitUpInspection: React.FC = () => {
       setDeleteDialogOpen(false);
       setSelectedRecord(null);
       fetchFitUpRecords();
-    } catch (err) {
-      setError('Failed to delete fit-up record');
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to delete fit-up record'));
       console.error('Error deleting fit-up record:', err);
     }
   };
@@ -345,22 +516,39 @@ const FitUpInspection: React.FC = () => {
   });
 
   const downloadCSV = () => {
-    const headers = [
-      'System',
-      'Line',
-      'Spool',
-      'Joint',
-      'Weld Type',
-      'Piece Mark 1',
-      'Piece Mark 2',
-      'Weld Site',
-      'Length',
-      'Pipe Dia',
-      'Date',
-      'Fit-up Report No',
-      'Result',
-      'Master Link'
-    ];
+    const headers = isStructureProject
+      ? [
+          'Drawing No',
+          'Structure Category',
+          'Page No',
+          'Joint',
+          'Weld Type',
+          'Piece Mark 1',
+          'Piece Mark 2',
+          'Weld Site',
+          'Weld Length',
+          'Size',
+          'Fit Up Date',
+          'Fit-up Report No',
+          'Fit Up Result',
+          'Master Link'
+        ]
+        : [
+          'System No',
+          'Line No',
+          'Spool No',
+          'Joint No',
+          'Weld Type',
+          'Piece Mark 1',
+          'Piece Mark 2',
+          'Weld Site',
+          'Weld Length',
+          'Pipe Dia',
+          'Fit Up Date',
+          'Fit-up Report No',
+          'Fit Up Result',
+          'Master Link'
+        ];
     const rows = filteredRecords.map(record => {
       const inMaster = masterJoints.length > 0 ? (
         masterJoints.some(m =>
@@ -373,22 +561,39 @@ const FitUpInspection: React.FC = () => {
       const masterLink = masterJoints.length === 0 ? '-' : (inMaster ? 'In Master' : 'Not in Master');
       const lengthStr = record.weld_length ? `${record.weld_length} mm` : '';
       const dateStr = formatDate(record.fit_up_date);
-      return [
-        record.system_no || '',
-        record.line_no || '',
-        record.spool_no || '',
-        record.joint_no || '',
-        record.weld_type || '',
-        record.part1_piece_mark_no || '',
-        record.part2_piece_mark_no || '',
-        record.weld_site || '',
-        lengthStr,
-        record.dia || '',
-        dateStr,
-        record.fit_up_report_no || '',
-        record.fit_up_result || '',
-        masterLink
-      ];
+      return isStructureProject
+        ? [
+            record.spool_no || '',
+            record.system_no || '',
+            record.line_no || '',
+            record.joint_no || '',
+            record.weld_type || '',
+            record.part1_piece_mark_no || '',
+            record.part2_piece_mark_no || '',
+            record.weld_site || '',
+            lengthStr,
+            record.dia || '',
+            dateStr,
+            record.fit_up_report_no || '',
+            record.fit_up_result || '',
+            masterLink
+          ]
+        : [
+            record.system_no || '',
+            record.line_no || '',
+            record.spool_no || '',
+            record.joint_no || '',
+            record.weld_type || '',
+            record.part1_piece_mark_no || '',
+            record.part2_piece_mark_no || '',
+            record.weld_site || '',
+            lengthStr,
+            record.dia || '',
+            dateStr,
+            record.fit_up_report_no || '',
+            record.fit_up_result || '',
+            masterLink
+          ];
     });
     const escape = (v: string) => {
       const s = String(v ?? '');
@@ -422,7 +627,7 @@ const FitUpInspection: React.FC = () => {
           <Assignment sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
-              Fit-up Inspection
+              {isStructureProject ? 'Structure Fit-up Inspection' : 'Pipe Fit-up Inspection'}
             </Typography>
             <Typography variant="subtitle1" color="textSecondary">
               {selectedProject.name} ({selectedProject.code})
@@ -520,9 +725,9 @@ const FitUpInspection: React.FC = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>System No</InputLabel>
+              <InputLabel>{isStructureProject ? 'Structure Category' : 'System No'}</InputLabel>
               <Select
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={search.system_no}
                 onChange={(e) => setSearch({ ...search, system_no: String(e.target.value) })}
               >
@@ -535,9 +740,9 @@ const FitUpInspection: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>Spool No</InputLabel>
+              <InputLabel>{isStructureProject ? 'Drawing No' : 'Spool No'}</InputLabel>
               <Select
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={search.spool_no}
                 onChange={(e) => setSearch({ ...search, spool_no: String(e.target.value) })}
               >
@@ -580,9 +785,9 @@ const FitUpInspection: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>Result</InputLabel>
+              <InputLabel>Fit Up Result</InputLabel>
               <Select
-                label="Result"
+                label="Fit Up Result"
                 value={search.fit_up_result}
                 onChange={(e) => setSearch({ ...search, fit_up_result: String(e.target.value) })}
               >
@@ -619,28 +824,42 @@ const FitUpInspection: React.FC = () => {
           <Table sx={{ minWidth: 650 }} aria-label="fit-up records table">
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>System</strong></TableCell>
-                  <TableCell><strong>Line</strong></TableCell>
-                  <TableCell><strong>Spool</strong></TableCell>
-                  <TableCell><strong>Joint</strong></TableCell>
+                  <TableCell padding="checkbox" />
+                  {isStructureProject ? (
+                    <>
+                      <TableCell><strong>Drawing No</strong></TableCell>
+                      <TableCell><strong>Structure Category</strong></TableCell>
+                      <TableCell><strong>Page No</strong></TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell><strong>System No</strong></TableCell>
+                      <TableCell><strong>Line No</strong></TableCell>
+                      <TableCell><strong>Spool No</strong></TableCell>
+                    </>
+                  )}
+                  <TableCell><strong>Joint No</strong></TableCell>
                   <TableCell><strong>Weld Type</strong></TableCell>
+                  <TableCell><strong>Inspection Category</strong></TableCell>
                   <TableCell><strong>Piece Mark 1</strong></TableCell>
                   <TableCell><strong>Piece Mark 2</strong></TableCell>
                   <TableCell><strong>Weld Site</strong></TableCell>
-                  <TableCell><strong>Length</strong></TableCell>
-                  <TableCell><strong>Pipe Dia</strong></TableCell>
-                  <TableCell><strong>Date</strong></TableCell>
+                  <TableCell><strong>Weld Length</strong></TableCell>
+                  {selectedProject?.project_type === 'pipe' && (
+                    <TableCell><strong>Pipe Dia</strong></TableCell>
+                  )}
+                  <TableCell><strong>Fit Up Date</strong></TableCell>
                   <TableCell><strong>Fit-up Report No</strong></TableCell>
-                  <TableCell><strong>Result</strong></TableCell>
+                  <TableCell><strong>Fit Up Result</strong></TableCell>
                   <TableCell><strong>User Update</strong></TableCell>
                   <TableCell><strong>Master Link</strong></TableCell>
                   <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
-            <TableBody>
+          <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={15} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
                       No fit-up records found for this project.
                     </Typography>
@@ -656,7 +875,7 @@ const FitUpInspection: React.FC = () => {
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={15} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
                       No records match current search.
                     </Typography>
@@ -664,12 +883,35 @@ const FitUpInspection: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => (
-                  <TableRow key={record.id} hover>
-                    <TableCell>{record.system_no || 'N/A'}</TableCell>
-                    <TableCell>{record.line_no || 'N/A'}</TableCell>
-                    <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                  <TableRow key={record.id} hover selected={selectedRows.includes(record.id)}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedRows.includes(record.id)}
+                        onChange={() => {
+                          setSelectedRows(prev =>
+                            prev.includes(record.id)
+                              ? prev.filter(id => id !== record.id)
+                              : [...prev, record.id]
+                          );
+                        }}
+                      />
+                    </TableCell>
+                    {isStructureProject ? (
+                      <>
+                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                        <TableCell>{record.system_no || 'N/A'}</TableCell>
+                        <TableCell>{record.line_no || 'N/A'}</TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell>{record.system_no || 'N/A'}</TableCell>
+                        <TableCell>{record.line_no || 'N/A'}</TableCell>
+                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
+                      </>
+                    )}
                     <TableCell>{record.joint_no || 'N/A'}</TableCell>
                     <TableCell>{record.weld_type || 'N/A'}</TableCell>
+                    <TableCell>{record.inspection_category || 'type-I'}</TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2">{record.part1_piece_mark_no || 'N/A'}</Typography>
@@ -716,7 +958,9 @@ const FitUpInspection: React.FC = () => {
                     <TableCell>
                       {record.weld_length ? `${record.weld_length} mm` : 'N/A'}
                     </TableCell>
-                    <TableCell>{record.dia || 'N/A'}</TableCell>
+                    {selectedProject?.project_type === 'pipe' && (
+                      <TableCell>{record.dia || 'N/A'}</TableCell>
+                    )}
                     <TableCell>{formatDate(record.fit_up_date)}</TableCell>
                     <TableCell>{record.fit_up_report_no || 'N/A'}</TableCell>
                     <TableCell>
@@ -778,7 +1022,7 @@ const FitUpInspection: React.FC = () => {
 
       {/* Add Fit-up Dialog */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New Fit-up Inspection</DialogTitle>
+        <DialogTitle>Add New {isStructureProject ? 'Structure Fit-up' : 'Fit-up'} Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -797,7 +1041,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -805,7 +1049,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Line No"
+                label={isStructureProject ? 'Page No' : 'Line No'}
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -813,7 +1057,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -827,21 +1071,65 @@ const FitUpInspection: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Pipe Dia"
-                value={formData.dia || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  const m = v.match(/([0-9]+(?:\.[0-9]+)?)/);
-                  const num = m ? parseFloat(m[1]) : 0;
-                  const factor = v.includes('"') ? 25.4 : 1;
-                  const len = parseFloat((3.14 * num * factor).toFixed(3));
-                  setFormData({ ...formData, dia: v, weld_length: len });
-                }}
-                fullWidth
-              />
-            </Grid>
+            {selectedProject?.project_type === 'pipe' && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Pipe Dia"
+                    value={formData.dia || ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const calculatedLength = calculateWeldLengthFromDiameter(v);
+                      setFormData({ 
+                        ...formData, 
+                        dia: v, 
+                        weld_length: calculatedLength || formData.weld_length 
+                      });
+                    }}
+                    fullWidth
+                    helperText={'Enter diameter with unit (e.g., 12" or 300mm)'}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Weld Length (mm)"
+                    type="number"
+                    value={formData.weld_length}
+                    onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
+                    fullWidth
+                    error={!!(weldLengthValidation && !weldLengthValidation.isValid)}
+                    helperText={weldLengthValidation?.message}
+                    InputProps={{
+                      endAdornment: weldLengthValidation && (
+                        <Tooltip title={weldLengthValidation.message}>
+                          {weldLengthValidation.isValid ? (
+                            <Info color="success" sx={{ mr: 1 }} />
+                          ) : (
+                            <Warning color="error" sx={{ mr: 1 }} />
+                          )}
+                        </Tooltip>
+                      )
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={repairWorkOverride}
+                        onChange={(e) => setRepairWorkOverride(e.target.checked)}
+                      />
+                    }
+                    label="Repair Work - Allow manual weld length override"
+                  />
+                  {repairWorkOverride && (
+                    <Typography variant="caption" color="textSecondary" sx={{ ml: 4, display: 'block' }}>
+                      Manual override enabled. Weld length validation is disabled for repair work.
+                    </Typography>
+                  )}
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 select
@@ -852,6 +1140,20 @@ const FitUpInspection: React.FC = () => {
               >
                 <MenuItem value="BW">BW</MenuItem>
                 <MenuItem value="FW">FW</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Inspection Category"
+                value={formData.inspection_category || 'type-I'}
+                onChange={(e) => setFormData({ ...formData, inspection_category: e.target.value as NewFitUpInspection['inspection_category'] })}
+                fullWidth
+              >
+                <MenuItem value="type-I">Type I</MenuItem>
+                <MenuItem value="type-II">Type II</MenuItem>
+                <MenuItem value="type-III">Type III</MenuItem>
+                <MenuItem value="type-IV">Special</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -916,15 +1218,17 @@ const FitUpInspection: React.FC = () => {
                 <MenuItem value="float weld">float weld</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Weld Length (mm)"
-                type="number"
-                value={formData.weld_length}
-                onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                fullWidth
-              />
-            </Grid>
+            {selectedProject?.project_type !== 'pipe' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Weld Length (mm)"
+                  type="number"
+                  value={formData.weld_length}
+                  onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
+                  fullWidth
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Fit-up Date"
@@ -945,10 +1249,10 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Fit-up Result</InputLabel>
+                <InputLabel>Fit Up Result</InputLabel>
                 <Select
                   value={formData.fit_up_result}
-                  label="Fit-up Result"
+                  label="Fit Up Result"
                   onChange={(e) => setFormData({ ...formData, fit_up_result: e.target.value })}
                 >
                   <MenuItem value="pending">Pending</MenuItem>
@@ -977,7 +1281,7 @@ const FitUpInspection: React.FC = () => {
 
       {/* Edit Fit-up Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Fit-up Inspection</DialogTitle>
+        <DialogTitle>Edit {isStructureProject ? 'Structure Fit-up' : 'Fit-up'} Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -996,7 +1300,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="System No"
+                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -1004,7 +1308,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Line No"
+                label={isStructureProject ? 'Page No' : 'Line No'}
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -1012,7 +1316,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Spool No"
+                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -1141,10 +1445,10 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Fit-up Result</InputLabel>
+                <InputLabel>Fit Up Result</InputLabel>
                 <Select
                   value={formData.fit_up_result}
-                  label="Fit-up Result"
+                  label="Fit Up Result"
                   onChange={(e) => setFormData({ ...formData, fit_up_result: e.target.value })}
                 >
                   <MenuItem value="pending">Pending</MenuItem>
@@ -1180,8 +1484,9 @@ const FitUpInspection: React.FC = () => {
             {selectedRecord && (
               <Box sx={{ mt: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  System: {selectedRecord.system_no || 'N/A'}, Line: {selectedRecord.line_no || 'N/A'}, 
-                  Joint: {selectedRecord.joint_no || 'N/A'}
+                  {isStructureProject ? 'Drawing No' : 'System No'}: {isStructureProject ? selectedRecord.spool_no || 'N/A' : selectedRecord.system_no || 'N/A'}, 
+                  {isStructureProject ? 'Structure Category' : 'Line No'}: {isStructureProject ? selectedRecord.system_no || 'N/A' : selectedRecord.line_no || 'N/A'}, 
+                  Joint No: {selectedRecord.joint_no || 'N/A'}
                 </Typography>
               </Box>
             )}
