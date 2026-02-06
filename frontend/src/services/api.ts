@@ -12,6 +12,7 @@ import {
   LoginRequest,
   PasswordChange,
   MasterJointList,
+  NDTJointStatus,
   NDTTest,
   NDTRequirement,
   NDTStatusRecord,
