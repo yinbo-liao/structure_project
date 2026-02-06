@@ -4,7 +4,13 @@ from typing import Optional
 import httpx
 import os
 from app.database import get_db
-from app.models import User as UserModel, Project as ProjectModel, FitUpInspection, FinalInspection, MaterialInspection
+from app.models import (
+    User as UserModel,
+    Project as ProjectModel,
+    StructureFitUpInspection,
+    StructureFinalInspection,
+    StructureMaterialRegister
+)
 from app.schemas import AISummaryRequest, AISummaryResponse
 from app.auth import get_current_user
 
@@ -235,7 +241,8 @@ async def get_ai_inspection_summary(
     context_data = {}
     
     if inspection_type == "fitup":
-        inspection = db.query(FitUpInspection).filter(FitUpInspection.id == inspection_id).first()
+        # Try to find in structure tables
+        inspection = db.query(StructureFitUpInspection).filter(StructureFitUpInspection.id == inspection_id).first()
         if not inspection:
             raise HTTPException(status_code=404, detail="Fit-up inspection not found")
         
@@ -247,8 +254,9 @@ async def get_ai_inspection_summary(
         context_data = {
             "inspection_type": "fitup",
             "joint_details": {
-                "system_no": inspection.system_no,
-                "line_no": inspection.line_no,
+                "structure_category": inspection.structure_category,
+                "drawing_no": inspection.draw_no,
+                "block_no": inspection.block_no,
                 "joint_no": inspection.joint_no,
                 "weld_type": inspection.weld_type
             },
@@ -261,15 +269,18 @@ async def get_ai_inspection_summary(
             "weld_details": {
                 "weld_site": inspection.weld_site,
                 "weld_length": inspection.weld_length,
-                "diameter": inspection.dia,
+                "thickness": getattr(inspection, 'part1_thickness', None),
                 "result": inspection.fit_up_result
             }
         }
         
     elif inspection_type == "final":
-        inspection = db.query(FinalInspection).filter(FinalInspection.id == inspection_id).first()
+        # Try to find in both pipe and structure tables
+        inspection = db.query(PipeFinalInspection).filter(PipeFinalInspection.id == inspection_id).first()
         if not inspection:
-            raise HTTPException(status_code=404, detail="Final inspection not found")
+            inspection = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == inspection_id).first()
+            if not inspection:
+                raise HTTPException(status_code=404, detail="Final inspection not found")
         
         # Check project access
         project = db.query(ProjectModel).filter(ProjectModel.id == inspection.project_id).first()

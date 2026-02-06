@@ -6,9 +6,7 @@ import {
   TextField,
   Button,
   Typography,
-  Alert,
-  Card,
-  CardContent
+  Alert
 } from '@mui/material';
 import { Engineering, Email, Lock } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -27,21 +27,19 @@ import {
   FormControl,
   InputLabel,
   Select,
-  FormControlLabel,
-  Checkbox,
-  Tooltip
+  Checkbox
 } from '@mui/material';
-import { Assignment, Refresh, Add, Edit, Delete, Warning, Info } from '@mui/icons-material';
+import { Assignment, Refresh, Add, Edit, Delete } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { FitUpInspection as FitUpInspectionType, MaterialRegister as MaterialRegisterType, MasterJointList as MasterJointListType } from '../../types';
-import { calculateWeldLengthFromDiameter, validateWeldLength, isPipeProject } from '../../utils/weldLengthCalculator';
 
-type NewFitUpInspection = Omit<FitUpInspectionType, 'id' | 'project_id' | 'created_at' | 'updated_at'>;
+type NewFitUpInspection = Omit<FitUpInspectionType, 'id' | 'project_id' | 'created_at' | 'updated_at'> & {
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'Special';
+};
 
 const FitUpInspection: React.FC = () => {
   const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
-  const isStructureProject = selectedProject?.project_type === 'structure';
   const [records, setRecords] = useState<FitUpInspectionType[]>([]);
   const [materials, setMaterials] = useState<MaterialRegisterType[]>([]);
   const [masterJoints, setMasterJoints] = useState<MasterJointListType[]>([]);
@@ -53,9 +51,10 @@ const FitUpInspection: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<FitUpInspectionType | null>(null);
   const [formData, setFormData] = useState<NewFitUpInspection>({
-    system_no: '',
-    line_no: '',
+    block_no: '',
     spool_no: '',
+    system_no: '', // used for Structure Category
+    line_no: '', // used for Page No
     joint_no: '',
     weld_type: '',
     part1_piece_mark_no: '',
@@ -70,7 +69,6 @@ const FitUpInspection: React.FC = () => {
     part2_heat_no: '',
     weld_site: '',
     weld_length: 0,
-    dia: '',
     fit_up_date: '',
     fit_up_report_no: '',
     fit_up_result: '',
@@ -78,14 +76,7 @@ const FitUpInspection: React.FC = () => {
     master_joint_id: undefined,
     inspection_category: 'type-I'
   });
-  const [repairWorkOverride, setRepairWorkOverride] = useState<boolean>(false);
-  const [weldLengthValidation, setWeldLengthValidation] = useState<{
-    isValid: boolean;
-    calculatedLength?: number;
-    difference?: number;
-    percentageDiff?: number;
-    message: string;
-  } | null>(null);
+  
   const [search, setSearch] = useState({
     system_no: '',
     spool_no: '',
@@ -98,19 +89,76 @@ const FitUpInspection: React.FC = () => {
   });
   const [editGroupIds, setEditGroupIds] = useState<number[]>([]);
   const [editGroupIndex, setEditGroupIndex] = useState<number>(0);
-
-  // Update weld length validation when dia or weld_length changes
-  useEffect(() => {
-    if (isPipeProject(selectedProject?.project_type)) {
-      const validation = validateWeldLength(formData.weld_length, formData.dia, repairWorkOverride ? 1000 : 0.1);
-      setWeldLengthValidation(validation);
-    } else {
-      setWeldLengthValidation(null);
+  const [editingRows, setEditingRows] = useState<Set<number>>(new Set());
+  const [editData, setEditData] = useState<Record<number, Partial<FitUpInspectionType>>>({});
+  const [isInlineEditMode, setIsInlineEditMode] = useState(false);
+  const [bulkCreateDialogOpen, setBulkCreateDialogOpen] = useState(false);
+  const [bulkCreateLoading, setBulkCreateLoading] = useState(false);
+  const [bulkCreateResult, setBulkCreateResult] = useState<{
+    message: string;
+    created_count: number;
+    skipped_count: number;
+    created_finals: any[];
+    errors?: string[];
+  } | null>(null);
+  
+  // Inline edit handlers
+  const handleInlineEditChange = (id: number, field: keyof FitUpInspectionType, value: any) => {
+    setEditData(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+  
+  const handleSaveInlineEdits = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updates = Object.entries(editData).map(([id, data]) => ({
+        id: parseInt(id),
+        data
+      }));
+      
+      // Update each record individually
+      for (const update of updates) {
+        const record = records.find(r => r.id === update.id);
+        if (record) {
+          const payload = {
+            ...record,
+            ...update.data
+          };
+          await ApiService.updateFitUpInspection(update.id, payload);
+        }
+      }
+      
+      // Refresh records and exit edit mode
+      await fetchFitUpRecords();
+      setEditingRows(new Set());
+      setEditData({});
+      setIsInlineEditMode(false);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to save inline edits'));
+      console.error('Error saving inline edits:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [formData.weld_length, formData.dia, repairWorkOverride, selectedProject?.project_type]);
+  };
+  
+  const handleCancelInlineEdits = () => {
+    setEditingRows(new Set());
+    setEditData({});
+    setIsInlineEditMode(false);
+  };
 
   const fetchFitUpRecords = async () => {
-    if (!selectedProject) return;
+    if (!selectedProject) {
+      setError('No project selected. Please select a project first.');
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -121,9 +169,25 @@ const FitUpInspection: React.FC = () => {
         const opts = await ApiService.getFitUpFilters(selectedProject.id);
         setFilterOptions(opts || { system_no: [], spool_no: [], joint_no: [], fit_up_report_no: [], fit_up_result: [] });
       } catch {}
-    } catch (err) {
-      setError('Failed to fetch fit-up records');
+    } catch (err: any) {
       console.error('Error fetching fit-up records:', err);
+      
+      // More detailed error messages
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Cannot connect to the server. Please check if the backend server is running on port 8000.');
+      } else if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+      } else if (err.response?.status === 403) {
+        setError('Access denied. You do not have permission to view fit-up records for this project.');
+      } else if (err.response?.status === 404) {
+        setError('Fit-up records not found for this project.');
+      } else if (err.response?.status === 500) {
+        setError('Server error. Please try again later or contact support.');
+      } else if (err.response?.data?.detail) {
+        setError(`Error: ${err.response.data.detail}`);
+      } else {
+        setError(`Failed to fetch fit-up records. ${err.message || 'Please check your connection and try again.'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -149,12 +213,71 @@ const FitUpInspection: React.FC = () => {
     loadMasterJoints();
   }, [selectedProject]);
 
+  // Filter master joints to exclude those with "accepted" fit-up results
+  const getFilteredMasterJoints = useMemo(() => {
+    if (!masterJoints.length || !records.length) return masterJoints;
+    
+    // Create a set of master joint IDs that already have fit-up inspections with "accepted" result
+    const acceptedMasterJointIds = new Set(
+      records
+        .filter(record => (record.fit_up_result || '').toLowerCase() === 'accepted')
+        .map(record => record.master_joint_id)
+        .filter(id => id && id > 0)
+    );
+    
+    // Also create a set of joint identifiers that have "accepted" fit-up inspections
+    const acceptedJointKeys = new Set(
+      records
+        .filter(record => (record.fit_up_result || '').toLowerCase() === 'accepted')
+        .map(record => 
+          `${(record.system_no || '').trim()}-${(record.line_no || '').trim()}-${(record.spool_no || '').trim()}-${(record.joint_no || '').trim()}`
+        )
+        .filter(key => key !== '---')
+    );
+    
+    // Filter out master joints that already have "accepted" fit-up inspections
+    const filtered = masterJoints.filter(master => {
+      // Exclude if master joint ID is in accepted set
+      if (acceptedMasterJointIds.has(master.id)) return false;
+      
+      // Also exclude if joint identifiers match and have "accepted" result
+      const jointKey = `${(master.structure_category || '').trim()}-${(master.page_no || '').trim()}-${(master.draw_no || '').trim()}-${(master.joint_no || '').trim()}`;
+      if (jointKey !== '---' && acceptedJointKeys.has(jointKey)) return false;
+      
+      return true;
+    });
+    
+    // Sort by joint identifiers for easier finding
+    return filtered.sort((a, b) => {
+      const keyA = `${(a.structure_category || '').trim()}-${(a.page_no || '').trim()}-${(a.draw_no || '').trim()}-${(a.joint_no || '').trim()}`;
+      const keyB = `${(b.structure_category || '').trim()}-${(b.page_no || '').trim()}-${(b.draw_no || '').trim()}-${(b.joint_no || '').trim()}`;
+      return keyA.localeCompare(keyB);
+    });
+  }, [masterJoints, records]);
+
+  // Calculate lower thickness between part1 and part2
+  const calculateLowerThickness = (record: FitUpInspectionType): string => {
+    const thickness1 = parseFloat(record.part1_thickness || '0');
+    const thickness2 = parseFloat(record.part2_thickness || '0');
+    
+    // Return the lower thickness, or the non-zero one if only one exists
+    if (thickness1 > 0 && thickness2 > 0) {
+      return Math.min(thickness1, thickness2).toString();
+    } else if (thickness1 > 0) {
+      return thickness1.toString();
+    } else if (thickness2 > 0) {
+      return thickness2.toString();
+    }
+    return '';
+  };
+
   // Handler functions
-  const makeJointKey = (line?: string | null, spool?: string | null, joint?: string | null) =>
-    `${(line || '').trim().toLowerCase()}-${(spool || '').trim().toLowerCase()}-${(joint || '').trim().toLowerCase()}`;
+  const keyFor = (obj: { structure_category?: string; page_no?: string; draw_no?: string; joint_no?: string }) =>
+    `${(obj.structure_category||'').trim()}-${(obj.page_no||'').trim()}-${(obj.draw_no||'').trim()}-${(obj.joint_no||'').trim()}`;
 
   const handleAddClick = () => {
     setFormData({
+      block_no: '',
       system_no: '',
       line_no: '',
       spool_no: '',
@@ -172,7 +295,6 @@ const FitUpInspection: React.FC = () => {
       part2_heat_no: '',
       weld_site: '',
       weld_length: 0,
-      dia: '',
       fit_up_date: '',
       fit_up_report_no: '',
       fit_up_result: '',
@@ -184,6 +306,28 @@ const FitUpInspection: React.FC = () => {
   };
 
   const handleEditClick = (record: FitUpInspectionType) => {
+    // If multiple rows are selected, enter inline edit mode
+    if (selectedRows.length > 1 && selectedRows.includes(record.id)) {
+      // Enter inline edit mode for all selected rows
+      setEditingRows(new Set(selectedRows));
+      const initialEditData: Record<number, Partial<FitUpInspectionType>> = {};
+      selectedRows.forEach(id => {
+        const rowRecord = records.find(r => r.id === id);
+        if (rowRecord) {
+          initialEditData[id] = {
+            fit_up_date: rowRecord.fit_up_date,
+            fit_up_report_no: rowRecord.fit_up_report_no,
+            fit_up_result: rowRecord.fit_up_result,
+            inspection_category: rowRecord.inspection_category
+          };
+        }
+      });
+      setEditData(initialEditData);
+      setIsInlineEditMode(true);
+      return;
+    }
+    
+    // Single row edit - open dialog (existing behavior)
     const groupIds =
       selectedRows.includes(record.id) && selectedRows.length > 0
         ? selectedRows
@@ -193,6 +337,7 @@ const FitUpInspection: React.FC = () => {
     setEditGroupIndex(idx >= 0 ? idx : 0);
     setSelectedRecord(record);
     setFormData({
+      block_no: record.block_no || '',
       system_no: record.system_no || '',
       line_no: record.line_no || '',
       spool_no: record.spool_no || '',
@@ -210,7 +355,6 @@ const FitUpInspection: React.FC = () => {
       part2_heat_no: record.part2_heat_no || '',
       weld_site: record.weld_site || '',
       weld_length: record.weld_length || 0,
-      dia: record.dia || '',
       fit_up_date: record.fit_up_date || '',
       fit_up_report_no: record.fit_up_report_no || '',
       fit_up_result: record.fit_up_result || '',
@@ -256,14 +400,11 @@ const FitUpInspection: React.FC = () => {
     }
   };
 
-  const keyFor = (obj: { system_no?: string; line_no?: string; spool_no?: string; joint_no?: string }) =>
-    `${(obj.system_no||'').trim()}-${(obj.line_no||'').trim()}-${(obj.spool_no||'').trim()}-${(obj.joint_no||'').trim()}`;
-
   const findMasterByForm = () => {
     return masterJoints.find(m =>
-      (m.system_no||'').trim() === (formData.system_no||'').trim() &&
-      (m.line_no||'').trim() === (formData.line_no||'').trim() &&
-      (m.spool_no||'').trim() === (formData.spool_no||'').trim() &&
+      (m.structure_category||'').trim() === (formData.system_no||'').trim() &&
+      (m.page_no||'').trim() === (formData.line_no||'').trim() &&
+      (m.draw_no||'').trim() === (formData.spool_no||'').trim() &&
       (m.joint_no||'').trim() === (formData.joint_no||'').trim()
     );
   };
@@ -272,18 +413,16 @@ const FitUpInspection: React.FC = () => {
     const mj = masterJoints.find(j => j.id === jointId);
     if (!mj) return;
     
-    const calculatedLength = calculateWeldLengthFromDiameter(mj.pipe_dia || '');
-    
     // Create updated form data with master joint information
     const updatedFormData = {
       ...formData,
-      system_no: mj.system_no || '',
-      line_no: mj.line_no || '',
-      spool_no: mj.spool_no || '',
+      block_no: mj.block_no || '',
+      system_no: mj.structure_category || '',
+      line_no: mj.page_no || '',
+      spool_no: mj.draw_no || '',
       joint_no: mj.joint_no || '',
       weld_type: mj.weld_type || '',
-      dia: mj.pipe_dia || '',
-      weld_length: calculatedLength || 0,
+      weld_length: mj.weld_length || 0,
       master_joint_id: mj.id,
       part1_piece_mark_no: mj.part1_piece_mark_no || '',
       part2_piece_mark_no: mj.part2_piece_mark_no || '',
@@ -344,16 +483,6 @@ const FitUpInspection: React.FC = () => {
   };
 
   const handleAddSubmit = async () => {
-    if (selectedProject?.project_type === 'pipe') {
-      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
-      if (key !== '--') {
-        const exists = records.some(r => makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
-        if (exists) {
-          setError('Duplicate joint in fit-up: same line, spool and joint already exists');
-          return;
-        }
-      }
-    }
     try {
       const mj = findMasterByForm();
       const payload: any = {
@@ -383,16 +512,6 @@ const FitUpInspection: React.FC = () => {
   const handleEditSubmit = async () => {
     if (!selectedRecord) return;
     
-    if (selectedProject?.project_type === 'pipe') {
-      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
-      if (key !== '--') {
-        const exists = records.some(r => r.id !== selectedRecord.id && makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
-        if (exists) {
-          setError('Duplicate joint in fit-up: same line, spool and joint already exists');
-          return;
-        }
-      }
-    }
     try {
       const mj = findMasterByForm();
       const payload: any = {
@@ -419,6 +538,7 @@ const FitUpInspection: React.FC = () => {
         if (nextRecord) {
           setSelectedRecord(nextRecord);
           setFormData({
+            block_no: nextRecord.block_no || '',
             system_no: nextRecord.system_no || '',
             line_no: nextRecord.line_no || '',
             spool_no: nextRecord.spool_no || '',
@@ -436,7 +556,6 @@ const FitUpInspection: React.FC = () => {
             part2_heat_no: nextRecord.part2_heat_no || '',
             weld_site: nextRecord.weld_site || '',
             weld_length: nextRecord.weld_length || 0,
-            dia: nextRecord.dia || '',
             fit_up_date: nextRecord.fit_up_date || '',
             fit_up_report_no: nextRecord.fit_up_report_no || '',
             fit_up_result: nextRecord.fit_up_result || '',
@@ -479,6 +598,47 @@ const FitUpInspection: React.FC = () => {
     }
   };
 
+  // Bulk create final inspections from selected fit-up records
+  const handleBulkCreateFinalInspections = async () => {
+    if (selectedRows.length === 0) {
+      setError('Please select at least one fit-up record to create final inspections.');
+      return;
+    }
+
+    // Filter only accepted fit-up records
+    const acceptedFitupIds = records
+      .filter(record => selectedRows.includes(record.id) && 
+        (record.fit_up_result || '').toLowerCase() === 'accepted')
+      .map(record => record.id);
+
+    if (acceptedFitupIds.length === 0) {
+      setError('Only fit-up records with "Accepted" result can be used to create final inspections.');
+      return;
+    }
+
+    setBulkCreateLoading(true);
+    setError(null);
+    
+    try {
+      const result = await ApiService.bulkCreateFinalInspectionsFromFitup(acceptedFitupIds);
+      setBulkCreateResult(result);
+      setBulkCreateDialogOpen(true);
+      
+      // Clear selection after successful creation
+      setSelectedRows([]);
+      
+      // Show success message
+      if (result.created_count > 0) {
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to create final inspections'));
+      console.error('Error creating final inspections:', err);
+    } finally {
+      setBulkCreateLoading(false);
+    }
+  };
+
   const getStatusColor = (result?: string) => {
     switch (result?.toLowerCase()) {
       case 'accepted':
@@ -516,90 +676,59 @@ const FitUpInspection: React.FC = () => {
   });
 
   const downloadCSV = () => {
-    const headers = isStructureProject
-      ? [
-          'Drawing No',
-          'Structure Category',
-          'Page No',
-          'Joint',
-          'Weld Type',
-          'Piece Mark 1',
-          'Piece Mark 2',
-          'Weld Site',
-          'Weld Length',
-          'Size',
-          'Fit Up Date',
-          'Fit-up Report No',
-          'Fit Up Result',
-          'Master Link'
-        ]
-        : [
-          'System No',
-          'Line No',
-          'Spool No',
-          'Joint No',
-          'Weld Type',
-          'Piece Mark 1',
-          'Piece Mark 2',
-          'Weld Site',
-          'Weld Length',
-          'Pipe Dia',
-          'Fit Up Date',
-          'Fit-up Report No',
-          'Fit Up Result',
-          'Master Link'
-        ];
+    const headers = [
+      'Block No',
+      'Drawing No',
+      'Structure Category',
+      'Page No',
+      'Joint',
+      'Weld Type',
+      'Piece Mark 1',
+      'Piece Mark 2',
+      'Weld Site',
+      'Weld Length',
+      'Thickness',
+      'Fit Up Date',
+      'Fit-up Report No',
+      'Fit Up Result',
+      'Master Link'
+    ];
     const rows = filteredRecords.map(record => {
       const inMaster = masterJoints.length > 0 ? (
         masterJoints.some(m =>
-          (m.system_no||'').trim() === (record.system_no||'').trim() &&
-          (m.line_no||'').trim() === (record.line_no||'').trim() &&
-          (m.spool_no||'').trim() === (record.spool_no||'').trim() &&
+          (m.structure_category||'').trim() === (record.system_no||'').trim() &&
+          (m.page_no||'').trim() === (record.line_no||'').trim() &&
+          (m.draw_no||'').trim() === (record.spool_no||'').trim() &&
           (m.joint_no||'').trim() === (record.joint_no||'').trim()
         )
       ) : false;
       const masterLink = masterJoints.length === 0 ? '-' : (inMaster ? 'In Master' : 'Not in Master');
       const lengthStr = record.weld_length ? `${record.weld_length} mm` : '';
       const dateStr = formatDate(record.fit_up_date);
-      return isStructureProject
-        ? [
-            record.spool_no || '',
-            record.system_no || '',
-            record.line_no || '',
-            record.joint_no || '',
-            record.weld_type || '',
-            record.part1_piece_mark_no || '',
-            record.part2_piece_mark_no || '',
-            record.weld_site || '',
-            lengthStr,
-            record.dia || '',
-            dateStr,
-            record.fit_up_report_no || '',
-            record.fit_up_result || '',
-            masterLink
-          ]
-        : [
-            record.system_no || '',
-            record.line_no || '',
-            record.spool_no || '',
-            record.joint_no || '',
-            record.weld_type || '',
-            record.part1_piece_mark_no || '',
-            record.part2_piece_mark_no || '',
-            record.weld_site || '',
-            lengthStr,
-            record.dia || '',
-            dateStr,
-            record.fit_up_report_no || '',
-            record.fit_up_result || '',
-            masterLink
-          ];
+      const thickness = calculateLowerThickness(record);
+      return [
+        record.block_no || '',
+        record.spool_no || '', // Drawing No
+        record.system_no || '', // Structure Category
+        record.line_no || '', // Page No
+        record.joint_no || '',
+        record.weld_type || '',
+        record.part1_piece_mark_no || '',
+        record.part2_piece_mark_no || '',
+        record.weld_site || '',
+        lengthStr,
+        thickness || '',
+        dateStr,
+        record.fit_up_report_no || '',
+        record.fit_up_result || '',
+        masterLink
+      ];
     });
     const escape = (v: string) => {
       const s = String(v ?? '');
       return '"' + s.replace(/\"/g, '""') + '"';
     };
-    const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\r\n');
+    const csv = [headers.map(h => escape(h)).join(','), ...rows.map(r => r.map((c: any) => escape(String(c))).join(','))].join('\r\n');
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -620,14 +749,14 @@ const FitUpInspection: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth={false} sx={{ mt: 4, mb: 4, px: 2 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Assignment sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
-              {isStructureProject ? 'Structure Fit-up Inspection' : 'Pipe Fit-up Inspection'}
+              Structure Fit-up Inspection
             </Typography>
             <Typography variant="subtitle1" color="textSecondary">
               {selectedProject.name} ({selectedProject.code})
@@ -643,6 +772,15 @@ const FitUpInspection: React.FC = () => {
             sx={{ mr: 2 }}
           >
             Refresh
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleBulkCreateFinalInspections}
+            disabled={selectedRows.length === 0 || bulkCreateLoading || !canEdit()}
+            sx={{ mr: 2 }}
+          >
+            {bulkCreateLoading ? <CircularProgress size={24} /> : `Create Final (${selectedRows.length})`}
           </Button>
           <Button
             variant="contained"
@@ -725,9 +863,9 @@ const FitUpInspection: React.FC = () => {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>{isStructureProject ? 'Structure Category' : 'System No'}</InputLabel>
+              <InputLabel>Structure Category</InputLabel>
               <Select
-                label={isStructureProject ? 'Structure Category' : 'System No'}
+                label="Structure Category"
                 value={search.system_no}
                 onChange={(e) => setSearch({ ...search, system_no: String(e.target.value) })}
               >
@@ -740,9 +878,9 @@ const FitUpInspection: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={2.4 as any}>
             <FormControl fullWidth>
-              <InputLabel>{isStructureProject ? 'Drawing No' : 'Spool No'}</InputLabel>
+              <InputLabel>Drawing No</InputLabel>
               <Select
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
+                label="Drawing No"
                 value={search.spool_no}
                 onChange={(e) => setSearch({ ...search, spool_no: String(e.target.value) })}
               >
@@ -818,49 +956,220 @@ const FitUpInspection: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Records Table */}
+      {/* Records Table - Optimized for PC */}
       {!loading && (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="fit-up records table">
+        <Paper sx={{ p: 3, boxShadow: 2, width: '100%', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight="600">
+              Fit-up Records
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Total: <Typography component="span" variant="body2" fontWeight="bold" color="primary.main">{filteredRecords.length}</Typography> records
+              </Typography>
+              {filteredRecords.length !== records.length && (
+                <Chip 
+                  label={`Filtered from ${records.length}`} 
+                  size="small" 
+                  color="info" 
+                  variant="outlined"
+                />
+              )}
+              <Typography variant="caption" color="text.secondary">
+                Scroll horizontally to view all columns →
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ width: '100%', overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 1400 }} aria-label="fit-up records table" size="medium">
               <TableHead>
                 <TableRow>
-                  <TableCell padding="checkbox" />
-                  {isStructureProject ? (
-                    <>
-                      <TableCell><strong>Drawing No</strong></TableCell>
-                      <TableCell><strong>Structure Category</strong></TableCell>
-                      <TableCell><strong>Page No</strong></TableCell>
-                    </>
-                  ) : (
-                    <>
-                      <TableCell><strong>System No</strong></TableCell>
-                      <TableCell><strong>Line No</strong></TableCell>
-                      <TableCell><strong>Spool No</strong></TableCell>
-                    </>
-                  )}
-                  <TableCell><strong>Joint No</strong></TableCell>
-                  <TableCell><strong>Weld Type</strong></TableCell>
-                  <TableCell><strong>Inspection Category</strong></TableCell>
-                  <TableCell><strong>Piece Mark 1</strong></TableCell>
-                  <TableCell><strong>Piece Mark 2</strong></TableCell>
-                  <TableCell><strong>Weld Site</strong></TableCell>
-                  <TableCell><strong>Weld Length</strong></TableCell>
-                  {selectedProject?.project_type === 'pipe' && (
-                    <TableCell><strong>Pipe Dia</strong></TableCell>
-                  )}
-                  <TableCell><strong>Fit Up Date</strong></TableCell>
-                  <TableCell><strong>Fit-up Report No</strong></TableCell>
-                  <TableCell><strong>Fit Up Result</strong></TableCell>
-                  <TableCell><strong>User Update</strong></TableCell>
-                  <TableCell><strong>Master Link</strong></TableCell>
-                  <TableCell><strong>Actions</strong></TableCell>
+                  <TableCell padding="checkbox" sx={{ 
+                    width: 60, 
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 8px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }} />
+                  <TableCell sx={{ 
+                    width: 120, 
+                    minWidth: 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Block no</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Drawing No</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 160, 
+                    minWidth: 160,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Structure Category</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 120, 
+                    minWidth: 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Joint No</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 120, 
+                    minWidth: 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Weld Type</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Inspection Category</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 200, 
+                    minWidth: 200,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Piece Mark 1</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 200, 
+                    minWidth: 200,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Piece Mark 2</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Weld Site</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Weld Length</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 120, 
+                    minWidth: 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Thickness</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Fit Up Date</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 160, 
+                    minWidth: 160,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Fit-up Report No</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Fit Up Result</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>User Update</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 140, 
+                    minWidth: 140,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Master Link</strong></TableCell>
+                  <TableCell sx={{ 
+                    width: 120, 
+                    minWidth: 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}><strong>Actions</strong></TableCell>
                 </TableRow>
               </TableHead>
-          <TableBody>
+            <TableBody>
               {records.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="textSecondary">
+                  <TableCell colSpan={16} align="center" sx={{ padding: '24px 16px' }}>
+                    <Typography variant="body2" color="text.secondary">
                       No fit-up records found for this project.
                     </Typography>
                     <Button
@@ -875,16 +1184,25 @@ const FitUpInspection: React.FC = () => {
                 </TableRow>
               ) : filteredRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="textSecondary">
+                  <TableCell colSpan={16} align="center" sx={{ padding: '24px 16px' }}>
+                    <Typography variant="body2" color="text.secondary">
                       No records match current search.
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => (
-                  <TableRow key={record.id} hover selected={selectedRows.includes(record.id)}>
-                    <TableCell padding="checkbox">
+                  <TableRow 
+                    key={record.id} 
+                    hover 
+                    selected={selectedRows.includes(record.id)}
+                    sx={{ 
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  >
+                    <TableCell padding="checkbox" sx={{ padding: '12px 8px' }}>
                       <Checkbox
                         checked={selectedRows.includes(record.id)}
                         onChange={() => {
@@ -894,89 +1212,146 @@ const FitUpInspection: React.FC = () => {
                               : [...prev, record.id]
                           );
                         }}
+                        size="small"
                       />
                     </TableCell>
-                    {isStructureProject ? (
-                      <>
-                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
-                        <TableCell>{record.system_no || 'N/A'}</TableCell>
-                        <TableCell>{record.line_no || 'N/A'}</TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{record.system_no || 'N/A'}</TableCell>
-                        <TableCell>{record.line_no || 'N/A'}</TableCell>
-                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
-                      </>
-                    )}
-                    <TableCell>{record.joint_no || 'N/A'}</TableCell>
-                    <TableCell>{record.weld_type || 'N/A'}</TableCell>
-                    <TableCell>{record.inspection_category || 'type-I'}</TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">{record.part1_piece_mark_no || 'N/A'}</Typography>
-                        {record.part1_material_type && (
-                          <Typography variant="caption" color="textSecondary">
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
+                      {editingRows.has(record.id) ? (
+                        <TextField
+                          value={editData[record.id]?.block_no || record.block_no || ''}
+                          onChange={(e) => handleInlineEditChange(record.id, 'block_no', e.target.value)}
+                          size="small"
+                          fullWidth
+                          inputProps={{ style: { fontSize: '0.875rem' } }}
+                        />
+                      ) : (
+                        record.block_no || 'N/A'
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.spool_no || 'N/A'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.system_no || 'N/A'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.joint_no || 'N/A'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.weld_type || 'N/A'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.inspection_category || 'type-I'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
+                      <Box sx={{ lineHeight: 1.2 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                          {record.part1_piece_mark_no || 'N/A'}
+                        </Typography>
+                        {record.part1_material_type && record.part1_grade && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
                             {record.part1_material_type} - {record.part1_grade}
                           </Typography>
                         )}
-                        <Typography variant="caption" color="textSecondary">
-                          {record.part1_thickness ? `thk: ${record.part1_thickness}` : ''}
-                          {(() => {
-                            const m = materials.find(x => (x.piece_mark_no || '').trim() === (record.part1_piece_mark_no || '').trim());
-                            const d = m?.pipe_dia ? ` • dia: ${m.pipe_dia}` : '';
-                            return d;
-                          })()}
-                        </Typography>
+                        {(record.part1_thickness || (() => {
+                          const m = materials.find(x => (x.piece_mark_no || '').trim() === (record.part1_piece_mark_no || '').trim());
+                          return m?.pipe_dia;
+                        })()) && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            {record.part1_thickness ? `thk: ${record.part1_thickness}` : ''}
+                          </Typography>
+                        )}
+                        {record.part1_heat_no && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            heat: {record.part1_heat_no}
+                          </Typography>
+                        )}
                       </Box>
                     </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">{record.part2_piece_mark_no || 'N/A'}</Typography>
-                        {record.part2_material_type && (
-                          <Typography variant="caption" color="textSecondary">
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
+                      <Box sx={{ lineHeight: 1.2 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                          {record.part2_piece_mark_no || 'N/A'}
+                        </Typography>
+                        {record.part2_material_type && record.part2_grade && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
                             {record.part2_material_type} - {record.part2_grade}
                           </Typography>
                         )}
-                        <Typography variant="caption" color="textSecondary">
-                          {record.part2_thickness ? `thk: ${record.part2_thickness}` : ''}
-                          {(() => {
-                            const m = materials.find(x => (x.piece_mark_no || '').trim() === (record.part2_piece_mark_no || '').trim());
-                            const d = m?.pipe_dia ? ` • dia: ${m.pipe_dia}` : '';
-                            return d;
-                          })()}
-                        </Typography>
+                        {(record.part2_thickness || (() => {
+                          const m = materials.find(x => (x.piece_mark_no || '').trim() === (record.part2_piece_mark_no || '').trim());
+                          return m?.pipe_dia;
+                        })()) && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            {record.part2_thickness ? `thk: ${record.part2_thickness}` : ''}
+                          </Typography>
+                        )}
+                        {record.part2_heat_no && (
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                            heat: {record.part2_heat_no}
+                          </Typography>
+                        )}
                       </Box>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
                       <Chip 
                         label={record.weld_site || 'N/A'} 
                         size="small" 
                         color={record.weld_site === 'shop weld' ? 'primary' : 'secondary'}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
                       {record.weld_length ? `${record.weld_length} mm` : 'N/A'}
                     </TableCell>
-                    {selectedProject?.project_type === 'pipe' && (
-                      <TableCell>{record.dia || 'N/A'}</TableCell>
-                    )}
-                    <TableCell>{formatDate(record.fit_up_date)}</TableCell>
-                    <TableCell>{record.fit_up_report_no || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={record.fit_up_result || 'Pending'} 
-                        color={getStatusColor(record.fit_up_result) as any}
-                        size="small"
-                      />
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
+                      {calculateLowerThickness(record) || 'N/A'}
                     </TableCell>
-                    <TableCell>{record.updated_by || '-'}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
+                      {editingRows.has(record.id) ? (
+                        <TextField
+                          type="date"
+                          value={editData[record.id]?.fit_up_date || record.fit_up_date || ''}
+                          onChange={(e) => handleInlineEditChange(record.id, 'fit_up_date', e.target.value)}
+                          size="small"
+                          fullWidth
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ style: { fontSize: '0.875rem' } }}
+                        />
+                      ) : (
+                        formatDate(record.fit_up_date)
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
+                      {editingRows.has(record.id) ? (
+                        <TextField
+                          value={editData[record.id]?.fit_up_report_no || record.fit_up_report_no || ''}
+                          onChange={(e) => handleInlineEditChange(record.id, 'fit_up_report_no', e.target.value)}
+                          size="small"
+                          fullWidth
+                          inputProps={{ style: { fontSize: '0.875rem' } }}
+                        />
+                      ) : (
+                        record.fit_up_report_no || 'N/A'
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
+                      {editingRows.has(record.id) ? (
+                        <FormControl fullWidth size="small">
+                          <Select
+                            value={editData[record.id]?.fit_up_result || record.fit_up_result || 'pending'}
+                            onChange={(e) => handleInlineEditChange(record.id, 'fit_up_result', e.target.value)}
+                            size="small"
+                          >
+                            <MenuItem value="pending">Pending</MenuItem>
+                            <MenuItem value="accepted">Accepted</MenuItem>
+                            <MenuItem value="rejected">Rejected</MenuItem>
+                          </Select>
+                        </FormControl>
+                      ) : (
+                        <Chip 
+                          label={record.fit_up_result || 'Pending'} 
+                          color={getStatusColor(record.fit_up_result) as any}
+                          size="small"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{record.updated_by || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>
                       {masterJoints.length > 0 ? (
                         masterJoints.some(m =>
-                          (m.system_no||'').trim() === (record.system_no||'').trim() &&
-                          (m.line_no||'').trim() === (record.line_no||'').trim() &&
-                          (m.spool_no||'').trim() === (record.spool_no||'').trim() &&
+                          (m.structure_category||'').trim() === (record.system_no||'').trim() &&
+                          (m.page_no||'').trim() === (record.line_no||'').trim() &&
+                          (m.draw_no||'').trim() === (record.spool_no||'').trim() &&
                           (m.joint_no||'').trim() === (record.joint_no||'').trim()
                         ) ? (
                           <Chip label="In Master" color="success" size="small" variant="outlined" />
@@ -987,7 +1362,7 @@ const FitUpInspection: React.FC = () => {
                         <Chip label="-" size="small" variant="outlined" />
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
                       {(() => {
                         const accepted = (record.fit_up_result || '').toLowerCase() === 'accepted';
                         const allowEdit = isAdmin() || ((user?.role || '').toLowerCase() === 'inspector' && !accepted);
@@ -1009,7 +1384,40 @@ const FitUpInspection: React.FC = () => {
               )}
             </TableBody>
           </Table>
-        </TableContainer>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Inline Edit Controls */}
+      {isInlineEditMode && (
+        <Paper sx={{ p: 2, mt: 2, backgroundColor: 'primary.light', color: 'white' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">
+              Editing {editingRows.size} record(s)
+            </Typography>
+            <Box>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleCancelInlineEdits}
+                sx={{ mr: 2 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleSaveInlineEdits}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Save All Changes'}
+              </Button>
+            </Box>
+          </Box>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            You are editing {editingRows.size} selected records. Changes will be saved for all edited fields.
+          </Typography>
+        </Paper>
       )}
 
       {/* Information Footer */}
@@ -1022,7 +1430,7 @@ const FitUpInspection: React.FC = () => {
 
       {/* Add Fit-up Dialog */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New {isStructureProject ? 'Structure Fit-up' : 'Fit-up'} Inspection</DialogTitle>
+        <DialogTitle>Add New Structure Fit-up Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -1033,15 +1441,26 @@ const FitUpInspection: React.FC = () => {
                   label="Master Joint"
                   onChange={(e) => applyMasterJoint(Number(e.target.value))}
                 >
-                  {masterJoints.map(j => (
+                  {getFilteredMasterJoints.map(j => (
                     <MenuItem key={j.id} value={j.id}>{keyFor(j)}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+                Available: {getFilteredMasterJoints.length} / Total: {masterJoints.length}
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Structure Category' : 'System No'}
+                label="Block no"
+                value={formData.block_no || ''}
+                onChange={(e) => setFormData({ ...formData, block_no: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Structure Category"
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -1049,7 +1468,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Page No' : 'Line No'}
+                label="Page No"
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -1057,7 +1476,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
+                label="Drawing No"
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -1071,65 +1490,6 @@ const FitUpInspection: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            {selectedProject?.project_type === 'pipe' && (
-              <>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Pipe Dia"
-                    value={formData.dia || ''}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const calculatedLength = calculateWeldLengthFromDiameter(v);
-                      setFormData({ 
-                        ...formData, 
-                        dia: v, 
-                        weld_length: calculatedLength || formData.weld_length 
-                      });
-                    }}
-                    fullWidth
-                    helperText={'Enter diameter with unit (e.g., 12" or 300mm)'}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Weld Length (mm)"
-                    type="number"
-                    value={formData.weld_length}
-                    onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                    fullWidth
-                    error={!!(weldLengthValidation && !weldLengthValidation.isValid)}
-                    helperText={weldLengthValidation?.message}
-                    InputProps={{
-                      endAdornment: weldLengthValidation && (
-                        <Tooltip title={weldLengthValidation.message}>
-                          {weldLengthValidation.isValid ? (
-                            <Info color="success" sx={{ mr: 1 }} />
-                          ) : (
-                            <Warning color="error" sx={{ mr: 1 }} />
-                          )}
-                        </Tooltip>
-                      )
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={repairWorkOverride}
-                        onChange={(e) => setRepairWorkOverride(e.target.checked)}
-                      />
-                    }
-                    label="Repair Work - Allow manual weld length override"
-                  />
-                  {repairWorkOverride && (
-                    <Typography variant="caption" color="textSecondary" sx={{ ml: 4, display: 'block' }}>
-                      Manual override enabled. Weld length validation is disabled for repair work.
-                    </Typography>
-                  )}
-                </Grid>
-              </>
-            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 select
@@ -1153,7 +1513,7 @@ const FitUpInspection: React.FC = () => {
                 <MenuItem value="type-I">Type I</MenuItem>
                 <MenuItem value="type-II">Type II</MenuItem>
                 <MenuItem value="type-III">Type III</MenuItem>
-                <MenuItem value="type-IV">Special</MenuItem>
+                <MenuItem value="Special">Special</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1174,8 +1534,7 @@ const FitUpInspection: React.FC = () => {
                   const m = materials.find(x => (x.piece_mark_no || '').trim() === (formData.part1_piece_mark_no || '').trim());
                   const info = [
                     formData.part1_material_type && formData.part1_grade ? `${formData.part1_material_type} - ${formData.part1_grade}` : '',
-                    formData.part1_thickness ? `thk: ${formData.part1_thickness}` : '',
-                    m?.pipe_dia ? `dia: ${m.pipe_dia}` : ''
+                    formData.part1_thickness ? `thk: ${formData.part1_thickness}` : ''
                   ].filter(Boolean).join(' • ');
                   return info || '-';
                 })()}
@@ -1199,8 +1558,7 @@ const FitUpInspection: React.FC = () => {
                   const m = materials.find(x => (x.piece_mark_no || '').trim() === (formData.part2_piece_mark_no || '').trim());
                   const info = [
                     formData.part2_material_type && formData.part2_grade ? `${formData.part2_material_type} - ${formData.part2_grade}` : '',
-                    formData.part2_thickness ? `thk: ${formData.part2_thickness}` : '',
-                    m?.pipe_dia ? `dia: ${m.pipe_dia}` : ''
+                    formData.part2_thickness ? `thk: ${formData.part2_thickness}` : ''
                   ].filter(Boolean).join(' • ');
                   return info || '-';
                 })()}
@@ -1218,17 +1576,15 @@ const FitUpInspection: React.FC = () => {
                 <MenuItem value="float weld">float weld</MenuItem>
               </TextField>
             </Grid>
-            {selectedProject?.project_type !== 'pipe' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Weld Length (mm)"
-                  type="number"
-                  value={formData.weld_length}
-                  onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                  fullWidth
-                />
-              </Grid>
-            )}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Weld Length (mm)"
+                type="number"
+                value={formData.weld_length}
+                onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
+                fullWidth
+              />
+            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 label="Fit-up Date"
@@ -1281,7 +1637,7 @@ const FitUpInspection: React.FC = () => {
 
       {/* Edit Fit-up Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit {isStructureProject ? 'Structure Fit-up' : 'Fit-up'} Inspection</DialogTitle>
+        <DialogTitle>Edit Structure Fit-up Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -1292,15 +1648,26 @@ const FitUpInspection: React.FC = () => {
                   label="Master Joint"
                   onChange={(e) => applyMasterJoint(Number(e.target.value))}
                 >
-                  {masterJoints.map(j => (
+                  {getFilteredMasterJoints.map(j => (
                     <MenuItem key={j.id} value={j.id}>{keyFor(j)}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
+                Available: {getFilteredMasterJoints.length} / Total: {masterJoints.length}
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Structure Category' : 'System No'}
+                label="Block no"
+                value={formData.block_no || ''}
+                onChange={(e) => setFormData({ ...formData, block_no: e.target.value })}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Structure Category"
                 value={formData.system_no}
                 onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
@@ -1308,7 +1675,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Page No' : 'Line No'}
+                label="Page No"
                 value={formData.line_no}
                 onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
@@ -1316,7 +1683,7 @@ const FitUpInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
+                label="Drawing No"
                 value={formData.spool_no}
                 onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
                 fullWidth
@@ -1364,8 +1731,7 @@ const FitUpInspection: React.FC = () => {
                   const m = materials.find(x => (x.piece_mark_no || '').trim() === (formData.part1_piece_mark_no || '').trim());
                   const info = [
                     formData.part1_material_type && formData.part1_grade ? `${formData.part1_material_type} - ${formData.part1_grade}` : '',
-                    formData.part1_thickness ? `thk: ${formData.part1_thickness}` : '',
-                    m?.pipe_dia ? `dia: ${m.pipe_dia}` : ''
+                    formData.part1_thickness ? `thk: ${formData.part1_thickness}` : ''
                   ].filter(Boolean).join(' • ');
                   return info || '-';
                 })()}
@@ -1397,8 +1763,7 @@ const FitUpInspection: React.FC = () => {
                   const m = materials.find(x => (x.piece_mark_no || '').trim() === (formData.part2_piece_mark_no || '').trim());
                   const info = [
                     formData.part2_material_type && formData.part2_grade ? `${formData.part2_material_type} - ${formData.part2_grade}` : '',
-                    formData.part2_thickness ? `thk: ${formData.part2_thickness}` : '',
-                    m?.pipe_dia ? `dia: ${m.pipe_dia}` : ''
+                    formData.part2_thickness ? `thk: ${formData.part2_thickness}` : ''
                   ].filter(Boolean).join(' • ');
                   return info || '-';
                 })()}
@@ -1484,8 +1849,8 @@ const FitUpInspection: React.FC = () => {
             {selectedRecord && (
               <Box sx={{ mt: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  {isStructureProject ? 'Drawing No' : 'System No'}: {isStructureProject ? selectedRecord.spool_no || 'N/A' : selectedRecord.system_no || 'N/A'}, 
-                  {isStructureProject ? 'Structure Category' : 'Line No'}: {isStructureProject ? selectedRecord.system_no || 'N/A' : selectedRecord.line_no || 'N/A'}, 
+                  Drawing No: {selectedRecord.spool_no || 'N/A'}, 
+                  Structure Category: {selectedRecord.system_no || 'N/A'}, 
                   Joint No: {selectedRecord.joint_no || 'N/A'}
                 </Typography>
               </Box>
@@ -1496,6 +1861,107 @@ const FitUpInspection: React.FC = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} variant="contained" color="error">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Create Results Dialog */}
+      <Dialog open={bulkCreateDialogOpen} onClose={() => setBulkCreateDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Bulk Create Final Inspections - Results</DialogTitle>
+        <DialogContent>
+          {bulkCreateResult && (
+            <Box sx={{ mt: 2 }}>
+              <Alert 
+                severity={bulkCreateResult.created_count > 0 ? "success" : "warning"} 
+                sx={{ mb: 3 }}
+              >
+                {bulkCreateResult.message}
+              </Alert>
+              
+              <Typography variant="h6" gutterBottom>
+                Summary
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'success.contrastText' }}>
+                    <Typography variant="h4">{bulkCreateResult.created_count}</Typography>
+                    <Typography variant="body2">Created</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                    <Typography variant="h4">{bulkCreateResult.skipped_count}</Typography>
+                    <Typography variant="body2">Skipped</Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {bulkCreateResult.created_finals && bulkCreateResult.created_finals.length > 0 && (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    Created Final Inspections ({bulkCreateResult.created_finals.length})
+                  </Typography>
+                  <TableContainer component={Paper} sx={{ mb: 3 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>ID</strong></TableCell>
+                          <TableCell><strong>Joint No</strong></TableCell>
+                          <TableCell><strong>Structure Category</strong></TableCell>
+                          <TableCell><strong>Drawing No</strong></TableCell>
+                          <TableCell><strong>Final Report No</strong></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {bulkCreateResult.created_finals.map((final: any) => (
+                          <TableRow key={final.id}>
+                            <TableCell>{final.id}</TableCell>
+                            <TableCell>{final.joint_no || 'N/A'}</TableCell>
+                            <TableCell>{final.system_no || 'N/A'}</TableCell>
+                            <TableCell>{final.spool_no || 'N/A'}</TableCell>
+                            <TableCell>{final.final_report_no || 'N/A'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
+              )}
+
+              {bulkCreateResult.errors && bulkCreateResult.errors.length > 0 && (
+                <>
+                  <Typography variant="h6" gutterBottom color="error">
+                    Errors ({bulkCreateResult.errors.length})
+                  </Typography>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      {bulkCreateResult.errors.map((error: string, index: number) => (
+                        <Box key={index} sx={{ mb: 0.5 }}>
+                          • {error}
+                        </Box>
+                      ))}
+                    </Typography>
+                  </Alert>
+                </>
+              )}
+
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 3 }}>
+                <strong>Note:</strong> Created final inspections can be viewed in the Final Inspection page.
+                You can now navigate to <a href="/structureproject/final-inspection" style={{ color: 'primary.main', textDecoration: 'underline' }}>Final Inspection</a> to update welder no, WPS no, and NDT testing details.
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkCreateDialogOpen(false)}>Close</Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              setBulkCreateDialogOpen(false);
+              window.location.href = '/structureproject/final-inspection';
+            }}
+          >
+            Go to Final Inspection
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,176 +1,515 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import os
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from app.database import engine, SessionLocal
-from app.models import Base, MasterJointList, FitUpInspection, FinalInspection
-from app.routes import auth, users, projects, inspections, ai
+from fastapi.responses import JSONResponse
+import os
+import logging
+from datetime import datetime
+from sqlalchemy import text, inspect
+from sqlalchemy.exc import SQLAlchemyError
 
-Base.metadata.create_all(bind=engine)
-def _ensure_ndt_request_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(ndt_requests)").fetchall()
-        existing = [r[1] for r in rows]
-        required = {
-            'final_id': 'INTEGER',
-            'system_no': 'TEXT',
-            'line_no': 'TEXT',
-            'spool_no': 'TEXT',
-            'joint_no': 'TEXT',
-            'weld_type': 'TEXT',
-            'welder_no': 'TEXT',
-            'weld_size': 'FLOAT',
-            'weld_process': 'TEXT',
-            'ndt_report_no': 'TEXT',
-            'ndt_result': 'TEXT',
-        }
-        for col, typ in required.items():
-            if col not in existing:
-                conn.exec_driver_sql(f"ALTER TABLE ndt_requests ADD COLUMN {col} {typ}")
+from app.database import engine, SessionLocal, check_database_health, get_database_stats
+from app.models import Base, User
+from app.auth import get_password_hash
+from app.routes import auth, users, projects, ai, structure_inspections, templates
 
-def _ensure_master_joint_list_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(master_joint_list)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'pipe_dia' not in existing:
-            conn.exec_driver_sql("ALTER TABLE master_joint_list ADD COLUMN pipe_dia TEXT")
-        if 'fit_up_report_no' not in existing:
-            conn.exec_driver_sql("ALTER TABLE master_joint_list ADD COLUMN fit_up_report_no TEXT")
-
-def _ensure_wps_register_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(wps_register)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'job_trade' not in existing:
-            conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN job_trade TEXT")
-        if 'position' not in existing:
-            conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN position TEXT")
-
-def _ensure_welder_register_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(welder_register)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'welder_name' not in existing:
-            conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN welder_name TEXT")
-        if 'qualified_material' not in existing:
-            conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN qualified_material TEXT")
-        if 'thickness_range' not in existing:
-            conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN thickness_range TEXT")
-        if 'weld_process' not in existing:
-            conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN weld_process TEXT")
-        if 'qualified_position' not in existing:
-            conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN qualified_position TEXT")
-
-def _ensure_final_inspection_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(final_inspection)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'welder_validity' not in existing:
-            conn.exec_driver_sql("ALTER TABLE final_inspection ADD COLUMN welder_validity TEXT")
-        if 'weld_site' not in existing:
-            conn.exec_driver_sql("ALTER TABLE final_inspection ADD COLUMN weld_site TEXT")
-
-def _ensure_fitup_inspection_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(fitup_inspection)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'updated_by' not in existing:
-            conn.exec_driver_sql("ALTER TABLE fitup_inspection ADD COLUMN updated_by TEXT")
-
-def _ensure_ndt_request_unique_index():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        idx = conn.exec_driver_sql("PRAGMA index_list(ndt_requests)").fetchall()
-        names = [r[1] for r in idx]
-        if 'uq_ndt_joint_method' not in names:
-            conn.exec_driver_sql(
-                "CREATE UNIQUE INDEX uq_ndt_joint_method ON ndt_requests(project_id, system_no, line_no, spool_no, joint_no, ndt_type)"
-            )
-_ensure_ndt_request_columns()
-_ensure_master_joint_list_columns()
-_ensure_wps_register_columns()
-_ensure_welder_register_columns()
-_ensure_final_inspection_columns()
-_ensure_fitup_inspection_columns()
-_ensure_ndt_request_unique_index()
-
-def _ensure_ndt_status_columns():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        rows = conn.exec_driver_sql("PRAGMA table_info(ndt_status_records)").fetchall()
-        existing = [r[1] for r in rows]
-        if 'rejected_length' not in existing:
-            conn.exec_driver_sql("ALTER TABLE ndt_status_records ADD COLUMN rejected_length FLOAT")
-
-_ensure_ndt_status_columns()
-
-def _ensure_ndt_status_unique_index():
-    if engine.dialect.name != 'sqlite':
-        return
-    with engine.connect() as conn:
-        idx = conn.exec_driver_sql("PRAGMA index_list(ndt_status_records)").fetchall()
-        names = [r[1] for r in idx]
-        if 'uq_ndt_status_joint_method' not in names:
-            try:
-                conn.exec_driver_sql(
-                    "CREATE UNIQUE INDEX uq_ndt_status_joint_method ON ndt_status_records(project_id, system_no, line_no, spool_no, joint_no, ndt_type)"
-                )
-            except Exception:
-                # Deduplicate existing rows by keeping the lowest id per joint+method key
-                dup_rows = conn.exec_driver_sql(
-                    "SELECT project_id, system_no, line_no, spool_no, joint_no, ndt_type, COUNT(*) AS c FROM ndt_status_records GROUP BY project_id, system_no, line_no, spool_no, joint_no, ndt_type HAVING c > 1"
-                ).fetchall()
-                for prj, sysn, linen, spooln, jointn, method, _ in dup_rows:
-                    ids = conn.exec_driver_sql(
-                        "SELECT id FROM ndt_status_records WHERE project_id = ? AND system_no = ? AND line_no = ? AND spool_no = ? AND joint_no = ? AND ndt_type = ? ORDER BY id",
-                        (prj, sysn or '', linen or '', spooln or '', jointn or '', method or '')
-                    ).fetchall()
-                    keep = ids[0][0] if ids else None
-                    for row in ids[1:]:
-                        conn.exec_driver_sql("DELETE FROM ndt_status_records WHERE id = ?", (row[0],))
-                # Retry unique index creation
-                conn.exec_driver_sql(
-                    "CREATE UNIQUE INDEX uq_ndt_status_joint_method ON ndt_status_records(project_id, system_no, line_no, spool_no, joint_no, ndt_type)"
-                )
-        if 'ix_ndt_status_method' not in names:
-            conn.exec_driver_sql(
-                "CREATE INDEX ix_ndt_status_method ON ndt_status_records(ndt_type)"
-            )
-        if 'ix_ndt_status_project_method' not in names:
-            conn.exec_driver_sql(
-                "CREATE INDEX ix_ndt_status_project_method ON ndt_status_records(project_id, ndt_type)"
-            )
-
-_ensure_ndt_status_unique_index()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Multi-Project Data Management System",
     description="A comprehensive system for managing inspection records across multiple projects",
-    version="3.0.0"
+    version="3.0.0",
+    docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
+    redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
 )
+
+# Database initialization and schema validation
+def initialize_database():
+    """Initialize database and validate schema"""
+    try:
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully")
+        
+        # Validate critical tables exist
+        inspector = inspect(engine)
+        required_tables = ['users']  # Only need users table for login
+        
+        existing_tables = inspector.get_table_names()
+        missing_tables = [table for table in required_tables if table not in existing_tables]
+        
+        if missing_tables:
+            logger.warning(f"Missing tables: {missing_tables}")
+            # Try to create missing tables
+            Base.metadata.create_all(bind=engine)
+            logger.info(f"Created missing tables: {missing_tables}")
+        
+        _ensure_user_columns()
+        _ensure_default_users()
+
+        _ensure_structure_master_joint_columns()
+   
+        _ensure_structure_material_register_columns()
+        _ensure_fitup_inspection_columns()
+        _ensure_final_inspection_columns()
+        _ensure_wps_register_columns()
+        _ensure_welder_register_columns()
+        _ensure_material_register_columns()
+        _ensure_ndt_tables_columns()
+        _ensure_unique_joint_indexes()
+        _backfill_timestamps()
+        
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
+
+def create_performance_indexes():
+    try:
+        with engine.connect() as conn:
+            if engine.dialect.name == 'postgresql':
+                indexes = [
+
+                    "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_project_draw ON structure_master_joint_list(project_id, draw_no)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_category ON structure_master_joint_list(inspection_category)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_final_project_date ON structure_final_inspection(project_id, final_date)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_final_result ON structure_final_inspection(final_result)",
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_ndt_status_project_method ON pipe_ndt_status_records(project_id, ndt_type)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_ndt_status_project_method ON structure_ndt_status_records(project_id, ndt_type)",
+
+                    "CREATE INDEX IF NOT EXISTS idx_structure_material_project_piece ON structure_material_register(project_id, piece_mark_no)",
+                ]
+                for index_sql in indexes:
+                    try:
+                        conn.execute(text(index_sql))
+                        conn.commit()
+                    except Exception as e:
+                        logger.warning(f"Could not create index: {e}")
+                        conn.rollback()
+            else:
+                logger.info(f"Using {engine.dialect.name} database, skipping PostgreSQL-specific indexes")
+    except Exception as e:
+        logger.error(f"Failed to create performance indexes: {e}")
+
+
+
+def _ensure_structure_master_joint_columns():
+    """Ensure required columns exist on structure_master_joint_list for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(structure_master_joint_list)").fetchall()
+            names = [r[1] for r in cols]
+            if "created_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN created_at DATETIME")
+                    logger.info("Added column created_at to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add created_at column: {e}")
+            if "updated_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN updated_at DATETIME")
+                    logger.info("Added column updated_at to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add updated_at column: {e}")
+            if "fit_up_report_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN fit_up_report_no VARCHAR(50)")
+                    logger.info("Added column fit_up_report_no to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add fit_up_report_no column: {e}")
+            if "final_report_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN final_report_no VARCHAR(50)")
+                    logger.info("Added column final_report_no to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add final_report_no column: {e}")
+            if "thickness" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN thickness VARCHAR(20)")
+                    logger.info("Added column thickness to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add thickness column: {e}")
+    except Exception as e:
+        logger.error(f"Structure column migration failed: {e}")
+
+def _ensure_structure_material_register_columns():
+    """Ensure required columns exist on structure_material_register for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(structure_material_register)").fetchall()
+            names = [r[1] for r in cols]
+            if "block_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN block_no VARCHAR(50)")
+                    logger.info("Added column block_no to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add block_no column: {e}")
+            if "structure_spec" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN structure_spec VARCHAR(50)")
+                    logger.info("Added column structure_spec to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add structure_spec column: {e}")
+            if "structure_category" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN structure_category VARCHAR(50)")
+                    logger.info("Added column structure_category to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add structure_category column: {e}")
+            if "drawing_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN drawing_no VARCHAR(50)")
+                    logger.info("Added column drawing_no to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add drawing_no column: {e}")
+            if "drawing_rev" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN drawing_rev VARCHAR(20)")
+                    logger.info("Added column drawing_rev to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add drawing_rev column: {e}")
+            if "width" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN width VARCHAR(20)")
+                    logger.info("Added column width to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add width column: {e}")
+            if "length" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN length VARCHAR(20)")
+                    logger.info("Added column length to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add length column: {e}")
+    except Exception as e:
+        logger.error(f"Structure material column migration failed: {e}")
+
+def _ensure_default_users():
+    """Ensure default users exist so TEST_LOGIN_BYPASS can work and admin can log in"""
+    try:
+        with SessionLocal() as db:
+            users = {
+                "admin@mpdms.com": {"role": "admin", "password": "admin"},
+                "inspector@mpdms.com": {"role": "inspector", "password": "inspect"},
+                "visitor@mpdms.com": {"role": "visitor", "password": "visit"},
+            }
+            for email, info in users.items():
+                u = db.query(User).filter(User.email == email).first()
+                if not u:
+                    u = User(
+                        email=email,
+                        full_name=email.split("@")[0].title(),
+                        role=info["role"],
+                        hashed_password=get_password_hash(info["password"]),
+                        is_active=True,
+                        password_change_required=False,
+                    )
+                    db.add(u)
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Could not ensure default users: {e}")
+
+def _ensure_user_columns():
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+            names = [r[1] for r in cols]
+            if "last_login" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN last_login DATETIME")
+                    logger.info("Added column last_login to users")
+                except Exception as e:
+                    logger.warning(f"Could not add last_login column: {e}")
+            if "created_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN created_at DATETIME")
+                    logger.info("Added column created_at to users")
+                except Exception as e:
+                    logger.warning(f"Could not add created_at column: {e}")
+            if "updated_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN updated_at DATETIME")
+                    logger.info("Added column updated_at to users")
+                except Exception as e:
+                    logger.warning(f"Could not add updated_at column: {e}")
+    except Exception as e:
+        logger.error(f"User column migration failed: {e}")
+
+
+def _ensure_fitup_inspection_columns():
+    """Ensure required columns exist on fitup inspection tables for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        
+        tables = [ 'structure_fitup_inspection']
+        
+        for table_name in tables:
+            with engine.connect() as conn:
+                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
+                names = [r[1] for r in cols]
+                
+                if "created_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
+                        logger.info(f"Added column created_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
+                
+                if "updated_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
+                        logger.info(f"Added column updated_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
+                
+                if "project_id" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
+                        logger.info(f"Added column project_id to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
+                
+                if "updated_by" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_by VARCHAR(100)")
+                        logger.info(f"Added column updated_by to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add updated_by column to {table_name}: {e}")
+                        
+    except Exception as e:
+        logger.error(f"Fitup inspection column migration failed: {e}")
+
+def _ensure_final_inspection_columns():
+    """Ensure required columns exist on final inspection tables for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        tables = ['pipe_final_inspection', 'structure_final_inspection']
+        for table_name in tables:
+            with engine.connect() as conn:
+                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
+                names = [r[1] for r in cols]
+                if "created_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
+                        logger.info(f"Added column created_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
+                if "updated_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
+                        logger.info(f"Added column updated_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
+                if "project_id" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
+                        logger.info(f"Added column project_id to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
+    except Exception as e:
+        logger.error(f"Final inspection column migration failed: {e}")
+
+def _ensure_wps_register_columns():
+    """Ensure required columns exist on wps_register for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(wps_register)").fetchall()
+            names = [r[1] for r in cols]
+            
+            if "created_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN created_at DATETIME")
+                    logger.info("Added column created_at to wps_register")
+                except Exception as e:
+                    logger.warning(f"Could not add created_at column to wps_register: {e}")
+            
+            if "updated_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN updated_at DATETIME")
+                    logger.info("Added column updated_at to wps_register")
+                except Exception as e:
+                    logger.warning(f"Could not add updated_at column to wps_register: {e}")
+                    
+    except Exception as e:
+        logger.error(f"WPS register column migration failed: {e}")
+
+def _ensure_welder_register_columns():
+    """Ensure required columns exist on welder_register for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(welder_register)").fetchall()
+            names = [r[1] for r in cols]
+            if "created_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN created_at DATETIME")
+                    logger.info("Added column created_at to welder_register")
+                except Exception as e:
+                    logger.warning(f"Could not add created_at column to welder_register: {e}")
+            if "updated_at" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN updated_at DATETIME")
+                    logger.info("Added column updated_at to welder_register")
+                except Exception as e:
+                    logger.warning(f"Could not add updated_at column to welder_register: {e}")
+            if "project_id" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN project_id INTEGER")
+                    logger.info("Added column project_id to welder_register")
+                except Exception as e:
+                    logger.warning(f"Could not add project_id column to welder_register: {e}")
+    except Exception as e:
+        logger.error(f"Welder register column migration failed: {e}")
+def _ensure_material_register_columns():
+    """Ensure required columns exist on material register tables for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        
+        tables = ['pipe_material_register', 'structure_material_register']
+        
+        for table_name in tables:
+            with engine.connect() as conn:
+                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
+                names = [r[1] for r in cols]
+                
+                if "created_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
+                        logger.info(f"Added column created_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
+                
+                if "updated_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
+                        logger.info(f"Added column updated_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
+                if "project_id" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
+                        logger.info(f"Added column project_id to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
+                        
+    except Exception as e:
+        logger.error(f"Material register column migration failed: {e}")
+
+def _ensure_ndt_tables_columns():
+    """Ensure required columns exist on ndt request/status tables for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        tables = ['pipe_ndt_requests', 'structure_ndt_requests', 'pipe_ndt_status_records', 'structure_ndt_status_records', 'ndt_requirements']
+        for table_name in tables:
+            with engine.connect() as conn:
+                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
+                names = [r[1] for r in cols]
+                if "created_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
+                        logger.info(f"Added column created_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
+                if "updated_at" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
+                        logger.info(f"Added column updated_at to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
+                if "project_id" not in names:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
+                        logger.info(f"Added column project_id to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
+                if "joint_no" not in names and table_name in ['pipe_ndt_status_records', 'structure_ndt_status_records']:
+                    try:
+                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN joint_no VARCHAR(50)")
+                        logger.info(f"Added column joint_no to {table_name}")
+                    except Exception as e:
+                        logger.warning(f"Could not add joint_no column to {table_name}: {e}")
+    except Exception as e:
+        logger.error(f"NDT tables column migration failed: {e}")
+
+def _ensure_unique_joint_indexes():
+    """Ensure unique joint composite indexes exist for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            stmts = [
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_pipe_fitup_joint ON pipe_fitup_inspection(project_id, system_no, line_no, spool_no, joint_no)",
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_pipe_final_joint ON pipe_final_inspection(project_id, system_no, line_no, spool_no, joint_no)"
+            ]
+            for sql in stmts:
+                try:
+                    conn.exec_driver_sql(sql)
+                    conn.commit()
+                except Exception as e:
+                    logger.warning(f"Could not create unique index: {e}")
+    except Exception as e:
+        logger.error(f"Unique joint index creation failed: {e}")
+
+def _backfill_timestamps():
+    """Backfill missing created_at timestamps where NULL"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        tables = [
+            'structure_master_joint_list',
+             'structure_material_register',
+             'structure_fitup_inspection',
+             'structure_final_inspection',
+            'structure_ndt_requests',
+            'structure_ndt_status_records',
+            'wps_register', 'ndt_tests'
+        ]
+        with engine.connect() as conn:
+            for table in tables:
+                try:
+                    conn.exec_driver_sql(f"UPDATE {table} SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+                    conn.commit()
+                except Exception as e:
+                    logger.warning(f"Could not backfill timestamps for {table}: {e}")
+    except Exception as e:
+        logger.error(f"Timestamp backfill failed: {e}")
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup"""
+    logger.info("Starting Multi-Project Data Management System...")
+    initialize_database()
+    logger.info("Application startup completed successfully")
 
 # CORS middleware
 origins_env = os.getenv("ALLOW_ORIGINS")
 allow_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004",
+    "http://localhost:3005",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001"
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://127.0.0.1:3004",
+    "http://127.0.0.1:3005"
 ]
 if origins_env:
     try:
@@ -203,73 +542,193 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1", tags=["Users"])
 app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
-app.include_router(inspections.router, prefix="/api/v1", tags=["Inspections"])
+app.include_router(structure_inspections.router, prefix="/api/v1", tags=["Structure Inspections"])
+app.include_router(templates.router, prefix="/api/v1/templates", tags=["Templates"])
 app.include_router(ai.router, prefix="/api/v1", tags=["AI Services"])
 
+# Health check and monitoring endpoints
 @app.get("/")
 async def root():
     return {
         "message": "Multi-Project Data Management System API",
         "version": "3.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "database": engine.dialect.name,
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/health")
 async def health_check():
-    from datetime import datetime
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    """Comprehensive health check endpoint"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {}
+    }
+    
+    # Database health check
+    try:
+        db_healthy = check_database_health()
+        health_status["services"]["database"] = {
+            "status": "healthy" if db_healthy else "unhealthy",
+            "type": engine.dialect.name
+        }
+        
+        if db_healthy:
+            # Get database statistics
+            db_stats = get_database_stats()
+            health_status["services"]["database"]["stats"] = db_stats
+    except Exception as e:
+        health_status["services"]["database"] = {
+            "status": "error",
+            "error": str(e)
+        }
+        health_status["status"] = "degraded"
+    
+    # Check if all critical services are healthy
+    unhealthy_services = [
+        service for service, status in health_status["services"].items() 
+        if status.get("status") not in ["healthy", "ok"]
+    ]
+    
+    if unhealthy_services:
+        health_status["status"] = "degraded"
+        health_status["unhealthy_services"] = unhealthy_services
+    
+    return health_status
+
+@app.get("/metrics")
+async def metrics():
+    """Application metrics endpoint (for Prometheus monitoring)"""
+    try:
+        metrics_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": {
+                "type": engine.dialect.name,
+                "pool_stats": get_database_stats()
+            }
+        }
+        
+        # Add table counts for monitoring
+        if check_database_health():
+            with engine.connect() as conn:
+                tables = ['users']  # Only users table for now
+                for table in tables:
+                    try:
+                        result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                        count = result.scalar()
+                        metrics_data["database"][f"{table}_count"] = count
+                    except Exception:
+                        metrics_data["database"][f"{table}_count"] = "error"
+        
+        return JSONResponse(content=metrics_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Metrics collection failed: {str(e)}")
+
+@app.get("/database/info")
+async def database_info():
+    """Get database information and schema details"""
+    try:
+        with engine.connect() as conn:
+            # Get database version
+            if engine.dialect.name == 'postgresql':
+                version_result = conn.execute(text("SELECT version()"))
+                version = version_result.scalar()
+            else:
+                version = f"{engine.dialect.name} (development)"
+            
+            # Get table information
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            
+            table_info = {}
+            for table in tables[:10]:  # Limit to first 10 tables for performance
+                try:
+                    columns = inspector.get_columns(table)
+                    table_info[table] = {
+                        "columns": len(columns),
+                        "sample_columns": [col['name'] for col in columns[:3]]
+                    }
+                except Exception:
+                    table_info[table] = {"error": "Could not inspect table"}
+            
+            return {
+                "database_type": engine.dialect.name,
+                "version": version,
+                "table_count": len(tables),
+                "tables": table_info,
+                "connection_pool": get_database_stats()
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database info failed: {str(e)}")
+
+# Error handling middleware
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request, exc):
+    """Handle SQLAlchemy database errors"""
+    logger.error(f"Database error: {exc}")
+    
+    # Check for specific types of database errors
+    error_detail = "Database error occurred"
+    status_code = 500
+    
+    # Import SQLAlchemy error types
+    from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
+    
+    if isinstance(exc, IntegrityError):
+        # Constraint violations (unique, foreign key, not null)
+        error_detail = "Database constraint violation"
+        status_code = 400  # Bad request - client sent invalid data
+        
+        # Try to extract more specific information
+        error_str = str(exc).lower()
+        if "unique" in error_str or "duplicate" in error_str:
+            error_detail = "Duplicate record violation - a record with these values already exists"
+        elif "foreign key" in error_str:
+            error_detail = "Foreign key violation - referenced record does not exist"
+        elif "not null" in error_str:
+            error_detail = "Required field cannot be null"
+            
+    elif isinstance(exc, OperationalError):
+        error_detail = "Database operational error - connection or query execution failed"
+    elif isinstance(exc, ProgrammingError):
+        error_detail = "Database programming error - SQL syntax or schema issue"
+    
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "detail": error_detail,
+            "error": str(exc) if os.getenv("ENVIRONMENT") != "production" else "Database error",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """Handle general exceptions"""
+    logger.error(f"Unhandled error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "error": str(exc) if os.getenv("ENVIRONMENT") != "production" else "Internal error",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-else:
-    import threading, time
-    def _sync_master_joint_status_loop():
-        while True:
-            try:
-                db = SessionLocal()
-                try:
-                    fits = db.query(FitUpInspection).filter(FitUpInspection.fit_up_result.ilike('accepted')).all()
-                    for f in fits:
-                        joint = None
-                        if getattr(f, 'master_joint_id', None):
-                            joint = db.query(MasterJointList).filter(MasterJointList.id == f.master_joint_id).first()
-                        if not joint:
-                            joint = db.query(MasterJointList).filter(
-                                MasterJointList.project_id == f.project_id,
-                                MasterJointList.system_no == (f.system_no or ''),
-                                MasterJointList.line_no == (f.line_no or ''),
-                                MasterJointList.spool_no == (f.spool_no or ''),
-                                MasterJointList.joint_no == (f.joint_no or ''),
-                            ).first()
-                        if joint and f.fit_up_report_no:
-                            if getattr(joint, 'fit_up_report_no', None) != f.fit_up_report_no:
-                                joint.fit_up_report_no = f.fit_up_report_no
-                            if getattr(joint, 'fitup_status', None) != f.fit_up_report_no:
-                                joint.fitup_status = f.fit_up_report_no
-                    finals = db.query(FinalInspection).filter(FinalInspection.final_result.ilike('accepted')).all()
-                    for fin in finals:
-                        joint = None
-                        f = None
-                        if getattr(fin, 'fitup_id', None):
-                            f = db.query(FitUpInspection).filter(FitUpInspection.id == fin.fitup_id).first()
-                            if getattr(f, 'master_joint_id', None):
-                                joint = db.query(MasterJointList).filter(MasterJointList.id == f.master_joint_id).first()
-                        if not joint:
-                            joint = db.query(MasterJointList).filter(
-                                MasterJointList.project_id == fin.project_id,
-                                MasterJointList.system_no == (fin.system_no or getattr(f, 'system_no', '') or ''),
-                                MasterJointList.line_no == (fin.line_no or getattr(f, 'line_no', '') or ''),
-                                MasterJointList.spool_no == (fin.spool_no or getattr(f, 'spool_no', '') or ''),
-                                MasterJointList.joint_no == (fin.joint_no or getattr(f, 'joint_no', '') or ''),
-                            ).first()
-                        if joint and fin.final_report_no:
-                            if getattr(joint, 'final_status', None) != fin.final_report_no:
-                                joint.final_status = fin.final_report_no
-                    db.commit()
-                finally:
-                    db.close()
-            except Exception:
-                pass
-            time.sleep(60)
-    threading.Thread(target=_sync_master_joint_status_loop, daemon=True).start()
+    
+    # Production configuration
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    reload = os.getenv("ENVIRONMENT") == "development"
+    
+    uvicorn.run(
+        app, 
+        host=host, 
+        port=port, 
+        reload=reload,
+        log_level="info",
+        access_log=True
+    )

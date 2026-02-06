@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Issue Diagnosis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 3px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Issue Diagnosis</h1>
+    
+    <div class="test">
+        <h3>Test 1: Backend API Root</h3>
+        <button onclick="testBackendRoot()">Test Backend (port 8000)</button>
+        <div id="result1"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 2: Backend API Projects Endpoint</h3>
+        <button onclick="testBackendProjects()">Test /api/v1/projects</button>
+        <div id="result2"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 3: Frontend Development Server</h3>
+        <button onclick="testFrontend()">Test Frontend (port 3001)</button>
+        <div id="result3"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 4: CORS Test</h3>
+        <button onclick="testCORS()">Test CORS from Frontend to Backend</button>
+        <div id="result4"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Common Issues & Solutions:</h3>
+        <ol>
+            <li><strong>Port Confusion</strong>: Frontend runs on port 3001, Backend runs on port 8000</li>
+            <li><strong>Authentication Required</strong>: /projects route requires login. Try <a href="http://localhost:3001/login" target="_blank">http://localhost:3001/login</a></li>
+            <li><strong>CORS Issues</strong>: Backend must allow requests from frontend origin (http://localhost:3001)</li>
+            <li><strong>API URL Configuration</strong>: Frontend .env should have REACT_APP_API_URL=http://127.0.0.1:8000/api/v1</li>
+        </ol>
+    </div>
+
+    <script>
+        async function testBackendRoot() {
+            try {
+                const response = await fetch('http://localhost:8000/');
+                const data = await response.json();
+                document.getElementById('result1').innerHTML = 
+                    `<div class="success">
+                        <strong>✓ Success!</strong> Status: ${response.status}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+            } catch (error) {
+                document.getElementById('result1').innerHTML = 
+                    `<div class="error">
+                        <strong>✗ Error:</strong> ${error.message}
+                    </div>`;
+            }
+        }
+
+        async function testBackendProjects() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/projects');
+                const data = await response.json();
+                document.getElementById('result2').innerHTML = 
+                    `<div class="success">
+                        <strong>✓ Success!</strong> Status: ${response.status}<br>
+                        Projects found: ${data.length}
+                        <pre>${JSON.stringify(data.slice(0, 2), null, 2)}</pre>
+                    </div>`;
+            } catch (error) {
+                document.getElementById('result2').innerHTML = 
+                    `<div class="error">
+                        <strong>✗ Error:</strong> ${error.message}<br>
+                        <em>Note: This endpoint requires authentication. Check browser console for CORS errors.</em>
+                    </div>`;
+            }
+        }
+
+        async function testFrontend() {
+            try {
+                const response = await fetch('http://localhost:3001/');
+                const text = await response.text();
+                document.getElementById('result3').innerHTML = 
+                    `<div class="success">
+                        <strong>✓ Success!</strong> Status: ${response.status}<br>
+                        Frontend is running. Response length: ${text.length} characters
+                    </div>`;
+            } catch (error) {
+                document.getElementById('result3').innerHTML = 
+                    `<div class="error">
+                        <strong>✗ Error:</strong> ${error.message}<br>
+                        <em>Frontend development server may not be running on port 3001.</em>
+                    </div>`;
+            }
+        }
+
+        async function testCORS() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/projects', {
+                    headers: {
+                        'Origin': 'http://localhost:3001'
+                    }
+                });
+                const corsHeaders = {};
+                response.headers.forEach((value, key) => {
+                    corsHeaders[key] = value;
+                });
+                
+                document.getElementById('result4').innerHTML = 
+                    `<div class="success">
+                        <strong>✓ CORS Headers Found:</strong><br>
+                        <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                    </div>`;
+            } catch (error) {
+                document.getElementById('result4').innerHTML = 
+                    `<div class="error">
+                        <strong>✗ CORS Error:</strong> ${error.message}<br>
+                        <em>Check backend CORS configuration in main.py</em>
+                    </div>`;
+            }
+        }
+    </script>
+</body>
+</html>

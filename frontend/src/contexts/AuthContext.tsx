@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User, Project, AuthContextType } from '../types';
 import ApiService from '../services/api';
+import PasswordChangeDialog from '../components/Auth/PasswordChangeDialog';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -20,6 +21,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showPasswordChangeDialog, setShowPasswordChangeDialog] = useState(false);
 
   useEffect(() => {
     // Check for stored token and validate on app start
@@ -74,6 +76,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSelectedProject(null);
       localStorage.removeItem('selectedProject');
       
+      // Check if password change is required
+      if (userData.password_change_required) {
+        setShowPasswordChangeDialog(true);
+      }
+      
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Login failed');
     }
@@ -110,6 +117,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user.role === 'admin';
   };
 
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordChangeDialog(false);
+    // Refresh user data to update password_change_required flag
+    ApiService.getCurrentUser().then(updatedUser => {
+      setUser(updatedUser);
+    });
+  };
+
   const value: AuthContextType = {
     user,
     login,
@@ -125,6 +140,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <PasswordChangeDialog
+        open={showPasswordChangeDialog}
+        onClose={() => setShowPasswordChangeDialog(false)}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </AuthContext.Provider>
   );
 };

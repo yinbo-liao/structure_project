@@ -1,0 +1,4 @@
+Block no,Drawing No,Piece Mark No,Material Type,Grade,Thickness,Heat No,Material Report No,Structure Categor
+BLK001,DRW-001,PM-001,Plate,A36,10MM,HT-001,MR-001,type-i
+BLK002,DRW-002,PM-002,Plate,A36,12MM,HT-002,MR-002,type-ii
+BLK003,DRW-003,PM-003,Plate,A36,15MM,HT-003,MR-003,Special

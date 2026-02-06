@@ -1,141 +1,251 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Float, Table, UniqueConstraint, Index
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+# models.py
+from sqlalchemy import (
+    Column, Integer, String, DateTime, Text, Boolean, 
+    ForeignKey, Float, Table, UniqueConstraint, Index, Enum,
+    event
+)
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import relationship, validates
+from sqlalchemy.sql import func
 from datetime import datetime
-import uuid
+import enum
+
+from .utils import weld_length
 
 Base = declarative_base()
 
-# Association table for user-project many-to-many relationship
+# ============ ENUMERATIONS ============
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    INSPECTOR = "inspector"
+    VISITOR = "visitor"
+
+class ProjectType(str, enum.Enum):
+    STRUCTURE = "structure"
+    PIPE = "pipe"
+
+class InspectionCategory(str, enum.Enum):
+    TYPE_I = "type-I"
+    TYPE_II = "type-II"
+    TYPE_III = "type-III"
+    SPECIAL = "Special"
+
+class InspectionStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in-progress"
+    COMPLETED = "completed"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    RFI_RAISED = "RFI Raised"
+    
+
+class NDTTypes(str, enum.Enum):
+    MT = "MT"
+    PT = "PT"
+    RT = "RT"
+    UT = "UT"
+    PAUT = "PAUT"
+    MPI = "MPI"
+    FT = "FT"
+    PMI = "PMI"
+
+class WeldSite(str, enum.Enum):
+    SHOP = "shop"
+    FIELD = "field"
+
+# ============ ASSOCIATION TABLES ============
 user_projects = Table(
     'user_projects',
     Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id')),
-    Column('project_id', Integer, ForeignKey('projects.id'))
+    Column('user_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('project_id', Integer, ForeignKey('projects.id', ondelete='CASCADE'), primary_key=True)
 )
 
-class User(Base):
+# ============ BASE MIXIN CLASSES ============
+class TimestampMixin:
+    """Mixin for automatic timestamp management"""
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class AuditMixin:
+    """Mixin for audit trail"""
+    created_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    updated_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    
+    # Relationships for audit trail
+    @declared_attr
+    def creator(cls):
+        return relationship("User", foreign_keys=[cls.created_by])
+    
+    @declared_attr
+    def updater(cls):
+        return relationship("User", foreign_keys=[cls.updated_by])
+
+class ProjectRelationMixin:
+    """Mixin for project relationships with cascade delete"""
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete='CASCADE'), nullable=False, index=True)
+    
+    @declared_attr
+    def project(cls):
+        """Relationship to Project - to be set in concrete classes"""
+        return relationship("Project", back_populates=None)
+
+# ============ UTILITY FUNCTIONS ============
+def create_unique_index_name(table_name: str, *columns: str) -> str:
+    """Generate consistent index names"""
+    return f"idx_{table_name}_{'_'.join(columns)}"
+
+def create_unique_constraint_name(table_name: str, *columns: str) -> str:
+    """Generate consistent constraint names"""
+    return f"uq_{table_name}_{'_'.join(columns)}"
+
+# ============ CORE MODELS ============
+class User(Base, TimestampMixin):
+    """User accounts for system access"""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255))
-    role = Column(String(50), default="inspector")  # admin, inspector, visitor
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    role = Column(Enum(UserRole), default=UserRole.INSPECTOR, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    password_change_required = Column(Boolean, default=True, nullable=False)
+    last_login = Column(DateTime(timezone=True))
     
-    # Many-to-many relationship with projects
-    assigned_projects = relationship("Project", secondary=user_projects, back_populates="assigned_users")
-    owned_projects = relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")
+    # Relationships
+    assigned_projects = relationship(
+        "Project", 
+        secondary=user_projects, 
+        back_populates="assigned_users",
+        lazy="dynamic"
+    )
+    owned_projects = relationship(
+        "Project", 
+        back_populates="owner",
+        foreign_keys="Project.owner_id",
+        lazy="dynamic"
+    )
+    
+    # Audit relationships - Commented out due to SQLAlchemy initialization error
+    # created_items = relationship("AuditMixin", foreign_keys="AuditMixin.created_by", viewonly=True)
+    # updated_items = relationship("AuditMixin", foreign_keys="AuditMixin.updated_by", viewonly=True)
+    
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'email'), 'email'),
+        Index(create_unique_index_name(__tablename__, 'role'), 'role'),
+        Index(create_unique_index_name(__tablename__, 'is_active'), 'is_active'),
+    )
+    
+    @validates('email')
+    def validate_email(self, key, email):
+        """Email validation"""
+        if '@' not in email:
+            raise ValueError("Invalid email format")
+        return email.lower()
 
-class Project(Base):
+
+class Project(Base, TimestampMixin):
+    """Project container for structure projects"""
     __tablename__ = "projects"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     code = Column(String(50), unique=True, nullable=False)
     description = Column(Text)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    # project_type = Column(Enum(ProjectType), default=ProjectType.STRUCTURE, nullable=False)
+    # Use String to avoid Enum validation issues between DB and SQLAlchemy
+    project_type = Column(String(50), default="structure", nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     
-    owner = relationship("User", back_populates="owned_projects", foreign_keys=[owner_id])
-    assigned_users = relationship("User", secondary=user_projects, back_populates="assigned_projects")
+    # Relationships
+    owner = relationship(
+        "User", 
+        back_populates="owned_projects", 
+        foreign_keys=[owner_id]
+    )
+    assigned_users = relationship(
+        "User", 
+        secondary=user_projects, 
+        back_populates="assigned_projects",
+        lazy="dynamic"
+    )
     
-    # Relationships with project data
-    master_joints = relationship("MasterJointList", back_populates="project")
-    material_registers = relationship("MaterialRegister", back_populates="project")
-    material_inspections = relationship("MaterialInspection", back_populates="project")
-    fitup_inspections = relationship("FitUpInspection", back_populates="project")
-    final_inspections = relationship("FinalInspection", back_populates="project")
-    ndt_requests = relationship("NDTRequest", back_populates="project")
+    # Will be populated after all models are defined
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'code'), 'code'),
+        Index(create_unique_index_name(__tablename__, 'project_type'), 'project_type'),
+        Index(create_unique_index_name(__tablename__, 'owner_id'), 'owner_id'),
+        Index(create_unique_index_name(__tablename__, 'is_active'), 'is_active'),
+    )
 
-class MasterJointList(Base):
-    __tablename__ = "master_joint_list"
+
+# ============ ABSTRACT BASE MODELS ============
+class MasterJointList(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for master joint lists"""
+    __abstract__ = True
     
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    draw_no = Column(String(50), nullable=False)
-    system_no = Column(String(50), nullable=False)
-    line_no = Column(String(50), nullable=False)
-    spool_no = Column(String(50), nullable=False)
     joint_no = Column(String(50), nullable=False)
-    pipe_dia = Column(String(20))
     weld_type = Column(String(50))
+    weld_length = Column(Float)
+    fit_up_report_no = Column(String(50))
+    fitup_status = Column(String(20))
+    final_report_no = Column(String(50))
+    final_status = Column(String(20))
+    inspection_category = Column(String(20))
     part1_piece_mark_no = Column(String(100))
     part2_piece_mark_no = Column(String(100))
-    fit_up_report_no = Column(String(50))
-    fitup_status = Column(String(20), default="pending")  # pending, done
-    final_status = Column(String(20), default="pending")  # pending, done
-    created_at = Column(DateTime, default=datetime.utcnow)
     
-    project = relationship("Project", back_populates="master_joints")
-    fitup_records = relationship("FitUpInspection", back_populates="master_joint_link")
+    # Common indexes for abstract class
     __table_args__ = (
-        UniqueConstraint(
-            'project_id', 'draw_no', 'system_no', 'line_no', 'spool_no', 'joint_no',
-            name='uq_master_joint_project_draw_system_line_spool_joint'
-        ),
-        Index('ix_master_joint_project', 'project_id'),
+        Index(create_unique_index_name('abstract_master_joint', 'project_id'), 'project_id'),
+        Index(create_unique_index_name('abstract_master_joint', 'inspection_category'), 'inspection_category'),
+        Index(create_unique_index_name('abstract_master_joint', 'fitup_status'), 'fitup_status'),
+        Index(create_unique_index_name('abstract_master_joint', 'final_status'), 'final_status'),
     )
 
-class MaterialRegister(Base):
-    __tablename__ = "material_register"
+
+class MaterialRegister(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for material registers"""
+    __abstract__ = True
     
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
     piece_mark_no = Column(String(100), nullable=False)
     material_type = Column(String(50))
     grade = Column(String(50))
     thickness = Column(String(20))
     heat_no = Column(String(50))
-    spec = Column(String(50))
-    category = Column(String(50))
-    pipe_dia = Column(String(20))
-    inspection_status = Column(String(20), default="pending")  # pending, inspected, rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
+    material_report_no = Column(String(50))
+    inspection_status = Column(String(20))
     
-    project = relationship("Project", back_populates="material_registers")
     __table_args__ = (
-        UniqueConstraint('project_id', 'piece_mark_no', name='uq_material_project_piece_mark'),
-        Index('ix_material_piece_mark', 'piece_mark_no'),
-        Index('ix_material_project', 'project_id'),
+        Index(create_unique_index_name('abstract_material', 'project_id'), 'project_id'),
+        Index(create_unique_index_name('abstract_material', 'piece_mark_no'), 'piece_mark_no'),
+        Index(create_unique_index_name('abstract_material', 'inspection_status'), 'inspection_status'),
     )
 
-class MaterialInspection(Base):
-    __tablename__ = "material_inspection"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    piece_mark_no = Column(String(100), nullable=False)
-    material_type = Column(String(50))
-    grade = Column(String(50))
-    thickness = Column(String(20))
-    heat_no = Column(String(50))
-    inspection_date = Column(DateTime)
-    report_no = Column(String(50))
-    result = Column(String(50))  # accepted, rejected
-    remarks = Column(Text)
-    inspector_name = Column(String(100))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    project = relationship("Project", back_populates="material_inspections")
 
-class FitUpInspection(Base):
-    __tablename__ = "fitup_inspection"
+class FitUpInspection(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for fit-up inspections"""
+    __abstract__ = True
     
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    system_no = Column(String(50))
-    line_no = Column(String(50))
-    spool_no = Column(String(50))
     joint_no = Column(String(50))
     weld_type = Column(String(50))
+    weld_site = Column(String(20))
+    weld_length = Column(Float)
+    fit_up_date = Column(DateTime(timezone=True))
+    fit_up_report_no = Column(String(50))
+    fit_up_result = Column(String(20))
+    remarks = Column(Text)
+    updated_by = Column(String(100))
+    inspection_category = Column(String(20))
     
-    # Material piece references
+    # Material details
     part1_piece_mark_no = Column(String(100))
     part2_piece_mark_no = Column(String(100))
-    
-    # Auto-populated material details
     part1_material_type = Column(String(50))
     part1_grade = Column(String(50))
     part1_thickness = Column(String(20))
@@ -145,198 +255,280 @@ class FitUpInspection(Base):
     part2_thickness = Column(String(20))
     part2_heat_no = Column(String(50))
     
-    # Fit-up details
-    weld_site = Column(String(20))  # shop/field
-    weld_length = Column(Float)  # Changed to Float for calculations
-    dia = Column(String(20))
-    fit_up_date = Column(DateTime)
-    fit_up_report_no = Column(String(50))
-    fit_up_result = Column(String(50))
-    remarks = Column(Text)
-    updated_by = Column(String(255))
-    
-    # Links
-    master_joint_id = Column(Integer, ForeignKey("master_joint_list.id"))
-    
-    project = relationship("Project", back_populates="fitup_inspections")
-    master_joint_link = relationship("MasterJointList", back_populates="fitup_records")
-    final = relationship("FinalInspection", back_populates="fitup", uselist=False, cascade="all, delete-orphan")
-    __table_args__ = (
-        Index('ix_fitup_project', 'project_id'),
-        Index('ix_fitup_master_joint', 'master_joint_id'),
-    )
+    # Foreign key will be defined in concrete classes
+    master_joint_id = Column(Integer, nullable=True)
 
-class FinalInspection(Base):
-    __tablename__ = "final_inspection"
+
+class FinalInspection(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for final inspections"""
+    __abstract__ = True
     
     id = Column(Integer, primary_key=True, index=True)
-    fitup_id = Column(Integer, ForeignKey("fitup_inspection.id"))
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    system_no = Column(String(50))
-    line_no = Column(String(50))
-    spool_no = Column(String(50))
     joint_no = Column(String(50))
     weld_type = Column(String(50))
+    weld_site = Column(String(20))
+    weld_length = Column(Float)
+    final_date = Column(DateTime(timezone=True))
+    final_report_no = Column(String(50))
+    final_result = Column(String(20))
+    ndt_type = Column(String(20))
+    remarks = Column(Text)
+    inspection_category = Column(String(20))
+    
+    # Welder details
     wps_no = Column(String(50))
     welder_no = Column(String(50))
     welder_validity = Column(String(20))
-    weld_site = Column(String(20))
-    final_date = Column(DateTime)
-    final_report_no = Column(String(50))
-    final_result = Column(String(50))
-    ndt_type = Column(String(20))  # MP/PT/RT/UT/PAUT
-    weld_length = Column(Float)  # For NDT calculations
-    pipe_dia = Column(String(20))
-    remarks = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
     
-    project = relationship("Project", back_populates="final_inspections")
-    fitup = relationship("FitUpInspection", back_populates="final")
-    __table_args__ = (
-        Index('ix_final_project', 'project_id'),
-        Index('ix_final_fitup', 'fitup_id'),
-    )
+    # Foreign key will be defined in concrete classes
+    fitup_id = Column(Integer, nullable=True)
 
-class NDTRequest(Base):
-    __tablename__ = "ndt_requests"
+
+class NDTRequest(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for NDT requests"""
+    __abstract__ = True
     
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    final_id = Column(Integer, ForeignKey("final_inspection.id"), nullable=False)  # Link to accepted final inspection
     project_name = Column(String(100))
     project_code = Column(String(20))
-    department = Column(String(20))  # pipe, hull, ele, mech
+    department = Column(String(20))
     incharge_person = Column(String(100))
     contact = Column(String(50))
-    request_time = Column(DateTime)
-    contractor = Column(String(20))  # GW/TOM
+    request_time = Column(DateTime(timezone=True))
+    contractor = Column(String(20))
     job_code = Column(String(50))
     job_location = Column(String(100))
-    test_time = Column(DateTime)
+    test_time = Column(DateTime(timezone=True))
     requirement = Column(Text)
     detail_description = Column(Text)
-    status = Column(String(20), default="pending")  # pending, approved, rejected
-    ndt_type = Column(String(20))  # MP/PT/RT/UT/PAUT
+    status = Column(String(20))
+    ndt_type = Column(Enum(NDTTypes))
+    weld_length = Column(Float)
     ndt_report_no = Column(String(100))
     ndt_result = Column(String(20))
-    # Joint details inherited from final inspection
-    system_no = Column(String(50))
-    line_no = Column(String(50))
-    spool_no = Column(String(50))
-    joint_no = Column(String(50))
+    inspection_category = Column(String(20))
+    
+    # Weld details
     weld_type = Column(String(50))
-    welder_no = Column(String(50))
     weld_size = Column(Float)
     weld_process = Column(String(50))
-    pipe_dia = Column(String(20))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    project = relationship("Project", back_populates="ndt_requests")
-    final = relationship("FinalInspection")
-    __table_args__ = (
-        # Uniqueness by joint+method per project
-        UniqueConstraint('project_id','system_no','line_no','spool_no','joint_no','ndt_type', name='uq_ndt_joint_method'),
-        # Helpful indexes for common filters
-        Index('ix_ndt_req_project', 'project_id'),
-        Index('ix_ndt_req_joint', 'system_no','line_no','spool_no','joint_no'),
-        Index('ix_ndt_req_method', 'ndt_type'),
-        Index('ix_ndt_status', 'status'),
-        Index('ix_ndt_final', 'final_id'),
-    )
-
-class NDTTest(Base):
-    __tablename__ = "ndt_tests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    final_id = Column(Integer, ForeignKey("final_inspection.id"))
-    method = Column(String(20))
-    result = Column(String(20))
-    report_no = Column(String(100))
-    tested_by = Column(String(100))
-    test_date = Column(DateTime)
-    test_length = Column(Float)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (
-        UniqueConstraint('final_id', 'method', name='uq_ndt_final_method'),
-        Index('ix_ndt_test_project', 'project_id'),
-        Index('ix_ndt_test_final', 'final_id'),
-        Index('ix_ndt_test_method', 'method'),
-    )
-
-class NDTRequirement(Base):
-    __tablename__ = "ndt_requirements"
-
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
-    method = Column(String(20), nullable=False)
-    required = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (
-        UniqueConstraint('project_id', 'method', name='uq_ndt_req_project_method'),
-        Index('ix_ndt_req_project', 'project_id'),
-        Index('ix_ndt_req_method', 'method'),
-    )
-
-class NDTStatusRecord(Base):
-    __tablename__ = "ndt_status_records"
-
-    id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), index=True)
-    final_id = Column(Integer, ForeignKey("final_inspection.id"), unique=True, index=True)
-    system_no = Column(String(50))
-    line_no = Column(String(50))
-    spool_no = Column(String(50))
     joint_no = Column(String(50))
+    welder_no = Column(String(50))
+    
+    # Foreign key will be defined in concrete classes
+    final_id = Column(Integer, nullable=False)
+
+
+class NDTStatusRecord(Base, TimestampMixin, ProjectRelationMixin):
+    """Abstract base for NDT status records"""
+    __abstract__ = True
+    
+    id = Column(Integer, primary_key=True, index=True)
     weld_type = Column(String(50))
     welder_no = Column(String(50))
-    weld_size = Column(Float)
+    test_length = Column(Float)
     weld_site = Column(String(20))
-    pipe_dia = Column(String(20))
-    ndt_type = Column(String(20))
+    ndt_type = Column(Enum(NDTTypes))
+    joint_no = Column(String(50))
     ndt_report_no = Column(String(100))
+    weld_length = Column(Float)
     ndt_result = Column(String(20))
-    rejected_length = Column(Float, default=0.0)  # Length of rejected weld in mm
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    rejected_length = Column(Float, default=0.0)
+    inspection_category = Column(String(20))
+    
+    # Foreign key will be defined in concrete classes
+    final_id = Column(Integer, nullable=False)
 
+
+
+
+
+# ============ PROJECT MODELS ============
+class StructureMasterJointList(MasterJointList):
+    __tablename__ = "structure_master_joint_list"
+    
+    # Structure-specific fields
+    block_no = Column(String(50))
+    draw_no = Column(String(50), nullable=False)
+    structure_category = Column(String(50), nullable=False)
+    page_no = Column(String(50), nullable=False)
+    drawing_rev = Column(String(20), nullable=False)
+    thickness = Column(String(20))
+    
     __table_args__ = (
-        Index('ix_ndt_status_project', 'project_id'),
-        Index('ix_ndt_status_joint', 'system_no', 'line_no', 'spool_no', 'joint_no'),
-        Index('ix_ndt_status_method', 'ndt_type'),
-        Index('ix_ndt_status_project_method', 'project_id', 'ndt_type'),
-        UniqueConstraint('project_id', 'system_no', 'line_no', 'spool_no', 'joint_no', 'ndt_type', name='uq_ndt_status_joint_method'),
+        UniqueConstraint(
+            'project_id', 'draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no',
+            name=create_unique_constraint_name(__tablename__, 'project', 'draw', 'category', 'page', 'rev', 'joint')
+        ),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+        Index(create_unique_index_name(__tablename__, 'draw_no', 'page_no'), 'draw_no', 'page_no'),
+        Index(create_unique_index_name(__tablename__, 'structure_category'), 'structure_category'),
     )
 
-class WPSRegister(Base):
+
+class StructureMaterialRegister(MaterialRegister):
+    __tablename__ = "structure_material_register"
+    
+    # Structure-specific fields
+    block_no = Column(String(50))
+    structure_spec = Column(String(50))
+    structure_category = Column(String(50))
+    drawing_no = Column(String(50))
+    drawing_rev = Column(String(20))
+    width = Column(String(20))
+    length = Column(String(20))
+    
+    __table_args__ = (
+        UniqueConstraint(
+            'project_id', 'piece_mark_no',
+            name=create_unique_constraint_name(__tablename__, 'project', 'piece_mark')
+        ),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+        Index(create_unique_index_name(__tablename__, 'structure_category'), 'structure_category'),
+    )
+
+
+class StructureFitUpInspection(FitUpInspection):
+    __tablename__ = "structure_fitup_inspection"
+    
+    # Structure-specific fields
+    block_no = Column(String(50))
+    draw_no = Column(String(50))
+    structure_category = Column(String(50))
+    page_no = Column(String(50))
+    drawing_rev = Column(String(20))
+    
+    # Foreign keys
+    master_joint_id = Column(Integer, ForeignKey("structure_master_joint_list.id", ondelete='SET NULL'))
+    
+    # Relationships
+    master_joint = relationship(
+        "StructureMasterJointList", 
+        backref="structure_fitup_records",
+        foreign_keys=[master_joint_id]
+    )
+    
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'master_joint'), 'master_joint_id'),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+        Index(create_unique_index_name(__tablename__, 'draw_no', 'page_no'), 'draw_no', 'page_no'),
+    )
+
+
+class StructureFinalInspection(FinalInspection):
+    __tablename__ = "structure_final_inspection"
+    
+    # Structure-specific fields
+    block_no = Column(String(50))
+    draw_no = Column(String(50))
+    structure_category = Column(String(50))
+    page_no = Column(String(50))
+    
+    # Foreign keys
+    fitup_id = Column(Integer, ForeignKey("structure_fitup_inspection.id", ondelete='CASCADE'))
+    
+    # Relationships
+    fitup = relationship(
+        "StructureFitUpInspection", 
+        backref="structure_final",
+        foreign_keys=[fitup_id],
+        uselist=False
+    )
+    
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'fitup'), 'fitup_id'),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+        Index(create_unique_index_name(__tablename__, 'structure_category'), 'structure_category'),
+    )
+
+
+class StructureNDTRequest(NDTRequest):
+    __tablename__ = "structure_ndt_requests"
+    
+    # Structure-specific fields
+    draw_no = Column(String(50))
+    structure_category = Column(String(50))
+    page_no = Column(String(50))
+    drawing_rev = Column(String(20))
+    block_no = Column(String(50))
+    thickness = Column(String(20))
+    
+    # Foreign keys
+    final_id = Column(Integer, ForeignKey("structure_final_inspection.id", ondelete='CASCADE'))
+    
+    # Relationships
+    final = relationship("StructureFinalInspection", foreign_keys=[final_id])
+    
+    __table_args__ = (
+        UniqueConstraint(
+            'project_id', 'draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no', 'ndt_type',
+            name=create_unique_constraint_name(__tablename__, 'project', 'draw', 'category', 'page', 'rev', 'joint', 'method')
+        ),
+        Index(create_unique_index_name(__tablename__, 'final'), 'final_id'),
+        Index(create_unique_index_name(__tablename__, 'draw_no', 'page_no', 'joint_no'), 
+              'draw_no', 'page_no', 'joint_no'),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+    )
+
+
+class StructureNDTStatusRecord(NDTStatusRecord):
+    __tablename__ = "structure_ndt_status_records"
+    
+    # Structure-specific fields
+    draw_no = Column(String(50))
+    structure_category = Column(String(50))
+    page_no = Column(String(50))
+    drawing_rev = Column(String(20))
+    block_no = Column(String(50))
+    thickness = Column(String(20))
+    
+    # Override ndt_type to use String instead of Enum to handle comma-separated values
+    ndt_type = Column(String(20))
+    
+    # Foreign keys
+    final_id = Column(Integer, ForeignKey("structure_final_inspection.id", ondelete='CASCADE'))
+    
+    # Relationships
+    final = relationship("StructureFinalInspection", foreign_keys=[final_id])
+    
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'final'), 'final_id'),
+        Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
+        Index(create_unique_index_name(__tablename__, 'ndt_type'), 'ndt_type'),
+        Index(create_unique_index_name(__tablename__, 'draw_no', 'page_no'), 'draw_no', 'page_no'),
+    )
+
+
+# ============ ADDITIONAL MODELS ============
+class WPSRegister(Base, TimestampMixin, ProjectRelationMixin):
+    """Welding Procedure Specification Register"""
     __tablename__ = "wps_register"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
     wps_no = Column(String(50), nullable=False)
     job_trade = Column(String(20))
     position = Column(String(20))
     process = Column(String(50))
     material_group = Column(String(50))
     thickness_range = Column(String(50))
-    pipe_dia = Column(String(20))  # Added pipe diameter field
+    # pipe_dia column removed as per structure project requirements
     status = Column(String(20), default="active")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    project = relationship("Project")
+    
     __table_args__ = (
-        UniqueConstraint('project_id', 'wps_no', name='uq_wps_project_wpsno'),
-        Index('ix_wps_project', 'project_id'),
-        Index('ix_wps_no', 'wps_no'),
+        UniqueConstraint(
+            'project_id', 'wps_no',
+            name=create_unique_constraint_name(__tablename__, 'project', 'wps_no')
+        ),
+        Index(create_unique_index_name(__tablename__, 'wps_no'), 'wps_no'),
+        Index(create_unique_index_name(__tablename__, 'status'), 'status'),
     )
 
-class WelderRegister(Base):
+
+class WelderRegister(Base, TimestampMixin, ProjectRelationMixin):
+    """Welder Qualification Register"""
     __tablename__ = "welder_register"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"))
     welder_no = Column(String(50), nullable=False)
     welder_name = Column(String(100))
     qualification = Column(String(100))
@@ -344,13 +536,219 @@ class WelderRegister(Base):
     thickness_range = Column(String(50))
     weld_process = Column(String(50))
     qualified_position = Column(String(20))
-    validity = Column(String(100))  # Changed from DateTime to String for qualification validity
+    validity = Column(String(100))
     status = Column(String(20), default="active")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    project = relationship("Project")
+    
     __table_args__ = (
-        UniqueConstraint('project_id', 'welder_no', name='uq_welder_project_number'),
-        Index('ix_welder_project', 'project_id'),
-        Index('ix_welder_no', 'welder_no'),
+        UniqueConstraint(
+            'project_id', 'welder_no',
+            name=create_unique_constraint_name(__tablename__, 'project', 'welder_no')
+        ),
+        Index(create_unique_index_name(__tablename__, 'welder_no'), 'welder_no'),
+        Index(create_unique_index_name(__tablename__, 'status'), 'status'),
+        Index(create_unique_index_name(__tablename__, 'validity'), 'validity'),
     )
+
+
+class NDTRequirement(Base, TimestampMixin, ProjectRelationMixin):
+    """NDT Requirements per Project"""
+    __tablename__ = "ndt_requirements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    method = Column(Enum(NDTTypes), nullable=False)
+    required = Column(Boolean, default=True, nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint(
+            'project_id', 'method',
+            name=create_unique_constraint_name(__tablename__, 'project', 'method')
+        ),
+        Index(create_unique_index_name(__tablename__, 'method'), 'method'),
+        Index(create_unique_index_name(__tablename__, 'required'), 'required'),
+    )
+
+
+class NDTTest(Base, TimestampMixin, ProjectRelationMixin):
+    """NDT Test Results"""
+    __tablename__ = "ndt_tests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    final_id = Column(Integer, nullable=False)  # Can be pipe or structure final ID
+    # project_type = Column(Enum(ProjectType), nullable=False)
+    # Use String to avoid Enum validation issues
+    project_type = Column(String(50), nullable=False)
+    method = Column(Enum(NDTTypes), nullable=False)
+    result = Column(String(20))
+    report_no = Column(String(100))
+    tested_by = Column(String(100))
+    test_date = Column(DateTime(timezone=True))
+    test_length = Column(Float)
+    weld_length = Column(Float)
+    remarks = Column(Text)
+    
+    __table_args__ = (
+        Index(create_unique_index_name(__tablename__, 'final_id'), 'final_id'),
+        Index(create_unique_index_name(__tablename__, 'project_type'), 'project_type'),
+        Index(create_unique_index_name(__tablename__, 'method'), 'method'),
+        Index(create_unique_index_name(__tablename__, 'test_date'), 'test_date'),
+        Index(create_unique_index_name(__tablename__, 'result'), 'result'),
+    )
+
+
+# ============ POST-DEFINITION RELATIONSHIPS ============
+# Define relationships after all classes are defined to avoid circular references
+
+# Project relationships
+
+Project.structure_master_joints = relationship(
+    "StructureMasterJointList", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+Project.structure_material_registers = relationship(
+    "StructureMaterialRegister", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+Project.structure_fitup_inspections = relationship(
+    "StructureFitUpInspection", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+Project.structure_final_inspections = relationship(
+    "StructureFinalInspection", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+Project.structure_ndt_requests = relationship(
+    "StructureNDTRequest", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+Project.structure_ndt_status_records = relationship(
+    "StructureNDTStatusRecord", 
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+Project.wps_registers = relationship(
+    "WPSRegister",
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+Project.welder_registers = relationship(
+    "WelderRegister",
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+Project.ndt_requirements = relationship(
+    "NDTRequirement",
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+Project.ndt_tests = relationship(
+    "NDTTest",
+    backref="project_ref",
+    cascade="all, delete-orphan",
+    lazy="dynamic"
+)
+
+# Update abstract mixins with correct relationships
+# Map table names to their corresponding relationship names in Project class
+table_to_relationship_map = {
+
+    'structure_master_joint_list': 'structure_master_joints',
+    
+    'structure_material_register': 'structure_material_registers',
+
+    'structure_fitup_inspection': 'structure_fitup_inspections',
+  
+    'structure_final_inspection': 'structure_final_inspections',
+
+    'structure_ndt_requests': 'structure_ndt_requests',
+
+    'structure_ndt_status_records': 'structure_ndt_status_records',
+    
+    'wps_register': 'wps_registers',
+    'welder_register': 'welder_registers',
+}
+
+for cls in [ StructureMasterJointList,
+            StructureMaterialRegister,
+             StructureFitUpInspection,
+            StructureFinalInspection,
+            StructureNDTRequest,
+             StructureNDTStatusRecord,
+             WPSRegister,
+             WelderRegister,
+             NDTRequirement,
+             NDTTest]:
+    rel_name = table_to_relationship_map.get(cls.__tablename__, cls.__tablename__)
+    cls.project = relationship("Project", back_populates=rel_name, overlaps="project_ref")
+
+
+# ============ EVENT LISTENERS ============
+@event.listens_for(StructureFitUpInspection, 'before_insert')
+@event.listens_for(StructureFitUpInspection, 'before_update')
+def populate_structure_fitup_material_details(mapper, connection, target):
+    """Populate material details from material register for structure fit-up"""
+    from sqlalchemy.orm import Session
+    
+    # Create a session from the connection
+    session = Session(bind=connection)
+    
+    # Populate part1 material details
+    if target.part1_piece_mark_no and target.project_id:
+        pm1 = target.part1_piece_mark_no.strip()
+        material = session.query(StructureMaterialRegister).filter(
+            StructureMaterialRegister.project_id == target.project_id,
+            StructureMaterialRegister.piece_mark_no == pm1
+        ).first()
+        
+        if material:
+            target.part1_material_type = material.material_type
+            target.part1_grade = material.grade
+            target.part1_thickness = material.thickness
+            target.part1_heat_no = material.heat_no
+    
+    # Populate part2 material details
+    if target.part2_piece_mark_no and target.project_id:
+        pm2 = target.part2_piece_mark_no.strip()
+        material = session.query(StructureMaterialRegister).filter(
+            StructureMaterialRegister.project_id == target.project_id,
+            StructureMaterialRegister.piece_mark_no == pm2
+        ).first()
+        
+        if material:
+            target.part2_material_type = material.material_type
+            target.part2_grade = material.grade
+            target.part2_thickness = material.thickness
+            target.part2_heat_no = material.heat_no
+
+# ============ HELPER FUNCTIONS ============
+def get_model_for_project_type(project_type: ProjectType, model_name: str):
+    """Get the appropriate model class based on project type"""
+    model_map = {
+        ProjectType.STRUCTURE: {
+            'master_joint': StructureMasterJointList,
+            'material_register': StructureMaterialRegister,
+            'fitup_inspection': StructureFitUpInspection,
+            'final_inspection': StructureFinalInspection,
+            'ndt_request': StructureNDTRequest,
+            'ndt_status': StructureNDTStatusRecord,
+        }
+    }
+    return model_map.get(project_type, {}).get(model_name)

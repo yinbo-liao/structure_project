@@ -1,33 +1,46 @@
 import sqlite3
+import os
 
 def check_database():
-    conn = sqlite3.connect('project_management.db')
+    db_path = 'project_management.db'
+    if not os.path.exists(db_path):
+        print(f"Database file {db_path} does not exist")
+        return
+    
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Check existing tables and data
-    cursor.execute('SELECT name FROM sqlite_master WHERE type="table"')
+    # Get all tables
+    cursor.execute('SELECT name FROM sqlite_master WHERE type="table" ORDER BY name')
     tables = cursor.fetchall()
-    print('Tables in database:', tables)
     
-    # Check fitup_inspection table
-    try:
-        cursor.execute('SELECT COUNT(*) FROM fitup_inspection')
-        fitup_count = cursor.fetchone()[0]
-        print(f'Fit-up inspection records: {fitup_count}')
+    print(f"Found {len(tables)} tables:")
+    for table in tables:
+        table_name = table[0]
+        print(f"\n=== Table: {table_name} ===")
         
-        if fitup_count > 0:
-            cursor.execute('SELECT * FROM fitup_inspection LIMIT 5')
-            records = cursor.fetchall()
-            print('Sample fit-up records:', records)
-    except Exception as e:
-        print(f'Error checking fitup_inspection: {e}')
-    
-    # Check projects
-    cursor.execute('SELECT id, name FROM projects')
-    projects = cursor.fetchall()
-    print('Projects:', projects)
+        # Get table schema
+        cursor.execute(f'PRAGMA table_info("{table_name}")')
+        columns = cursor.fetchall()
+        print(f"Columns ({len(columns)}):")
+        for col in columns:
+            col_id, col_name, col_type, not_null, default_val, pk = col
+            print(f"  {col_name}: {col_type} {'NOT NULL' if not_null else ''} {'PRIMARY KEY' if pk else ''}")
+        
+        # Get row count
+        cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+        row_count = cursor.fetchone()[0]
+        print(f"Row count: {row_count}")
+        
+        # Get foreign keys
+        cursor.execute(f'PRAGMA foreign_key_list("{table_name}")')
+        fks = cursor.fetchall()
+        if fks:
+            print("Foreign keys:")
+            for fk in fks:
+                print(f"  {fk[3]} -> {fk[2]}.{fk[4]}")
     
     conn.close()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     check_database()

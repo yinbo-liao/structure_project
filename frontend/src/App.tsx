@@ -7,8 +7,8 @@ import Login from './components/Auth/Login';
 import ProjectSelection from './components/ProjectSelection/ProjectSelection';
 import Dashboard from './components/Dashboard/Dashboard';
 import MaterialRegister from './components/Inspection/MaterialRegister';
-import FitUpInspection from './components/Inspection/FitUpInspection';
-import FinalInspection from './components/Inspection/FinalInspection';
+import StructureFitUpInspection from './components/Inspection/StructureFitUpInspection';
+import StructureFinalInspection from './components/Inspection/StructureFinalInspection';
 import NDTRequests from './components/Inspection/NDTRequests';
 import NDTStatus from './components/Inspection/NDTStatus';
 import MasterJointList from './components/Inspection/masterjointlist';
@@ -110,7 +110,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        {/* Inspection Routes */}
+        {/* Inspection Routes - Legacy (for backward compatibility) */}
         <Route path="/material-register" element={
           <ProtectedRoute>
             <Layout>
@@ -121,17 +121,38 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/fitup-inspection" element={
+        {/* Structure Project Routes */}
+        <Route path="/structureproject/dashboard" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
-                <FitUpInspection />
+                <Dashboard />
+              </ProjectRequiredRoute>
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/structureproject/material-register" element={
+          <ProtectedRoute>
+            <Layout>
+              <ProjectRequiredRoute>
+                <MaterialRegister />
+              </ProjectRequiredRoute>
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/structureproject/fitup-inspection" element={
+          <ProtectedRoute>
+            <Layout>
+              <ProjectRequiredRoute>
+                <StructureFitUpInspection />
               </ProjectRequiredRoute>
             </Layout>
           </ProtectedRoute>
         } />
 
-        <Route path="/master-joint-list" element={
+        <Route path="/structureproject/master-joint-list" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
@@ -141,17 +162,17 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/final-inspection" element={
+        <Route path="/structureproject/final-inspection" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
-                <FinalInspection />
+                <StructureFinalInspection />
               </ProjectRequiredRoute>
             </Layout>
           </ProtectedRoute>
         } />
         
-        <Route path="/ndt-requests" element={
+        <Route path="/structureproject/ndt-requests" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
@@ -161,7 +182,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/ndt-status" element={
+        <Route path="/structureproject/ndt-status" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
@@ -171,7 +192,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/wps-register" element={
+        <Route path="/structureproject/wps-register" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>
@@ -181,7 +202,7 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/welder-register" element={
+        <Route path="/structureproject/welder-register" element={
           <ProtectedRoute>
             <Layout>
               <ProjectRequiredRoute>

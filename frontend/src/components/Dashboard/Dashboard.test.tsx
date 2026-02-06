@@ -133,7 +133,7 @@ describe('Dashboard Component', () => {
     expect(screen.getByText('Total Joints')).toBeInTheDocument();
     expect(screen.getByText('Fit-up Completed')).toBeInTheDocument();
     expect(screen.getByText('Final Inspection')).toBeInTheDocument();
-    expect(screen.getByText('Material Used')).toBeInTheDocument();
+    // KPI cards rendered
 
     // Check progress cards
     expect(screen.getByText('Fit-up Progress')).toBeInTheDocument();
@@ -143,11 +143,9 @@ describe('Dashboard Component', () => {
     expect(screen.getByText('Material Management')).toBeInTheDocument();
     expect(screen.getByText('NDT Requests')).toBeInTheDocument();
     expect(screen.getByText('Weld Quality')).toBeInTheDocument();
-    expect(screen.getByText('NDT Success Rates')).toBeInTheDocument();
 
-    // Check NDT success rates
-    expect(screen.getByText('UT')).toBeInTheDocument();
-    expect(screen.getByText('RT')).toBeInTheDocument();
+    // Check grouped weld quality summary
+    expect(screen.getByText('RT + UT')).toBeInTheDocument();
   });
 
   test('handles API errors gracefully', async () => {

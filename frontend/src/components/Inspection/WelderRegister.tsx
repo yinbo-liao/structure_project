@@ -31,6 +31,7 @@ function TabPanel(props: TabPanelProps) {
 
 const WelderRegister: React.FC = () => {
   const { selectedProject, isAdmin } = useAuth();
+  const isStructureProject = selectedProject?.project_type === 'structure';
   const [items, setItems] = useState<any[]>([]);
   const [form, setForm] = useState<any>({ 
     welder_no: '', 
@@ -155,7 +156,7 @@ const WelderRegister: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Welder Register</Typography>
+        <Typography variant="h4">{isStructureProject ? 'Structure Welder Register' : 'Pipe Welder Register'}</Typography>
         <Typography variant="subtitle1" color="text.secondary">
           Total: {items.length} Welders
         </Typography>

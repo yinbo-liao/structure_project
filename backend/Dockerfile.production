@@ -1,0 +1,79 @@
+# Production Dockerfile for Project QA Backend
+# Multi-stage build for optimized production image
+
+# Stage 1: Builder stage
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Upgrade pip and install wheel
+RUN pip install --upgrade pip wheel setuptools
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime stage
+FROM python:3.11-slim as runtime
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/bash appuser
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY --chown=appuser:appgroup . .
+
+# Create necessary directories
+RUN mkdir -p /app/app/logs && \
+    chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose port
+EXPOSE 8000
+
+# Production run command
+CMD ["uvicorn", "app.main:app", \
+    "--host", "0.0.0.0", \
+    "--port", "8000", \
+    "--workers", "4", \
+    "--loop", "uvloop", \
+    "--http", "httptools", \
+    "--log-level", "info", \
+    "--access-log", \
+    "--no-server-header", \
+    "--timeout-keep-alive", "30"]
+
+# Labels for better container management
+LABEL maintainer="Project QA Team"
+LABEL version="3.0.0"
+LABEL description="Production backend for Project QA Data Management System"
+LABEL environment="production"

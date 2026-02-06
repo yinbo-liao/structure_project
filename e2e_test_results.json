@@ -1,0 +1,143 @@
+{
+  "login_flow": {
+    "endpoint": "login",
+    "status_code": 401,
+    "success": false,
+    "data": {
+      "detail": "Incorrect email or password"
+    }
+  },
+  "project_selection": {
+    "endpoint": "projects",
+    "status_code": 200,
+    "success": true,
+    "data": [
+      {
+        "created_at": "2026-01-17T21:12:56",
+        "updated_at": "2026-01-20T11:58:46.537836",
+        "name": "Pipeline Alpha",
+        "code": "P-001",
+        "description": "pipe project_Alpha001",
+        "project_type": "pipe",
+        "id": 1,
+        "owner_id": 1
+      },
+      {
+        "created_at": "2026-01-17T21:12:56",
+        "updated_at": "2026-01-17T21:12:56",
+        "name": "Pipeline Beta",
+        "code": "P-002",
+        "description": "Secondary pipeline section",
+        "project_type": "pipe",
+        "id": 2,
+        "owner_id": 1
+      },
+      {
+        "created_at": "2026-01-17T21:12:56",
+        "updated_at": "2026-01-17T13:17:14.915271",
+        "name": "topside MA",
+        "code": "TP-002",
+        "description": "Topside model fabrication",
+        "project_type": "pipe",
+        "id": 3,
+        "owner_id": 1
+      },
+      {
+        "created_at": "2026-01-17T21:12:56",
+        "updated_at": "2026-01-17T21:12:56",
+        "name": "LNGT TURKIYE",
+        "code": "REGAS MODEL",
+        "description": "STRUCTURE FBRICATION IN EXTERNAL(Structure model)",
+        "project_type": "structure",
+        "id": 4,
+        "owner_id": 1
+      },
+      {
+        "created_at": "2026-01-21T23:28:22.465294",
+        "updated_at": "2026-01-21T23:28:22.465294",
+        "name": "Structure Gamma",
+        "code": "S-001",
+        "description": "Structure project Gamma",
+        "project_type": "structure",
+        "id": 5,
+        "owner_id": 1
+      }
+    ],
+    "structure_projects_count": 2,
+    "has_structure_projects": true,
+    "project_4": {
+      "name": "LNGT TURKIYE",
+      "code": "REGAS MODEL",
+      "type": "structure"
+    }
+  },
+  "material_register_crud": {
+    "get": {
+      "status_code": 200,
+      "success": true,
+      "count": 23
+    },
+    "update_available": true,
+    "sample_material_id": 83,
+    "create_template": {
+      "piece_mark_no": "TEST-E2E-001",
+      "material_type": "Plate",
+      "grade": "A36",
+      "thickness": "10MM",
+      "heat_no": "HT-E2E-TEST",
+      "inspection_status": "pending",
+      "material_report_no": "MR-E2E-TEST",
+      "block_no": "BLK-E2E",
+      "structure_category": "type-i",
+      "drawing_no": "DRW-E2E-001",
+      "drawing_rev": "A1",
+      "project_id": 4
+    }
+  },
+  "ndt_status_flow": {
+    "get": {
+      "status_code": 200,
+      "success": true,
+      "count": 1
+    },
+    "sample_record": {
+      "joint_no": "W001",
+      "ndt_type": "MPI",
+      "ndt_result": "accepted",
+      "test_length": 2500.0
+    }
+  },
+  "file_upload": {
+    "structure/master-joint-list/upload": {
+      "exists": false,
+      "status_code": 405
+    },
+    "structure/material-register/upload": {
+      "exists": false,
+      "status_code": 405
+    },
+    "templates": {
+      "exists": false,
+      "status_code": 404
+    }
+  },
+  "bulk_operations": {
+    "bulk_update_possible": true,
+    "bulk_delete_possible": true,
+    "export_possible": true,
+    "material_count": 23,
+    "can_perform_bulk_operations": true
+  },
+  "data_synchronization": {
+    "data_counts": {
+      "master_joints": 9,
+      "materials": 23,
+      "fitup": 2,
+      "final": 1,
+      "ndt_status": 1
+    },
+    "joints_with_materials": 9,
+    "total_joints": 9,
+    "material_coverage": 100.0
+  }
+}

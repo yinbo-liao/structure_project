@@ -55,10 +55,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
-            "assigned_projects": [
-                {"id": p.id, "name": p.name, "code": p.code, "description": p.description}
-                for p in user.assigned_projects
-            ]
+            "password_change_required": user.password_change_required,
+            "assigned_projects": []  # Empty list for now since we're using minimal models
         }
     }
 

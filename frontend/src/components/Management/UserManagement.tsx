@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Typography, Box, Paper, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Chip, Checkbox, FormControlLabel } from '@mui/material';
-import { Person, Engineering, Add, Assignment } from '@mui/icons-material';
+import { Container, Typography, Box, Paper, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Chip, Checkbox, FormControlLabel, IconButton, Alert } from '@mui/material';
+import { Person, Engineering, Add, Assignment, Refresh, LockReset } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 
@@ -23,8 +23,12 @@ const UserManagement: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAssign, setOpenAssign] = useState(false);
+  const [openResetPassword, setOpenResetPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<{ email: string; full_name: string; password: string; role: string; is_active: boolean }>({
     email: '',
@@ -58,6 +62,9 @@ const UserManagement: React.FC = () => {
       ]);
       setUsers(us || []);
       setProjects(ps || []);
+    } catch (error) {
+      console.error('Failed to load user management data:', error);
+      // You might want to set an error state here to display to the user
     } finally {
       setLoading(false);
     }
@@ -126,7 +133,10 @@ const UserManagement: React.FC = () => {
                   {(u.assigned_projects || []).length === 0 ? '-' : (u.assigned_projects || []).map(p => p.code).join(', ')}
                 </TableCell>
                 <TableCell>
-                  <Button size="small" variant="outlined" onClick={() => { setSelectedUser(u); setAssignProjectIds((u.assigned_projects || []).map(p => p.id)); setOpenAssign(true); }}>Assign Projects</Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button size="small" variant="outlined" onClick={() => { setSelectedUser(u); setAssignProjectIds((u.assigned_projects || []).map(p => p.id)); setOpenAssign(true); }}>Assign Projects</Button>
+                    <Button size="small" variant="outlined" color="warning" startIcon={<LockReset />} onClick={() => { setSelectedUser(u); setResetPassword(''); setResetConfirmPassword(''); setResetError(null); setOpenResetPassword(true); }}>Reset Password</Button>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -201,6 +211,120 @@ const UserManagement: React.FC = () => {
             setAssignProjectIds([]);
             await load();
           }}>Save Assignments</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={openResetPassword} onClose={() => setOpenResetPassword(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reset Password for {selectedUser?.email}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              This will reset the user's password. They will be required to change it on their next login.
+            </Alert>
+
+            {resetError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {resetError}
+              </Alert>
+            )}
+
+            <TextField
+              fullWidth
+              label="New Password"
+              type="password"
+              value={resetPassword}
+              onChange={(e) => setResetPassword(e.target.value)}
+              margin="normal"
+              required
+              helperText="Must be at least 8 characters with uppercase, lowercase, number, and special character"
+            />
+
+            <TextField
+              fullWidth
+              label="Confirm New Password"
+              type="password"
+              value={resetConfirmPassword}
+              onChange={(e) => setResetConfirmPassword(e.target.value)}
+              margin="normal"
+              required
+            />
+
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Password Requirements:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                  <li>Minimum 8 characters</li>
+                  <li>At least one uppercase letter (A-Z)</li>
+                  <li>At least one lowercase letter (a-z)</li>
+                  <li>At least one number (0-9)</li>
+                  <li>At least one special character (!@#$%^&* etc.)</li>
+                </ul>
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenResetPassword(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={async () => {
+              setResetError(null);
+
+              // Validate passwords
+              if (resetPassword !== resetConfirmPassword) {
+                setResetError('Passwords do not match');
+                return;
+              }
+
+              const validatePassword = (password: string): string | null => {
+                if (password.length < 8) {
+                  return 'Password must be at least 8 characters long';
+                }
+                if (!/[A-Z]/.test(password)) {
+                  return 'Password must contain at least one uppercase letter';
+                }
+                if (!/[a-z]/.test(password)) {
+                  return 'Password must contain at least one lowercase letter';
+                }
+                if (!/[0-9]/.test(password)) {
+                  return 'Password must contain at least one number';
+                }
+                if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+                  return 'Password must contain at least one special character';
+                }
+                return null;
+              };
+
+              const passwordError = validatePassword(resetPassword);
+              if (passwordError) {
+                setResetError(passwordError);
+                return;
+              }
+
+              if (!selectedUser) {
+                setResetError('User not found');
+                return;
+              }
+
+              try {
+                await ApiService.resetPassword(selectedUser.id, resetPassword);
+                setOpenResetPassword(false);
+                setResetPassword('');
+                setResetConfirmPassword('');
+                setResetError(null);
+                
+                // Show success message
+                alert(`Password reset successfully for ${selectedUser.email}. They will be required to change it on next login.`);
+              } catch (err: any) {
+                setResetError(err.response?.data?.detail || 'Failed to reset password');
+              }
+            }}
+            disabled={!resetPassword || !resetConfirmPassword}
+          >
+            Reset Password
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

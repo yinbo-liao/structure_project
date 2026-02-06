@@ -32,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import ApiService from '../../services/api';
+import { ApiService } from '../../services/api';
 import { Project, ProjectSummary } from '../../types';
 
 const ProjectSelection: React.FC = () => {
@@ -52,7 +52,12 @@ const ProjectSelection: React.FC = () => {
   });
   const [message, setMessage] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', code: '', description: '' });
+  const [createForm, setCreateForm] = useState({ 
+    name: '', 
+    code: '', 
+    description: '',
+    project_type: 'pipe' as 'pipe' | 'structure'
+  });
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignProject, setAssignProject] = useState<Project | null>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -147,7 +152,7 @@ const ProjectSelection: React.FC = () => {
 
   const openCreateDialog = () => {
     setMessage('');
-    setCreateForm({ name: '', code: '', description: '' });
+    setCreateForm({ name: '', code: '', description: '', project_type: 'pipe' });
     setCreateOpen(true);
   };
 
@@ -160,7 +165,8 @@ const ProjectSelection: React.FC = () => {
       await ApiService.createProject({
         name: createForm.name.trim(),
         code: createForm.code.trim(),
-        description: createForm.description.trim() || undefined
+        description: createForm.description.trim() || undefined,
+        project_type: createForm.project_type
       });
       setCreateOpen(false);
       await fetchProjectsAndSummaries();
@@ -258,13 +264,38 @@ const ProjectSelection: React.FC = () => {
         </Box>
       )}
 
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Select Project
-        </Typography>
-        <Typography variant="subtitle1" gutterBottom align="center" color="textSecondary">
-          Choose a project to start data management
-        </Typography>
+        <Box sx={{ mt: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography variant="h4" component="h1" gutterBottom>
+                Select Project
+              </Typography>
+              <Typography variant="subtitle1" color="textSecondary">
+                Choose a project to start data management
+              </Typography>
+            </Box>
+            {user?.role === 'admin' && (
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<Engineering />}
+                  onClick={() => {
+                    setCreateForm({ name: '', code: '', description: '', project_type: 'structure' });
+                    setCreateOpen(true);
+                  }}
+                >
+                  Quick Create Structure Project
+                </Button>
+                <Button 
+                  variant="contained" 
+                  startIcon={<Engineering />}
+                  onClick={openCreateDialog}
+                >
+                  Create Project
+                </Button>
+              </Box>
+            )}
+          </Box>
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
           {projects.map((project) => {
@@ -467,7 +498,20 @@ const ProjectSelection: React.FC = () => {
             variant="outlined"
             value={createForm.description}
             onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+            sx={{ mb: 2 }}
           />
+          <TextField
+            select
+            margin="dense"
+            label="Project Type"
+            fullWidth
+            variant="outlined"
+            value={createForm.project_type}
+            onChange={(e) => setCreateForm({ ...createForm, project_type: e.target.value as 'pipe' | 'structure' })}
+          >
+            <MenuItem value="pipe">Pipe Fabrication</MenuItem>
+            <MenuItem value="structure">Structure Fabrication</MenuItem>
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateOpen(false)}>Cancel</Button>

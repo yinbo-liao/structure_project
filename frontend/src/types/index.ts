@@ -56,20 +56,27 @@ export interface ProjectSummary {
 export interface MasterJointList {
   id: number;
   project_id: number;
-  draw_no: string;
+  draw_no?: string;  // Optional: only for structure projects
   system_no: string;
   line_no: string;
   spool_no: string;
   joint_no: string;
   pipe_dia?: string;
+  thickness?: string;
   weld_type?: string;
+  weld_length?: number;
   part1_piece_mark_no?: string;
   part2_piece_mark_no?: string;
   fit_up_report_no?: string;
   fitup_status: 'pending' | 'done';
   final_status: 'pending' | 'done';
-  inspection_category: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
+  inspection_category: 'type-I' | 'type-II' | 'type-III' | 'Special';
+  block_no?: string;
   created_at: string;
+  // Structure-specific fields (optional for backward compatibility)
+  structure_category?: string;
+  page_no?: string;
+  drawing_rev?: string;
 }
 
 export interface MaterialRegister {
@@ -79,10 +86,11 @@ export interface MaterialRegister {
   material_type?: string;
   grade?: string;
   thickness?: string;
-  heat_no?: string;
-  spec?: string;
-  category?: string;
   pipe_dia?: string;
+  heat_no?: string;
+  block_no?: string;
+  structure_spec?: string;
+
   drawing_no?: string;  // Added for structure projects
   structure_category?: string;  // Added for structure projects
   drawing_rev?: string;  // Added for structure projects
@@ -94,6 +102,7 @@ export interface MaterialRegister {
 export interface FitUpInspection {
   id: number;
   project_id: number;
+  draw_no?: string;
   system_no?: string;
   line_no?: string;
   spool_no?: string;
@@ -117,10 +126,15 @@ export interface FitUpInspection {
   fit_up_result?: string;
   remarks?: string;
   master_joint_id?: number;
-  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'Special';
+  block_no?: string;
   created_at: string;
   updated_at?: string;
   updated_by?: string;
+  // Structure-specific fields (optional for backward compatibility)
+  structure_category?: string;
+  page_no?: string;
+  drawing_rev?: string;
 }
 
 export interface FinalInspection {
@@ -143,7 +157,11 @@ export interface FinalInspection {
   weld_length?: number;
   pipe_dia?: string;
   remarks?: string;
-  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'Special';
+  block_no?: string;
+  draw_no?: string;
+  structure_category?: string;
+  page_no?: string;
   created_at: string;
 }
 
@@ -176,7 +194,8 @@ export interface NDTRequest {
   weld_size?: number;
   weld_process?: string;
   pipe_dia?: string;
-  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'Special';
+  block_no?: string;
   created_at: string;
 }
 
@@ -252,22 +271,29 @@ export interface NDTStatusRecord {
   id: number;
   project_id: number;
   final_id: number;
-  system_no?: string;
-  line_no?: string;
-  spool_no?: string;
   joint_no?: string;
   weld_type?: string;
   welder_no?: string;
   weld_size?: number;
   weld_site?: string;
-  pipe_dia?: string;
   ndt_type?: string;
   ndt_report_no?: string;
   ndt_result?: string;
   rejected_length?: number;
-  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'type-IV';
+  inspection_category?: 'type-I' | 'type-II' | 'type-III' | 'Special';
+  block_no?: string;
+  draw_no?: string;
+  structure_category?: string;
+  page_no?: string;
+  drawing_rev?: string;
+  dia?: string;
   created_at: string;
   updated_at?: string;
+  // Additional fields that may exist in the actual data
+  test_length?: number;
+  system_no?: string;
+  line_no?: string;
+  spool_no?: string;
 }
 
 export interface AuthContextType {

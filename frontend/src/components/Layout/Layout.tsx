@@ -38,7 +38,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ProjectSummary } from '../../types';
 import ApiService from '../../services/api';
 
-const drawerWidth = 280;
+const drawerWidth = 340;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -101,49 +101,49 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     {
       text: 'Master Joint List',
       icon: <Assignment />,
-      path: '/master-joint-list',
+      path: '/structureproject/master-joint-list',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'Material Register',
       icon: <Inventory />,
-      path: '/material-register',
+      path: '/structureproject/material-register',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'Fit-up Inspection',
       icon: <Assignment />,
-      path: '/fitup-inspection',
+      path: '/structureproject/fitup-inspection',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'Final Inspection',
       icon: <Checklist />,
-      path: '/final-inspection',
+      path: '/structureproject/final-inspection',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'NDT Requests',
       icon: <RequestQuote />,
-      path: '/ndt-requests',
+      path: '/structureproject/ndt-requests',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'NDT Status',
       icon: <Checklist />,
-      path: '/ndt-status',
+      path: '/structureproject/ndt-status',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'WPS Register',
       icon: <Settings />,
-      path: '/wps-register',
+      path: '/structureproject/wps-register',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
       text: 'Welder Register',
       icon: <Engineering />,
-      path: '/welder-register',
+      path: '/structureproject/welder-register',
       roles: ['admin', 'inspector', 'visitor']
     },
     {
@@ -157,8 +157,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: <AccountTree />,
       path: '/project-management',
       roles: ['admin']
-    }
-    ,{
+    },
+    {
       text: 'Audit Logs',
       icon: <Assignment />,
       path: '/audit-logs',
@@ -172,40 +172,57 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Toolbar sx={{ borderBottom: '1px solid #e0e0e0' }}>
+      <Toolbar sx={{ borderBottom: '1px solid #e0e0e0', minHeight: '80px' }}>
         <Box display="flex" alignItems="center" width="100%">
-          <Engineering sx={{ color: 'primary.main', mr: 1 }} />
+          <Engineering sx={{ color: 'primary.main', mr: 2, fontSize: 32 }} />
           <Box>
-            <Typography variant="h6" noWrap>
+            <Typography variant="h5" noWrap fontWeight="bold">
               MPDMS
             </Typography>
-            <Typography variant="caption" color="textSecondary">
-              Multi-Project Data Management
+            <Typography variant="body2" color="textSecondary">
+              Multi-Project Data Management System
             </Typography>
           </Box>
         </Box>
       </Toolbar>
 
-      {/* Selected Project Info */}
-      {selectedProject && summary && (
-        <Box sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Selected Project
-          </Typography>
-          <Typography variant="body2" fontWeight="medium">
+      {/* Selected Project Info - Always visible when project selected */}
+      {selectedProject && (
+        <Box sx={{ p: 2.5, bgcolor: 'primary.light', color: 'primary.contrastText', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
             {selectedProject.name}
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.8 }}>
-            {selectedProject.code}
+          <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+            {selectedProject.code} • Structure
           </Typography>
-          <Box mt={1}>
-            <Typography variant="caption" display="block">
-              Joints: {summary.fitup_done}/{summary.total_joints}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Progress: {Math.round((summary.fitup_done / summary.total_joints) * 100)}%
-            </Typography>
-          </Box>
+          {summary && (
+            <Box sx={{ mt: 1.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Progress
+                </Typography>
+                <Typography variant="caption" fontWeight="medium">
+                  {Math.round((summary.fitup_done / summary.total_joints) * 100)}%
+                </Typography>
+              </Box>
+              <Box sx={{ width: '100%', height: 6, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' }}>
+                <Box sx={{ 
+                  width: `${Math.round((summary.fitup_done / summary.total_joints) * 100)}%`, 
+                  height: '100%', 
+                  bgcolor: 'white',
+                  borderRadius: 3
+                }} />
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Joints: {summary.fitup_done}/{summary.total_joints}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                  Final: {summary.final_done}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
       )}
 
@@ -240,17 +257,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </ListItemIcon>
               <ListItemText 
                 primary={item.text} 
-                primaryTypographyProps={{ fontSize: '0.9rem' }}
+                primaryTypographyProps={{ fontSize: '1rem', fontWeight: 500 }}
               />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
 
-      <Box sx={{ mt: 'auto', p: 2 }}>
-        <Divider sx={{ mb: 2 }} />
-        <Typography variant="caption" color="textSecondary" align="center" display="block">
-          MPDMS v3.0 - Multi-Project Data Management System
+        <Box sx={{ mt: 'auto', p: 2.5, borderTop: '1px solid #e0e0e0' }}>
+        <Typography variant="caption" color="textSecondary" align="center" display="block" sx={{ mb: 0.5 }}>
+          MPDMS v3.0
+        </Typography>
+        <Typography variant="caption" color="textSecondary" align="center" display="block" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+          Pipe & Structure Fabrication Data Management
         </Typography>
       </Box>
     </div>
@@ -365,10 +384,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: 4,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          bgcolor: 'background.default'
+          bgcolor: 'background.default',
+          maxWidth: '100%',
+          overflowX: 'auto'
         }}
       >
         <Toolbar />

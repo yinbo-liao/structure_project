@@ -21,17 +21,16 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography
+  Typography,
+  Checkbox
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import ApiService from '../../services/api';
 
 export interface Column {
   field: string;
@@ -42,6 +41,7 @@ export interface Column {
   editable?: boolean;
   sortable?: boolean;
   formatValue?: (value: any) => string;
+  renderCell?: (row: any, isEditing: boolean, handleChange: (field: string, value: any) => void) => React.ReactNode;
 }
 
 interface EditableTableProps {
@@ -70,32 +70,76 @@ const EditableTable: React.FC<EditableTableProps> = ({
   maxHeight = 600
 }) => {
   const { canEdit, canDelete } = useAuth();
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editingIds, setEditingIds] = useState<number[]>([]);
+  const [editData, setEditData] = useState<Record<number, any>>({});
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage] = useState(50);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const allSelected = selectable && paginatedData.length > 0 && paginatedData.every(row => selectedIds.includes(row.id));
+  const someSelected = selectable && paginatedData.some(row => selectedIds.includes(row.id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!selectable) return;
+    if (checked) {
+      setSelectedIds(paginatedData.map(row => row.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    if (!selectable) return;
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(value => value !== id) : [...prev, id]
+    );
+  };
 
   const handleEdit = (row: any) => {
     if (!canEdit()) return;
-    setEditingId(row.id);
-    setEditData({ ...row });
+    const targetIds =
+      selectable && selectedIds.includes(row.id) && selectedIds.length > 0
+        ? selectedIds
+        : [row.id];
+    setEditingIds(targetIds);
+    setEditData(prev => {
+      const next: Record<number, any> = { ...prev };
+      targetIds.forEach(id => {
+        const r = data.find(x => x.id === id);
+        if (r) {
+          next[id] = { ...r };
+        }
+      });
+      return next;
+    });
   };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setEditData({});
+  const handleCancel = (id: number) => {
+    setEditingIds(prev => prev.filter(value => value !== id));
+    setEditData(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const handleSave = async (id: number) => {
     if (!onUpdate) return;
+    const rowData = editData[id];
+    if (!rowData) return;
     
     try {
-      await onUpdate(id, editData);
-      setEditingId(null);
-      setEditData({});
+      await onUpdate(id, rowData);
+      setEditingIds(prev => prev.filter(value => value !== id));
+      setEditData(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setMessage({ text: 'Record updated successfully', type: 'success' });
     } catch (error: any) {
       setMessage({ 
@@ -131,16 +175,35 @@ const EditableTable: React.FC<EditableTableProps> = ({
     setDeleteConfirmOpen(false);
   };
 
-  const handleChange = (field: string, value: any) => {
-    setEditData((prev: any) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleChange = (id: number, field: string, value: any) => {
+    setEditData(prev => {
+      const current = prev[id] || {};
+      return {
+        ...prev,
+        [id]: {
+          ...current,
+          [field]: value,
+        },
+      };
+    });
   };
 
   const renderCell = (row: any, column: Column) => {
-    const isEditing = editingId === row.id;
+    const isEditing = editingIds.includes(row.id);
     const isEditable = column.editable !== false && canEdit();
+    const rowEditData = editData[row.id] || {};
+
+    // Use custom renderer if provided
+    if (column.renderCell) {
+      // Merge original row with current edit data so the renderer sees updates
+      const effectiveRow = isEditing ? { ...row, ...rowEditData } : row;
+      
+      return column.renderCell(
+        effectiveRow,
+        isEditing && isEditable,
+        (field: string, value: any) => handleChange(row.id, field, value)
+      );
+    }
 
     if (isEditing && isEditable) {
       if (column.type === 'select' && column.options) {
@@ -148,8 +211,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
           <TextField
             select
             size="small"
-            value={editData[column.field] || ''}
-            onChange={(e) => handleChange(column.field, e.target.value)}
+            value={rowEditData[column.field] || ''}
+            onChange={(e) => handleChange(row.id, column.field, e.target.value)}
             fullWidth
             variant="outlined"
           >
@@ -166,11 +229,11 @@ const EditableTable: React.FC<EditableTableProps> = ({
             type="date"
             size="small"
             value={
-              editData[column.field] 
-                ? new Date(editData[column.field]).toISOString().split('T')[0]
+              rowEditData[column.field] 
+                ? new Date(rowEditData[column.field]).toISOString().split('T')[0]
                 : ''
             }
-            onChange={(e) => handleChange(column.field, new Date(e.target.value).toISOString())}
+            onChange={(e) => handleChange(row.id, column.field, new Date(e.target.value).toISOString())}
             fullWidth
             variant="outlined"
             InputLabelProps={{ shrink: true }}
@@ -181,8 +244,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
           <TextField
             select
             size="small"
-            value={editData[column.field] ? 'true' : 'false'}
-            onChange={(e) => handleChange(column.field, e.target.value === 'true')}
+            value={rowEditData[column.field] ? 'true' : 'false'}
+            onChange={(e) => handleChange(row.id, column.field, e.target.value === 'true')}
             fullWidth
             variant="outlined"
           >
@@ -195,8 +258,8 @@ const EditableTable: React.FC<EditableTableProps> = ({
           <TextField
             type={column.type === 'number' ? 'number' : 'text'}
             size="small"
-            value={editData[column.field] || ''}
-            onChange={(e) => handleChange(column.field, column.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
+            value={rowEditData[column.field] || ''}
+            onChange={(e) => handleChange(row.id, column.field, column.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
             fullWidth
             variant="outlined"
           />
@@ -208,7 +271,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
     let value = row[column.field];
     
     if (column.formatValue) {
-      value = column.formatValue(value);
+      value = column.formatValue(row);
     } else if (column.type === 'date' && value) {
       value = new Date(value).toLocaleDateString();
     } else if (column.type === 'boolean') {
@@ -252,24 +315,67 @@ const EditableTable: React.FC<EditableTableProps> = ({
 
   return (
     <>
-      <TableContainer component={Paper} sx={{ maxHeight }}>
-        <Table stickyHeader>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          maxHeight,
+          width: '100%',
+          overflowX: 'auto',
+          boxShadow: 2,
+          borderRadius: 1
+        }}
+      >
+        <Table stickyHeader size="medium">
           <TableHead>
             <TableRow>
+              {selectable && (
+                <TableCell
+                  padding="checkbox"
+                  sx={{
+                    width: 60,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 8px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main'
+                  }}
+                >
+                  <Checkbox
+                    indeterminate={someSelected}
+                    checked={allSelected}
+                    onChange={event => handleSelectAll(event.target.checked)}
+                  />
+                </TableCell>
+              )}
               {columns.map((column) => (
                 <TableCell 
                   key={column.field} 
-                  style={{ 
-                    width: column.width,
-                    fontWeight: 'bold',
-                    backgroundColor: '#f5f5f5'
+                  sx={{ 
+                    width: column.width || 'auto',
+                    minWidth: column.width ? undefined : 120,
+                    fontWeight: 600,
+                    backgroundColor: 'grey.100',
+                    fontSize: '0.875rem',
+                    padding: '16px 16px',
+                    borderBottom: '2px solid',
+                    borderBottomColor: 'primary.main',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {column.headerName}
                 </TableCell>
               ))}
               {showActions && (canEdit() || canDelete()) && (
-                <TableCell style={{ width: 120, fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>
+                <TableCell sx={{ 
+                  width: 140, 
+                  fontWeight: 600,
+                  backgroundColor: 'grey.100',
+                  fontSize: '0.875rem',
+                  padding: '16px 16px',
+                  borderBottom: '2px solid',
+                  borderBottomColor: 'primary.main'
+                }}>
                   Actions
                 </TableCell>
               )}
@@ -278,16 +384,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={columns.length + (showActions ? 1 : 0)} align="center">
-                  <Box p={2}>
-                    Loading...
+                <TableCell colSpan={columns.length + (showActions ? 1 : 0) + (selectable ? 1 : 0)} align="center">
+                  <Box p={3}>
+                    <Typography variant="body2" color="text.secondary">
+                      Loading data...
+                    </Typography>
                   </Box>
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + (showActions ? 1 : 0)} align="center">
-                  <Box p={2}>
+                <TableCell colSpan={columns.length + (showActions ? 1 : 0) + (selectable ? 1 : 0)} align="center">
+                  <Box p={3}>
                     <Typography variant="body2" color="text.secondary">
                       No data available
                     </Typography>
@@ -295,11 +403,42 @@ const EditableTable: React.FC<EditableTableProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
-                <TableRow key={row.id} hover>
+              paginatedData.map((row) => (
+                <TableRow 
+                  key={row.id} 
+                  hover 
+                  selected={selectable && selectedIds.includes(row.id)}
+                  sx={{ 
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.light',
+                      '&:hover': {
+                        backgroundColor: 'primary.light'
+                      }
+                    }
+                  }}
+                >
+                  {selectable && (
+                    <TableCell padding="checkbox" sx={{ padding: '12px 8px' }}>
+                      <Checkbox
+                        checked={selectedIds.includes(row.id)}
+                        onChange={() => handleSelectOne(row.id)}
+                      />
+                    </TableCell>
+                  )}
                   {columns.map((column) => (
-                    <TableCell key={column.field}>
-                      {editingId === row.id && (column.editable !== false) && canEdit()
+                    <TableCell 
+                      key={column.field}
+                      sx={{ 
+                        padding: '12px 16px',
+                        fontSize: '0.875rem',
+                        borderBottom: '1px solid',
+                        borderBottomColor: 'grey.200'
+                      }}
+                    >
+                      {editingIds.includes(row.id) && (column.editable !== false) && canEdit()
                         ? renderCell(row, column)
                         : column.field.toLowerCase().includes('status')
                           ? renderStatusChip(row[column.field])
@@ -308,17 +447,28 @@ const EditableTable: React.FC<EditableTableProps> = ({
                     </TableCell>
                   ))}
                   {showActions && (canEdit() || canDelete()) && (
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <TableCell sx={{ 
+                      padding: '12px 16px',
+                      borderBottom: '1px solid',
+                      borderBottomColor: 'grey.200'
+                    }}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
                         {canEdit() && (
                           <>
-                            {editingId === row.id ? (
+                            {editingIds.includes(row.id) ? (
                               <>
                                 <Tooltip title="Save">
                                   <IconButton
                                     size="small"
                                     color="primary"
                                     onClick={() => handleSave(row.id)}
+                                    sx={{ 
+                                      backgroundColor: 'primary.main',
+                                      color: 'white',
+                                      '&:hover': {
+                                        backgroundColor: 'primary.dark'
+                                      }
+                                    }}
                                   >
                                     <SaveIcon fontSize="small" />
                                   </IconButton>
@@ -327,7 +477,13 @@ const EditableTable: React.FC<EditableTableProps> = ({
                                   <IconButton
                                     size="small"
                                     color="secondary"
-                                    onClick={handleCancel}
+                                    onClick={() => handleCancel(row.id)}
+                                    sx={{ 
+                                      backgroundColor: 'grey.300',
+                                      '&:hover': {
+                                        backgroundColor: 'grey.400'
+                                      }
+                                    }}
                                   >
                                     <CancelIcon fontSize="small" />
                                   </IconButton>
@@ -339,6 +495,14 @@ const EditableTable: React.FC<EditableTableProps> = ({
                                   size="small"
                                   color="primary"
                                   onClick={() => handleEdit(row)}
+                                  sx={{ 
+                                    border: '1px solid',
+                                    borderColor: 'primary.main',
+                                    color: 'primary.main',
+                                    '&:hover': {
+                                      backgroundColor: 'primary.light'
+                                    }
+                                  }}
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
@@ -346,12 +510,20 @@ const EditableTable: React.FC<EditableTableProps> = ({
                             )}
                           </>
                         )}
-                        {canDelete() && editingId !== row.id && (
+                        {canDelete() && !editingIds.includes(row.id) && (
                           <Tooltip title="Delete">
                             <IconButton
                               size="small"
                               color="error"
                               onClick={() => handleDeleteClick(row.id)}
+                              sx={{ 
+                                border: '1px solid',
+                                borderColor: 'error.main',
+                                color: 'error.main',
+                                '&:hover': {
+                                  backgroundColor: 'error.light'
+                                }
+                              }}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>

@@ -27,21 +27,17 @@ import {
   FormControl,
   InputLabel,
   Select,
-  FormControlLabel,
-  Checkbox,
-  Tooltip
+  Checkbox
 } from '@mui/material';
-import { Checklist, Refresh, Add, Edit, Delete, Warning, Info } from '@mui/icons-material';
+import { Checklist, Refresh, Add, Edit, Delete, Search, Clear, Download } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { FinalInspection as FinalInspectionType, FitUpInspection } from '../../types';
-import { calculateWeldLengthFromDiameter, validateWeldLength, isPipeProject } from '../../utils/weldLengthCalculator';
 
 type NewFinalInspection = Omit<FinalInspectionType, 'id' | 'created_at'>;
 
 const FinalInspection: React.FC = () => {
   const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
-  const isStructureProject = selectedProject?.project_type === 'structure';
   const [records, setRecords] = useState<FinalInspectionType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +49,9 @@ const FinalInspection: React.FC = () => {
   const [formData, setFormData] = useState<NewFinalInspection>({
     fitup_id: 0,
     project_id: selectedProject?.id || 0,
-    system_no: '',
-    line_no: '',
-    spool_no: '',
+    system_no: '', // Structure Category
+    line_no: '',   // Page No
+    spool_no: '',  // Drawing No
     joint_no: '',
     weld_type: '',
     wps_no: '',
@@ -68,16 +64,10 @@ const FinalInspection: React.FC = () => {
     weld_length: 0,
     pipe_dia: '',
     remarks: '',
-    inspection_category: 'type-I'
+    inspection_category: 'type-I',
+    block_no: ''
   });
-  const [repairWorkOverride, setRepairWorkOverride] = useState<boolean>(false);
-  const [weldLengthValidation, setWeldLengthValidation] = useState<{
-    isValid: boolean;
-    calculatedLength?: number;
-    difference?: number;
-    percentageDiff?: number;
-    message: string;
-  } | null>(null);
+  
   const [fitupRecords, setFitupRecords] = useState<FitUpInspection[]>([]);
   const [wpsList, setWpsList] = useState<any[]>([]);
   const [welderList, setWelderList] = useState<any[]>([]);
@@ -94,48 +84,74 @@ const FinalInspection: React.FC = () => {
   });
   const [editGroupIds, setEditGroupIds] = useState<number[]>([]);
   const [editGroupIndex, setEditGroupIndex] = useState<number>(0);
+  const [bulkUpdateDialogOpen, setBulkUpdateDialogOpen] = useState(false);
+  const [bulkUpdateLoading, setBulkUpdateLoading] = useState(false);
+  const [bulkUpdateForm, setBulkUpdateForm] = useState({
+    wps_no: '',
+    welder_no: '',
+    ndt_type: '',
+    final_report_no: '',
+    final_date: ''
+  });
+  const [bulkUpdateResult, setBulkUpdateResult] = useState<{
+    message: string;
+    updated_count: number;
+    skipped_count?: number;
+    errors?: string[];
+  } | null>(null);
 
-  const keyFor = (obj: { system_no?: string; line_no?: string; spool_no?: string; joint_no?: string }) =>
-    `${(obj.system_no||'').trim()}-${(obj.line_no||'').trim()}-${(obj.spool_no||'').trim()}-${(obj.joint_no||'').trim()}`;
+  // Inline edit state
+  const [editingRows, setEditingRows] = useState<Set<number>>(new Set());
+  const [editData, setEditData] = useState<Record<number, Partial<FinalInspectionType>>>({});
+  const [isInlineEditMode, setIsInlineEditMode] = useState(false);
 
-  const makeJointKey = (line?: string | null, spool?: string | null, joint?: string | null) =>
-    `${(line || '').trim().toLowerCase()}-${(spool || '').trim().toLowerCase()}-${(joint || '').trim().toLowerCase()}`;
+  const keyFor = (obj: { system_no?: string; line_no?: string; spool_no?: string; joint_no?: string; block_no?: string }) => {
+    if (obj.block_no) {
+      return `${obj.block_no} - ${obj.joint_no || ''} (${obj.spool_no || ''})`;
+    }
+    return `${(obj.system_no||'').trim()}-${(obj.line_no||'').trim()}-${(obj.spool_no||'').trim()}-${(obj.joint_no||'').trim()}`;
+  };
 
   const findFitupByForm = () => {
     return fitupRecords.find(m =>
-      (m.system_no||'').trim() === (formData.system_no||'').trim() &&
-      (m.line_no||'').trim() === (formData.line_no||'').trim() &&
-      (m.spool_no||'').trim() === (formData.spool_no||'').trim() &&
-      (m.joint_no||'').trim() === (formData.joint_no||'').trim()
+      (m.structure_category || m.system_no || '').trim() === (formData.system_no || '').trim() &&
+      (m.page_no || m.line_no || '').trim() === (formData.line_no || '').trim() &&
+      (m.draw_no || m.spool_no || '').trim() === (formData.spool_no || '').trim() &&
+      (m.joint_no || '').trim() === (formData.joint_no || '').trim()
     );
   };
 
-  // Update weld length validation when pipe_dia or weld_length changes
-  useEffect(() => {
-    if (isPipeProject(selectedProject?.project_type)) {
-      const validation = validateWeldLength(formData.weld_length, formData.pipe_dia, repairWorkOverride ? 1000 : 0.1);
-      setWeldLengthValidation(validation);
-    } else {
-      setWeldLengthValidation(null);
+  // Calculate thickness from fit-up record (lower thickness between part1 and part2)
+  const calculateThicknessFromFitup = (fitupRecord: FitUpInspection): string => {
+    const thickness1 = parseFloat(fitupRecord.part1_thickness || '0');
+    const thickness2 = parseFloat(fitupRecord.part2_thickness || '0');
+    
+    // Return the lower thickness, or the non-zero one if only one exists
+    if (thickness1 > 0 && thickness2 > 0) {
+      return Math.min(thickness1, thickness2).toString();
+    } else if (thickness1 > 0) {
+      return thickness1.toString();
+    } else if (thickness2 > 0) {
+      return thickness2.toString();
     }
-  }, [formData.weld_length, formData.pipe_dia, repairWorkOverride, selectedProject?.project_type]);
+    return '';
+  };
 
   const applyFitupJoint = (fitupId: number) => {
     const fu = fitupRecords.find(j => j.id === fitupId);
     if (!fu) return;
     
-    const calculatedLength = calculateWeldLengthFromDiameter(fu.dia || '');
-    
     setFormData({
       ...formData,
       fitup_id: fu.id,
-      system_no: fu.system_no || '',
-      line_no: fu.line_no || '',
-      spool_no: fu.spool_no || '',
+      system_no: fu.structure_category || fu.system_no || '',
+      line_no: fu.page_no || fu.line_no || '',
+      spool_no: fu.draw_no || fu.spool_no || '',
       joint_no: fu.joint_no || '',
       weld_type: fu.weld_type || '',
-      weld_length: calculatedLength || fu.weld_length || 0,
-      pipe_dia: fu.dia || ''
+      weld_length: fu.weld_length || 0,
+      pipe_dia: '',
+      block_no: fu.block_no || ''
     });
   };
 
@@ -188,12 +204,93 @@ const FinalInspection: React.FC = () => {
     const loadFilters = async () => {
       if (!selectedProject) return;
       try {
-        const opts = await ApiService.getFinalFilters(selectedProject.id);
-        setFilterOptions(opts || { system_no: [], spool_no: [], joint_no: [], final_report_no: [], final_result: [] });
+        const opts: any = await ApiService.getFinalFilters(selectedProject.id);
+        setFilterOptions({
+          system_no: opts?.system_no || opts?.structure_category || [],
+          spool_no: opts?.spool_no || opts?.drawing_rev || [],
+          joint_no: opts?.joint_no || [],
+          final_report_no: opts?.final_report_no || [],
+          final_result: opts?.final_result || []
+        });
       } catch {}
     };
     loadFilters();
   }, [selectedProject]);
+
+  // Auto-lookup from Master Joint List based on Block No + Joint No
+  useEffect(() => {
+    const lookupMasterJoint = async () => {
+      if (!formData.block_no || !formData.joint_no || !selectedProject) return;
+
+      try {
+        const results = await ApiService.getStructureMasterJointList(
+          selectedProject.id,
+          undefined,
+          undefined,
+          undefined,
+          formData.block_no,
+          formData.joint_no
+        );
+
+        if (results && results.length > 0) {
+          const match = results[0];
+          setFormData(prev => {
+            // Map fields: draw_no -> spool_no, structure_category -> system_no, page_no -> line_no
+            const newSpool = match.draw_no || prev.spool_no;
+            const newSystem = match.structure_category || prev.system_no;
+            const newLine = match.page_no || prev.line_no;
+
+            if (newSpool !== prev.spool_no || newSystem !== prev.system_no || newLine !== prev.line_no) {
+              return {
+                ...prev,
+                spool_no: newSpool,
+                system_no: newSystem,
+                line_no: newLine
+              };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error('Error looking up master joint:', err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      lookupMasterJoint();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.block_no, formData.joint_no, selectedProject]);
+
+  // Auto-lookup thickness from fit-up records when Block No + Joint No changes
+  useEffect(() => {
+    const lookupThicknessFromFitup = () => {
+      if (!formData.block_no || !formData.joint_no) return;
+
+      // Find matching fit-up record by Block No + Joint No
+      const matchingFitup = fitupRecords.find(fitup =>
+        (fitup.block_no || '').trim() === (formData.block_no || '').trim() &&
+        (fitup.joint_no || '').trim() === (formData.joint_no || '').trim()
+      );
+
+      if (matchingFitup) {
+        const thickness = calculateThicknessFromFitup(matchingFitup);
+        if (thickness && thickness !== formData.pipe_dia) {
+          setFormData(prev => ({
+            ...prev,
+            pipe_dia: thickness
+          }));
+        }
+      }
+    };
+
+    const timer = setTimeout(() => {
+      lookupThicknessFromFitup();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.block_no, formData.joint_no, fitupRecords, formData.pipe_dia]);
 
   // Handler functions
   const handleAddClick = () => {
@@ -216,7 +313,8 @@ const FinalInspection: React.FC = () => {
       weld_length: 0,
       pipe_dia: '',
       remarks: '',
-      inspection_category: 'type-I'
+      inspection_category: 'type-I',
+      block_no: ''
     });
     setAddDialogOpen(true);
   };
@@ -233,9 +331,9 @@ const FinalInspection: React.FC = () => {
     setFormData({
       fitup_id: record.fitup_id || 0,
       project_id: record.project_id,
-      system_no: record.system_no || '',
-      line_no: record.line_no || '',
-      spool_no: record.spool_no || '',
+      system_no: record.structure_category || record.system_no || '',
+      line_no: record.page_no || record.line_no || '',
+      spool_no: record.draw_no || record.spool_no || '',
       joint_no: record.joint_no || '',
       weld_type: record.weld_type || '',
       wps_no: record.wps_no || '',
@@ -249,7 +347,8 @@ const FinalInspection: React.FC = () => {
       weld_length: record.weld_length || 0,
       pipe_dia: record.pipe_dia || '',
       remarks: record.remarks || '',
-      inspection_category: record.inspection_category || 'type-I'
+      inspection_category: record.inspection_category || 'type-I',
+      block_no: record.block_no || ''
     });
     setEditDialogOpen(true);
   };
@@ -260,16 +359,6 @@ const FinalInspection: React.FC = () => {
   };
 
   const handleAddSubmit = async () => {
-    if (selectedProject?.project_type === 'pipe') {
-      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
-      if (key !== '--') {
-        const exists = records.some(r => makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
-        if (exists) {
-          setError('Duplicate joint in final inspection: same line, spool and joint already exists');
-          return;
-        }
-      }
-    }
     try {
       const f = findFitupByForm();
       const payload: any = {
@@ -306,16 +395,6 @@ const FinalInspection: React.FC = () => {
   const handleEditSubmit = async () => {
     if (!selectedRecord) return;
     
-    if (selectedProject?.project_type === 'pipe') {
-      const key = makeJointKey(formData.line_no, formData.spool_no, formData.joint_no);
-      if (key !== '--') {
-        const exists = records.some(r => r.id !== selectedRecord.id && makeJointKey(r.line_no, r.spool_no, r.joint_no) === key);
-        if (exists) {
-          setError('Duplicate joint in final inspection: same line, spool and joint already exists');
-          return;
-        }
-      }
-    }
     try {
       const f = findFitupByForm();
       const payload: any = {
@@ -359,7 +438,8 @@ const FinalInspection: React.FC = () => {
             ndt_type: nextRecord.ndt_type || '',
             weld_length: nextRecord.weld_length || 0,
             pipe_dia: nextRecord.pipe_dia || '',
-            remarks: nextRecord.remarks || ''
+            remarks: nextRecord.remarks || '',
+            block_no: nextRecord.block_no || ''
           });
           setEditGroupIndex(currentIndex + 1);
         } else {
@@ -410,6 +490,65 @@ const FinalInspection: React.FC = () => {
     }
   };
 
+  // Inline edit handlers
+  const handleInlineEditChange = (id: number, field: keyof FinalInspectionType, value: any) => {
+    setEditData(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value
+      }
+    }));
+  };
+  
+  const handleSaveInlineEdits = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updates = Object.entries(editData).map(([id, data]) => ({
+        id: parseInt(id),
+        data
+      }));
+      
+      // Update each record individually
+      for (const update of updates) {
+        const record = records.find(r => r.id === update.id);
+        if (record) {
+          const payload = {
+            ...record,
+            ...update.data
+          };
+          await ApiService.updateFinalInspection(update.id, payload);
+        }
+      }
+      
+      // Refresh records and exit edit mode
+      await fetchFinalRecords();
+      setEditingRows(new Set());
+      setEditData({});
+      setIsInlineEditMode(false);
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : detail && detail.msg
+          ? detail.msg
+          : err?.message || 'Failed to save inline edits';
+      setError(message);
+      console.error('Error saving inline edits:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleCancelInlineEdits = () => {
+    setEditingRows(new Set());
+    setEditData({});
+    setIsInlineEditMode(false);
+  };
+
   const getStatusColor = (result?: string) => {
     switch (result?.toLowerCase()) {
       case 'accepted':
@@ -433,8 +572,8 @@ const FinalInspection: React.FC = () => {
   };
 
   const filteredRecords = records.filter(r => {
-    const sys = (r.system_no || '').trim();
-    const spool = (r.spool_no || '').trim();
+    const sys = (r.structure_category || r.system_no || '').trim();
+    const spool = (r.draw_no || r.spool_no || '').trim();
     const joint = (r.joint_no || '').trim();
     const rep = (r.final_report_no || '').trim();
     const res = (r.final_result || '').trim().toLowerCase();
@@ -447,778 +586,809 @@ const FinalInspection: React.FC = () => {
   });
 
   const downloadCSV = () => {
-    const headers = isStructureProject
-      ? [
-          'Drawing No',
-          'Structure Category',
-          'Page No',
-          'Joint No',
-          'Weld Type',
-          'WPS No',
-          'Welder No',
-          'Welder Validity',
-          'NDT Type',
-          'Weld Length',
-          'Size',
-          'Final Date',
-          'Report No',
-          'Result',
-          'Fit-up Link'
-        ]
-      : [
-          'System No',
-          'Line No',
-          'Spool No',
-          'Joint No',
-          'Weld Type',
-          'WPS No',
-          'Welder No',
-          'Welder Validity',
-          'NDT Type',
-          'Weld Length',
-          ...(selectedProject?.project_type === 'pipe' ? ['Pipe Dia'] : []),
-          'Final Date',
-          'Report No',
-          'Result',
-          'Fit-up Link'
-        ];
+    const headers = [
+      'Drawing No',
+      'Structure Category',
+      'Page No',
+      'Joint No',
+      'Weld Type',
+      'WPS No',
+      'Welder No',
+      'Welder Validity',
+      'NDT Type',
+      'Weld Length',
+      'Thickness',
+      'Final Date',
+      'Report No',
+      'Result',
+      'Fit-up Link'
+    ];
     const rows = filteredRecords.map(record => {
       const inFitup = fitupRecords.length > 0 ? (
         fitupRecords.some(m =>
-          (m.system_no||'').trim() === (record.system_no||'').trim() &&
-          (m.line_no||'').trim() === (record.line_no||'').trim() &&
-          (m.spool_no||'').trim() === (record.spool_no||'').trim() &&
-          (m.joint_no||'').trim() === (record.joint_no||'').trim()
+          (m.structure_category || m.system_no || '').trim() === (record.structure_category || record.system_no || '').trim() &&
+          (m.page_no || m.line_no || '').trim() === (record.page_no || record.line_no || '').trim() &&
+          (m.draw_no || m.spool_no || '').trim() === (record.draw_no || record.spool_no || '').trim() &&
+          (m.joint_no || '').trim() === (record.joint_no || '').trim()
         )
       ) : false;
-      const fitupLink = fitupRecords.length === 0 ? '-' : (inFitup ? 'In Fit-up' : 'Fit-up Missing');
-      const lengthStr = record.weld_length ? `${record.weld_length} mm` : '';
-      const dateStr = formatDate(record.final_date);
-      return isStructureProject
-        ? [
-            record.spool_no || '',
-            record.system_no || '',
-            record.line_no || '',
-            record.joint_no || '',
-            record.weld_type || '',
-            record.wps_no || '',
-            record.welder_no || '',
-            record.welder_validity || '',
-            record.ndt_type || '',
-            lengthStr,
-            record.pipe_dia || '',
-            dateStr,
-            record.final_report_no || '',
-            record.final_result || '',
-            fitupLink
-          ]
-        : [
-            record.system_no || '',
-            record.line_no || '',
-            record.spool_no || '',
-            record.joint_no || '',
-            record.weld_type || '',
-            record.wps_no || '',
-            record.welder_no || '',
-            record.welder_validity || '',
-            record.ndt_type || '',
-            lengthStr,
-            ...(selectedProject?.project_type === 'pipe' ? [record.pipe_dia || ''] : []),
-            dateStr,
-            record.final_report_no || '',
-            record.final_result || '',
-            fitupLink
-          ];
+      
+      return [
+        record.draw_no || record.spool_no || '',
+        record.structure_category || record.system_no || '',
+        record.page_no || record.line_no || '',
+        record.joint_no || '',
+        record.weld_type || '',
+        record.wps_no || '',
+        record.welder_no || '',
+        record.welder_validity || '',
+        record.ndt_type || '',
+        record.weld_length || 0,
+        record.pipe_dia || '',
+        record.final_date ? formatDate(record.final_date) : '',
+        record.final_report_no || '',
+        record.final_result || '',
+        inFitup ? 'Yes' : 'No'
+      ].map(cell => `"${cell}"`).join(',');
     });
-    const escape = (v: string) => {
-      const s = String(v ?? '');
-      return '"' + s.replace(/\"/g, '""') + '"';
-    };
-    const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\r\n');
-    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `final_records_${selectedProject?.code || 'project'}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `final_inspection_${selectedProject?.code || 'export'}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url);
   };
+
+  // Bulk update handler
+  const handleBulkUpdateClick = () => {
+    if (selectedRows.length === 0) {
+      setError('Please select at least one final inspection record to update.');
+      return;
+    }
+    
+    setBulkUpdateForm({
+      wps_no: '',
+      welder_no: '',
+      ndt_type: '',
+      final_report_no: '',
+      final_date: ''
+    });
+    setBulkUpdateResult(null);
+    setBulkUpdateDialogOpen(true);
+  };
+
+  const handleBulkUpdateSubmit = async () => {
+    if (selectedRows.length === 0) {
+      setError('No records selected for bulk update.');
+      return;
+    }
+
+    setBulkUpdateLoading(true);
+    setError(null);
+    
+    try {
+      // Prepare update data with only non-empty fields
+      const updateData: any = {};
+      if (bulkUpdateForm.wps_no.trim()) updateData.wps_no = bulkUpdateForm.wps_no.trim();
+      if (bulkUpdateForm.welder_no.trim()) updateData.welder_no = bulkUpdateForm.welder_no.trim();
+      if (bulkUpdateForm.ndt_type.trim()) updateData.ndt_type = bulkUpdateForm.ndt_type.trim();
+      if (bulkUpdateForm.final_report_no.trim()) updateData.final_report_no = bulkUpdateForm.final_report_no.trim();
+      if (bulkUpdateForm.final_date.trim()) {
+        try {
+          updateData.final_date = new Date(bulkUpdateForm.final_date).toISOString();
+        } catch {
+          // If date parsing fails, keep as is
+          updateData.final_date = bulkUpdateForm.final_date;
+        }
+      }
+
+      // Check if any fields are provided
+      if (Object.keys(updateData).length === 0) {
+        setError('Please provide at least one field to update.');
+        setBulkUpdateLoading(false);
+        return;
+      }
+
+      const result = await ApiService.bulkUpdateFinalInspections(selectedRows, updateData);
+      // Cast result to any to avoid TS error since the backend return type might be loose in the frontend definition
+      const anyResult = result as any;
+      setBulkUpdateResult({
+        ...result,
+        skipped_count: anyResult.skipped_count || 0 
+      });
+      
+      // Refresh records after successful update
+      if (result.updated_count > 0) {
+        fetchFinalRecords();
+        // Clear selection after successful update
+        setSelectedRows([]);
+      }
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : detail && detail.msg
+          ? detail.msg
+          : err?.message || 'Failed to perform bulk update';
+      setError(message);
+      console.error('Error performing bulk update:', err);
+    } finally {
+      setBulkUpdateLoading(false);
+    }
+  };
+
+  // Calculate statistics
+  const acceptedCount = filteredRecords.filter(r => r.final_result?.toLowerCase() === 'accepted').length;
+  const rejectedCount = filteredRecords.filter(r => r.final_result?.toLowerCase() === 'rejected').length;
+  const pendingCount = filteredRecords.filter(r => !r.final_result || r.final_result.toLowerCase() === 'pending').length;
+  const totalWeldLength = filteredRecords.reduce((sum, r) => sum + (r.weld_length || 0), 0);
 
   if (!selectedProject) {
     return (
       <Container>
-        <Alert severity="info">Please select a project first.</Alert>
+        <Typography>Please select a project first.</Typography>
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Checklist sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-          <Box>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {isStructureProject ? 'Structure Final Inspection' : 'Pipe Final Inspection'}
-            </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
-              {selectedProject.name} ({selectedProject.code})
-            </Typography>
-          </Box>
-        </Box>
-        <Box>
+    <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Final Inspection
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
             startIcon={<Refresh />}
             onClick={fetchFinalRecords}
             disabled={loading}
-            sx={{ mr: 2 }}
           >
             Refresh
           </Button>
           <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAddClick}
-            disabled={!canEdit()}
+            variant="outlined"
+            startIcon={<Download />}
+            onClick={downloadCSV}
           >
-            Add Final Inspection
+            Export CSV
           </Button>
+          {canEdit() && selectedRows.length > 0 && (
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleBulkUpdateClick}
+              disabled={selectedRows.length === 0}
+            >
+              Bulk Update ({selectedRows.length})
+            </Button>
+          )}
+          {canEdit() && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAddClick}
+            >
+              Add Final Inspection
+            </Button>
+          )}
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Records
-              </Typography>
-              <Typography variant="h4" component="div">
-                {records.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Accepted
-              </Typography>
-              <Typography variant="h4" component="div" color="success.main">
-                {records.filter(r => r.final_result?.toLowerCase() === 'accepted').length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Rejected
-              </Typography>
-              <Typography variant="h4" component="div" color="error.main">
-                {records.filter(r => r.final_result?.toLowerCase() === 'rejected').length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Pending
-              </Typography>
-              <Typography variant="h4" component="div" color="warning.main">
-                {records.filter(r => !r.final_result || r.final_result?.toLowerCase() === 'pending').length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      {/* Statistics Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Total Records
+              </Typography>
+              <Typography variant="h5" component="div">
+                {filteredRecords.length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Accepted
+              </Typography>
+              <Typography variant="h5" component="div" color="success.main">
+                {acceptedCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Rejected
+              </Typography>
+              <Typography variant="h5" component="div" color="error.main">
+                {rejectedCount}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                Total Weld Length
+              </Typography>
+              <Typography variant="h5" component="div">
+                {totalWeldLength.toFixed(2)} mm
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={2.4 as any}>
-            <FormControl fullWidth>
-              <InputLabel>{isStructureProject ? 'Structure Category' : 'System No'}</InputLabel>
+      {/* Search Section */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          <Search sx={{ verticalAlign: 'middle', mr: 1 }} />
+          Search Final Inspections
+        </Typography>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Structure Category</InputLabel>
               <Select
-                label={isStructureProject ? 'Structure Category' : 'System No'}
                 value={search.system_no}
-                onChange={(e) => setSearch({ ...search, system_no: String(e.target.value) })}
+                label="Structure Category"
+                onChange={(e) => setSearch({ ...search, system_no: e.target.value })}
               >
                 <MenuItem value="">All</MenuItem>
-                {filterOptions.system_no.map(v => (
-                  <MenuItem key={v} value={v}>{v}</MenuItem>
+                {filterOptions.system_no.map((opt) => (
+                  <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4 as any}>
-            <FormControl fullWidth>
-              <InputLabel>{isStructureProject ? 'Drawing No' : 'Spool No'}</InputLabel>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Drawing No</InputLabel>
               <Select
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
                 value={search.spool_no}
-                onChange={(e) => setSearch({ ...search, spool_no: String(e.target.value) })}
+                label="Drawing No"
+                onChange={(e) => setSearch({ ...search, spool_no: e.target.value })}
               >
                 <MenuItem value="">All</MenuItem>
-                {filterOptions.spool_no.map(v => (
-                  <MenuItem key={v} value={v}>{v}</MenuItem>
+                {filterOptions.spool_no.map((opt) => (
+                  <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4 as any}>
-            <FormControl fullWidth>
-              <InputLabel>Joint No</InputLabel>
-              <Select
-                label="Joint No"
-                value={search.joint_no}
-                onChange={(e) => setSearch({ ...search, joint_no: String(e.target.value) })}
-              >
-                <MenuItem value="">All</MenuItem>
-                {filterOptions.joint_no.map(v => (
-                  <MenuItem key={v} value={v}>{v}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Joint No"
+              value={search.joint_no}
+              onChange={(e) => setSearch({ ...search, joint_no: e.target.value })}
+              placeholder="Joint No"
+            />
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4 as any}>
-            <FormControl fullWidth>
-              <InputLabel>Report No</InputLabel>
-              <Select
-                label="Report No"
-                value={search.final_report_no}
-                onChange={(e) => setSearch({ ...search, final_report_no: String(e.target.value) })}
-              >
-                <MenuItem value="">All</MenuItem>
-                {filterOptions.final_report_no.map(v => (
-                  <MenuItem key={v} value={v}>{v}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          <Grid item xs={12} sm={6} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Report No"
+              value={search.final_report_no}
+              onChange={(e) => setSearch({ ...search, final_report_no: e.target.value })}
+              placeholder="Report No"
+            />
           </Grid>
-          <Grid item xs={12} sm={6} md={2.4 as any}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={2}>
+            <FormControl fullWidth size="small">
               <InputLabel>Result</InputLabel>
               <Select
-                label="Result"
                 value={search.final_result}
-                onChange={(e) => setSearch({ ...search, final_result: String(e.target.value) })}
+                label="Result"
+                onChange={(e) => setSearch({ ...search, final_result: e.target.value })}
               >
                 <MenuItem value="">All</MenuItem>
-                {filterOptions.final_result.map(v => (
-                  <MenuItem key={v} value={v}>{v}</MenuItem>
-                ))}
+                <MenuItem value="accepted">Accepted</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button
-                variant="contained"
-                onClick={downloadCSV}
-                disabled={filteredRecords.length === 0}
-              >
-                Download CSV
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setSearch({ system_no: '', spool_no: '', joint_no: '', final_report_no: '', final_result: '' })}
-              >
-                Clear Filters
-              </Button>
-            </Box>
+          <Grid item xs={12} sm={6} md={1}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Clear />}
+              onClick={() => setSearch({ system_no: '', spool_no: '', joint_no: '', final_report_no: '', final_result: '' })}
+              size="small"
+            >
+              Clear
+            </Button>
           </Grid>
         </Grid>
+        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Showing {filteredRecords.length} of {records.length} records
+          </Typography>
+          {search.system_no || search.spool_no || search.joint_no || search.final_report_no || search.final_result ? (
+            <Chip 
+              label="Search Active" 
+              color="primary" 
+              size="small" 
+              variant="outlined"
+            />
+          ) : null}
+        </Box>
       </Paper>
 
       {/* Records Table */}
-      {!loading && (
-        <TableContainer component={Paper}>
-          <Table sx={{ minWidth: 650 }} aria-label="final inspection records table">
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox" />
-              {isStructureProject ? (
-                <>
-                  <TableCell><strong>Drawing No</strong></TableCell>
-                  <TableCell><strong>Structure Category</strong></TableCell>
-                  <TableCell><strong>Page No</strong></TableCell>
-                </>
-              ) : (
-                <>
-                  <TableCell><strong>System No</strong></TableCell>
-                  <TableCell><strong>Line No</strong></TableCell>
-                  <TableCell><strong>Spool No</strong></TableCell>
-                </>
-              )}
-              <TableCell><strong>Joint No</strong></TableCell>
-              <TableCell><strong>Weld Type</strong></TableCell>
-              <TableCell><strong>Inspection Category</strong></TableCell>
-              <TableCell><strong>WPS No</strong></TableCell>
-              <TableCell><strong>Welder No</strong></TableCell>
-              <TableCell><strong>Welder Validity</strong></TableCell>
-              <TableCell><strong>NDT Type</strong></TableCell>
-              <TableCell><strong>Weld Site</strong></TableCell>
-              <TableCell><strong>Weld Length</strong></TableCell>
-              {selectedProject?.project_type === 'pipe' && (
-                <TableCell><strong>Pipe Dia</strong></TableCell>
-              )}
-              <TableCell><strong>Final Date</strong></TableCell>
-              <TableCell><strong>Report No</strong></TableCell>
-              <TableCell><strong>Result</strong></TableCell>
-              <TableCell><strong>Fit-up Link</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-              {records.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="textSecondary">
-                      No final inspection records found for this project.
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={handleAddClick}
-                      sx={{ mt: 2 }}
-                    >
-                      Add First Record
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ) : filteredRecords.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isStructureProject ? 16 : 17} align="center" sx={{ py: 4 }}>
-                    <Typography variant="body1" color="textSecondary">
-                      No records match current search.
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredRecords.map((record) => (
-                  <TableRow key={record.id} hover selected={selectedRows.includes(record.id)}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedRows.includes(record.id)}
-                        onChange={() => {
-                          setSelectedRows(prev =>
-                            prev.includes(record.id)
-                              ? prev.filter(id => id !== record.id)
-                              : [...prev, record.id]
-                          );
-                        }}
-                      />
-                    </TableCell>
-                    {isStructureProject ? (
-                      <>
-                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
-                        <TableCell>{record.system_no || 'N/A'}</TableCell>
-                        <TableCell>{record.line_no || 'N/A'}</TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell>{record.system_no || 'N/A'}</TableCell>
-                        <TableCell>{record.line_no || 'N/A'}</TableCell>
-                        <TableCell>{record.spool_no || 'N/A'}</TableCell>
-                      </>
+      <Paper sx={{ p: 3, boxShadow: 2, width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" fontWeight="600">
+            Final Inspection Records
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Total: <Typography component="span" variant="body2" fontWeight="bold" color="primary.main">{filteredRecords.length}</Typography> records
+            </Typography>
+            {filteredRecords.length !== records.length && (
+              <Chip 
+                label={`Filtered from ${records.length}`} 
+                size="small" 
+                color="info" 
+                variant="outlined"
+              />
+            )}
+          </Box>
+        </Box>
+
+        {/* Inline Edit Controls */}
+        {isInlineEditMode && editingRows.size > 0 && (
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'primary.light', borderRadius: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Checklist sx={{ color: 'primary.contrastText' }} />
+              <Typography variant="body1" color="primary.contrastText" fontWeight="bold">
+                Editing {editingRows.size} record{editingRows.size > 1 ? 's' : ''}
+              </Typography>
+              <Chip 
+                label="Inline Edit Mode" 
+                color="primary" 
+                size="small" 
+                variant="outlined"
+                sx={{ color: 'primary.contrastText', borderColor: 'primary.contrastText' }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleSaveInlineEdits}
+                disabled={loading}
+                size="small"
+              >
+                {loading ? <CircularProgress size={20} /> : 'Save All Changes'}
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={handleCancelInlineEdits}
+                size="small"
+                sx={{ color: 'primary.contrastText', borderColor: 'primary.contrastText' }}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        )}
+        
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : filteredRecords.length === 0 ? (
+          <Alert severity="info">No final inspection records found.</Alert>
+        ) : (
+          <Box sx={{ width: '100%', overflowX: 'auto' }}>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    {canEdit() && (
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          indeterminate={selectedRows.length > 0 && selectedRows.length < filteredRecords.length}
+                          checked={filteredRecords.length > 0 && selectedRows.length === filteredRecords.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRows(filteredRecords.map(r => r.id));
+                            } else {
+                              setSelectedRows([]);
+                            }
+                          }}
+                        />
+                      </TableCell>
                     )}
-                    <TableCell>{record.joint_no || 'N/A'}</TableCell>
-                    <TableCell>{record.weld_type || 'N/A'}</TableCell>
-                    <TableCell>{record.inspection_category || 'type-I'}</TableCell>
-                    <TableCell>{record.wps_no || 'N/A'}</TableCell>
-                    <TableCell>{record.welder_no || 'N/A'}</TableCell>
-                    <TableCell>{record.welder_validity || 'N/A'}</TableCell>
-                    <TableCell>{record.ndt_type || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={record.weld_site || 'N/A'} 
-                        size="small" 
-                        color={record.weld_site === 'shop weld' ? 'primary' : 'secondary'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {record.weld_length ? `${record.weld_length} mm` : 'N/A'}
-                    </TableCell>
-                    {selectedProject?.project_type === 'pipe' && (
-                      <TableCell>{record.pipe_dia || 'N/A'}</TableCell>
-                    )}
-                    <TableCell>{formatDate(record.final_date)}</TableCell>
-                    <TableCell>{record.final_report_no || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={record.final_result || 'Pending'} 
-                        color={getStatusColor(record.final_result) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {fitupRecords.length > 0 ? (
-                        fitupRecords.some(m =>
-                          (m.system_no||'').trim() === (record.system_no||'').trim() &&
-                          (m.line_no||'').trim() === (record.line_no||'').trim() &&
-                          (m.spool_no||'').trim() === (record.spool_no||'').trim() &&
-                          (m.joint_no||'').trim() === (record.joint_no||'').trim()
-                        ) ? (
-                          <Chip label="In Fit-up" color="success" size="small" variant="outlined" />
-                        ) : (
-                          <Chip label="Fit-up Missing" color="warning" size="small" variant="outlined" />
-                        )
-                      ) : (
-                        <Chip label="-" size="small" variant="outlined" />
+                    <TableCell>Drawing No</TableCell>
+                    <TableCell>Structure Category</TableCell>
+                    <TableCell>Page No</TableCell>
+                    <TableCell>Joint No</TableCell>
+                    <TableCell>Weld Type</TableCell>
+                    <TableCell>WPS No</TableCell>
+                    <TableCell>Welder No</TableCell>
+                    <TableCell>NDT Type</TableCell>
+                    <TableCell>Weld Length</TableCell>
+                    <TableCell>Thickness</TableCell>
+                    <TableCell>Final Date</TableCell>
+                    <TableCell>Report No</TableCell>
+                    <TableCell>Result</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredRecords.map((record) => (
+                    <TableRow key={record.id} hover>
+                      {canEdit() && (
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedRows.includes(record.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRows([...selectedRows, record.id]);
+                              } else {
+                                setSelectedRows(selectedRows.filter(id => id !== record.id));
+                              }
+                            }}
+                          />
+                        </TableCell>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const accepted = (record.final_result || '').toLowerCase() === 'accepted';
-                        const allowEdit = isAdmin() || ((user?.role || '').toLowerCase() === 'inspector' && !accepted);
-                        const allowDelete = canDelete();
-                        return (
-                          <Box>
-                            <IconButton size="small" color="primary" onClick={() => handleEditClick(record)} disabled={!allowEdit}>
-                              <Edit />
-                            </IconButton>
-                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)} disabled={!allowDelete}>
+                      <TableCell>{record.draw_no || record.spool_no || '-'}</TableCell>
+                      <TableCell>{record.structure_category || record.system_no || '-'}</TableCell>
+                      <TableCell>{record.page_no || record.line_no || '-'}</TableCell>
+                      <TableCell>{record.joint_no || '-'}</TableCell>
+                      <TableCell>{record.weld_type || '-'}</TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editData[record.id]?.wps_no || record.wps_no || ''}
+                              onChange={(e) => handleInlineEditChange(record.id, 'wps_no', e.target.value)}
+                              size="small"
+                            >
+                              <MenuItem value="">Select WPS</MenuItem>
+                              {wpsList.map((wps) => (
+                                <MenuItem key={wps.id} value={wps.wps_no}>{wps.wps_no}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          record.wps_no || '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editData[record.id]?.welder_no || record.welder_no || ''}
+                              onChange={(e) => handleInlineEditChange(record.id, 'welder_no', e.target.value)}
+                              size="small"
+                            >
+                              <MenuItem value="">Select Welder</MenuItem>
+                              {welderList.map((welder) => (
+                                <MenuItem key={welder.id} value={welder.welder_no}>{welder.welder_no}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          record.welder_no || '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <FormControl fullWidth size="small">
+                              <Select
+                                multiple
+                                value={editData[record.id]?.ndt_type ? 
+                                (editData[record.id]?.ndt_type?.split(',') || []).map(item => item.trim()) : 
+                                (record.ndt_type ? record.ndt_type.split(',').map(item => item.trim()) : [])}
+                              onChange={(e) => {
+                                const selected = Array.isArray(e.target.value) ? e.target.value : [e.target.value];
+                                handleInlineEditChange(record.id, 'ndt_type', selected.join(', '));
+                              }}
+                              renderValue={(selected) => (selected as string[]).join(', ')}
+                              size="small"
+                            >
+                              {ndtOptions.map((opt) => (
+                                <MenuItem key={opt} value={opt}>
+                                  <Checkbox checked={
+                                    editData[record.id]?.ndt_type ? 
+                                    (editData[record.id]?.ndt_type?.split(',') || []).map(item => item.trim()).includes(opt) :
+                                    (record.ndt_type ? record.ndt_type.split(',').map(item => item.trim()).includes(opt) : false)
+                                  } />
+                                  {opt}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          record.ndt_type || '-'
+                        )}
+                      </TableCell>
+                      <TableCell>{record.weld_length || 0} mm</TableCell>
+                      <TableCell>{record.pipe_dia || '-'}</TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <TextField
+                            type="date"
+                            value={editData[record.id]?.final_date || record.final_date || ''}
+                            onChange={(e) => handleInlineEditChange(record.id, 'final_date', e.target.value)}
+                            size="small"
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                            inputProps={{ style: { fontSize: '0.875rem' } }}
+                          />
+                        ) : (
+                          formatDate(record.final_date)
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <TextField
+                            value={editData[record.id]?.final_report_no || record.final_report_no || ''}
+                            onChange={(e) => handleInlineEditChange(record.id, 'final_report_no', e.target.value)}
+                            size="small"
+                            fullWidth
+                            inputProps={{ style: { fontSize: '0.875rem' } }}
+                          />
+                        ) : (
+                          record.final_report_no || '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingRows.has(record.id) ? (
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={editData[record.id]?.final_result || record.final_result || 'pending'}
+                              onChange={(e) => handleInlineEditChange(record.id, 'final_result', e.target.value)}
+                              size="small"
+                            >
+                              <MenuItem value="pending">Pending</MenuItem>
+                              <MenuItem value="accepted">Accepted</MenuItem>
+                              <MenuItem value="rejected">Rejected</MenuItem>
+                            </Select>
+                          </FormControl>
+                        ) : (
+                          <Chip
+                            label={record.final_result || 'Pending'}
+                            color={getStatusColor(record.final_result)}
+                            size="small"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {canEdit() && (
+                            <>
+                              {isInlineEditMode && editingRows.has(record.id) ? (
+                                <IconButton size="small" color="success" onClick={handleSaveInlineEdits}>
+                                  <Checklist />
+                                </IconButton>
+                              ) : (
+                                <IconButton size="small" onClick={() => {
+                                  // If multiple rows are selected, enter inline edit mode
+                                  if (selectedRows.length > 1 && selectedRows.includes(record.id)) {
+                                    // Enter inline edit mode for all selected rows
+                                    setEditingRows(new Set(selectedRows));
+                                    const initialEditData: Record<number, Partial<FinalInspectionType>> = {};
+                                    selectedRows.forEach(id => {
+                                      const rowRecord = records.find(r => r.id === id);
+                                      if (rowRecord) {
+                                        initialEditData[id] = {
+                                          wps_no: rowRecord.wps_no,
+                                          welder_no: rowRecord.welder_no,
+                                          ndt_type: rowRecord.ndt_type,
+                                          final_date: rowRecord.final_date,
+                                          final_report_no: rowRecord.final_report_no,
+                                          final_result: rowRecord.final_result
+                                        };
+                                      }
+                                    });
+                                    setEditData(initialEditData);
+                                    setIsInlineEditMode(true);
+                                  } else {
+                                    // Single row edit - open dialog (existing behavior)
+                                    handleEditClick(record);
+                                  }
+                                }}>
+                                  <Edit />
+                                </IconButton>
+                              )}
+                            </>
+                          )}
+                          {canDelete() && (
+                            <IconButton size="small" onClick={() => handleDeleteClick(record)}>
                               <Delete />
                             </IconButton>
-                          </Box>
-                        );
-                      })()}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+      </Paper>
 
-      {/* Information Footer */}
-      <Box sx={{ mt: 4, p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
-        <Typography variant="body2" color="textSecondary">
-          <strong>Note:</strong> This page displays all final inspection records for the selected project. 
-          Final inspections are typically performed after fit-up inspections and before NDT requests.
-        </Typography>
-      </Box>
-
-      {/* Add Final Inspection Dialog */}
+      {/* Add Dialog */}
       <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New {isStructureProject ? 'Structure Final' : 'Final'} Inspection</DialogTitle>
+        <DialogTitle>Add Final Inspection</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Fit-up Joint</InputLabel>
-                <Select
-                  value={formData.fitup_id || ''}
-                  label="Fit-up Joint"
-                  onChange={(e) => applyFitupJoint(Number(e.target.value))}
-                >
-                  {fitupRecords.map(j => (
-                    <MenuItem key={j.id} value={j.id}>{keyFor(j)}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Structure Category' : 'System No'}
-                value={formData.system_no}
-                onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
+                label="Block No"
+                value={formData.block_no}
+                onChange={(e) => setFormData({ ...formData, block_no: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Page No' : 'Line No'}
-                value={formData.line_no}
-                onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
-                value={formData.spool_no}
-                onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
                 label="Joint No"
                 value={formData.joint_no}
                 onChange={(e) => setFormData({ ...formData, joint_no: e.target.value })}
-                fullWidth
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                fullWidth
+                label="Drawing No"
+                value={formData.spool_no}
+                onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Structure Category"
+                value={formData.system_no}
+                onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Page No"
+                value={formData.line_no}
+                onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label="Weld Type"
                 value={formData.weld_type}
                 onChange={(e) => setFormData({ ...formData, weld_type: e.target.value })}
-                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>WPS No</InputLabel>
                 <Select
-                  value={formData.wps_no || ''}
+                  value={formData.wps_no}
                   label="WPS No"
-                  onChange={(e) => setFormData({ ...formData, wps_no: String(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, wps_no: e.target.value })}
                 >
-                  {wpsList.map((w: any) => (
-                    <MenuItem key={w.id} value={w.wps_no}>{w.wps_no}{w.job_trade || w.position ? ` • ${[w.job_trade, w.position].filter(Boolean).join(' / ')}` : ''}</MenuItem>
+                  <MenuItem value="">Select WPS</MenuItem>
+                  {wpsList.map((wps) => (
+                    <MenuItem key={wps.id} value={wps.wps_no}>{wps.wps_no}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            {(() => {
-              const sel = wpsList.find((w: any) => w.wps_no === formData.wps_no);
-              if (!sel) return null;
-              return (
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" gutterBottom>WPS Details</Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Job Trade</Typography>
-                        <Typography variant="body2">{sel.job_trade || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Position</Typography>
-                        <Typography variant="body2">{sel.position || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Qualified Material</Typography>
-                        <Typography variant="body2">{sel.material_group || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Thickness Range</Typography>
-                        <Typography variant="body2">{sel.thickness_range || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant="caption" color="text.secondary">Process</Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          {(sel.process || '')
-                            .split(',')
-                            .map((p: string, idx: number) => (
-                              <Chip key={idx} label={p.trim()} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                            ))}
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              );
-            })()}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Welder No</InputLabel>
                 <Select
-                  value={formData.welder_no || ''}
+                  value={formData.welder_no}
                   label="Welder No"
-                  onChange={(e) => {
-                    const val = String(e.target.value);
-                    // Find by welder_no string in list to keep value consistent
-                    const w = welderList.find((x: any) => x.welder_no === val);
-                    if (w) {
-                      setFormData({ ...formData, welder_no: w.welder_no, welder_validity: w.validity || '' });
-                    } else {
-                      setFormData({ ...formData, welder_no: val });
-                    }
-                  }}
+                  onChange={(e) => setFormData({ ...formData, welder_no: e.target.value })}
                 >
-                  {welderList.map((w: any) => (
-                    <MenuItem key={w.id} value={w.welder_no}>{w.welder_no}{w.welder_name ? ` - ${w.welder_name}` : ''}</MenuItem>
+                  <MenuItem value="">Select Welder</MenuItem>
+                  {welderList.map((welder) => (
+                    <MenuItem key={welder.id} value={welder.welder_no}>{welder.welder_no}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Welder Validity" value={formData.welder_validity || ''} fullWidth disabled />
+              <TextField
+                fullWidth
+                label="Weld Site"
+                value={formData.weld_site}
+                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
+              />
             </Grid>
-            {(() => {
-              const sel = welderList.find((w: any) => w.welder_no === formData.welder_no);
-              if (!sel) return null;
-              return (
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" gutterBottom>Welder Details</Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Job Trade</Typography>
-                        <Typography variant="body2">{sel.weld_process || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Position</Typography>
-                        <Typography variant="body2">{sel.qualified_position || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Qualified Material</Typography>
-                        <Typography variant="body2">{sel.qualified_material || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Thickness Range</Typography>
-                        <Typography variant="body2">{sel.thickness_range || '-'}</Typography>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              );
-            })()}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Weld Length (mm)"
+                type="number"
+                value={formData.weld_length}
+                onChange={(e) => setFormData({ ...formData, weld_length: parseFloat(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Thickness (mm)"
+                value={formData.pipe_dia}
+                onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
+                InputProps={{
+                  readOnly: true,
+                }}
+                helperText="Auto-filled from fit-up records"
+              />
+            </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>NDT Type</InputLabel>
                 <Select
                   multiple
-                  value={(formData.ndt_type ? formData.ndt_type.split(',') : []) as any}
+                  value={formData.ndt_type ? formData.ndt_type.split(',').map(item => item.trim()) : []}
                   label="NDT Type"
-                  onChange={(e) => setFormData({ ...formData, ndt_type: (e.target.value as string[]).join(',') })}
+                  onChange={(e) => {
+                    const selected = Array.isArray(e.target.value) ? e.target.value : [e.target.value];
+                    setFormData({ ...formData, ndt_type: selected.join(', ') });
+                  }}
                   renderValue={(selected) => (selected as string[]).join(', ')}
                 >
                   {ndtOptions.map((opt) => (
-                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    <MenuItem key={opt} value={opt}>
+                      <Checkbox checked={formData.ndt_type ? formData.ndt_type.split(',').map(item => item.trim()).includes(opt) : false} />
+                      {opt}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                select
-                label="Weld Site"
-                value={formData.weld_site || ''}
-                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
                 fullWidth
-              >
-                <MenuItem value="shop weld">shop weld</MenuItem>
-                <MenuItem value="float weld">float weld</MenuItem>
-              </TextField>
-            </Grid>
-            {selectedProject?.project_type === 'pipe' && (
-              <>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Pipe Dia"
-                    value={formData.pipe_dia}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const calculatedLength = calculateWeldLengthFromDiameter(v);
-                      setFormData({ 
-                        ...formData, 
-                        pipe_dia: v, 
-                        weld_length: calculatedLength || formData.weld_length 
-                      });
-                    }}
-                    fullWidth
-                    helperText={'Enter diameter with unit (e.g., 12" or 300mm)'}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Weld Length (mm)"
-                    type="number"
-                    value={formData.weld_length}
-                    onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                    fullWidth
-                    error={!!(weldLengthValidation && !weldLengthValidation.isValid)}
-                    helperText={weldLengthValidation?.message}
-                    InputProps={{
-                      endAdornment: weldLengthValidation && (
-                        <Tooltip title={weldLengthValidation.message}>
-                          {weldLengthValidation.isValid ? (
-                            <Info color="success" sx={{ mr: 1 }} />
-                          ) : (
-                            <Warning color="error" sx={{ mr: 1 }} />
-                          )}
-                        </Tooltip>
-                      )
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={repairWorkOverride}
-                        onChange={(e) => setRepairWorkOverride(e.target.checked)}
-                      />
-                    }
-                    label="Repair Work - Allow manual weld length override"
-                  />
-                  {repairWorkOverride && (
-                    <Typography variant="caption" color="textSecondary" sx={{ ml: 4, display: 'block' }}>
-                      Manual override enabled. Weld length validation is disabled for repair work.
-                    </Typography>
-                  )}
-                </Grid>
-              </>
-            )}
-            {selectedProject?.project_type !== 'pipe' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Weld Length (mm)"
-                  type="number"
-                  value={formData.weld_length}
-                  onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                  fullWidth
-                />
-              </Grid>
-            )}
-            <Grid item xs={12} sm={6}>
-              <TextField
                 label="Final Date"
                 type="date"
                 value={formData.final_date}
                 onChange={(e) => setFormData({ ...formData, final_date: e.target.value })}
-                fullWidth
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                fullWidth
                 label="Final Report No"
                 value={formData.final_report_no}
                 onChange={(e) => setFormData({ ...formData, final_report_no: e.target.value })}
-                fullWidth
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Inspection Category"
-                value={formData.inspection_category || 'type-I'}
-                onChange={(e) => setFormData({ ...formData, inspection_category: e.target.value as NewFinalInspection['inspection_category'] })}
-                fullWidth
-              >
-                <MenuItem value="type-I">Type I</MenuItem>
-                <MenuItem value="type-II">Type II</MenuItem>
-                <MenuItem value="type-III">Type III</MenuItem>
-                <MenuItem value="type-IV">Special</MenuItem>
-              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
@@ -1228,6 +1398,7 @@ const FinalInspection: React.FC = () => {
                   label="Final Result"
                   onChange={(e) => setFormData({ ...formData, final_result: e.target.value })}
                 >
+                  <MenuItem value="">Select Result</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="accepted">Accepted</MenuItem>
                   <MenuItem value="rejected">Rejected</MenuItem>
@@ -1236,10 +1407,10 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
+                fullWidth
                 label="Remarks"
                 value={formData.remarks}
                 onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                fullWidth
                 multiline
                 rows={3}
               />
@@ -1248,241 +1419,168 @@ const FinalInspection: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleAddSubmit} variant="contained">
-            Add Final Inspection
-          </Button>
+          <Button onClick={handleAddSubmit} variant="contained">Add Final Inspection</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit Final Inspection Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit {isStructureProject ? 'Structure Final' : 'Final'} Inspection</DialogTitle>
+        <DialogTitle>
+          Edit Final Inspection
+          {editGroupIds.length > 1 && (
+            <Typography variant="body2" color="text.secondary">
+              ({editGroupIndex + 1} of {editGroupIds.length})
+            </Typography>
+          )}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Fit-up Joint</InputLabel>
-                <Select
-                  value={formData.fitup_id || ''}
-                  label="Fit-up Joint"
-                  onChange={(e) => applyFitupJoint(Number(e.target.value))}
-                >
-                  {fitupRecords.map(j => (
-                    <MenuItem key={j.id} value={j.id}>{keyFor(j)}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Structure Category' : 'System No'}
-                value={formData.system_no}
-                onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
                 fullWidth
+                label="Block No"
+                value={formData.block_no}
+                onChange={(e) => setFormData({ ...formData, block_no: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label={isStructureProject ? 'Page No' : 'Line No'}
-                value={formData.line_no}
-                onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
                 fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label={isStructureProject ? 'Drawing No' : 'Spool No'}
-                value={formData.spool_no}
-                onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
-                fullWidth
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
                 label="Joint No"
                 value={formData.joint_no}
                 onChange={(e) => setFormData({ ...formData, joint_no: e.target.value })}
-                fullWidth
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                fullWidth
+                label="Drawing No"
+                value={formData.spool_no}
+                onChange={(e) => setFormData({ ...formData, spool_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Structure Category"
+                value={formData.system_no}
+                onChange={(e) => setFormData({ ...formData, system_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Page No"
+                value={formData.line_no}
+                onChange={(e) => setFormData({ ...formData, line_no: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label="Weld Type"
                 value={formData.weld_type}
                 onChange={(e) => setFormData({ ...formData, weld_type: e.target.value })}
-                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>WPS No</InputLabel>
                 <Select
-                  value={formData.wps_no || ''}
+                  value={formData.wps_no}
                   label="WPS No"
-                  onChange={(e) => setFormData({ ...formData, wps_no: String(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, wps_no: e.target.value })}
                 >
-                  {wpsList.map((w: any) => (
-                    <MenuItem key={w.id} value={w.wps_no}>{w.wps_no}{w.job_trade || w.position ? ` • ${[w.job_trade, w.position].filter(Boolean).join(' / ')}` : ''}</MenuItem>
+                  <MenuItem value="">Select WPS</MenuItem>
+                  {wpsList.map((wps) => (
+                    <MenuItem key={wps.id} value={wps.wps_no}>{wps.wps_no}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            {(() => {
-              const sel = wpsList.find((w: any) => w.wps_no === formData.wps_no);
-              if (!sel) return null;
-              return (
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" gutterBottom>WPS Details</Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Job Trade</Typography>
-                        <Typography variant="body2">{sel.job_trade || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Position</Typography>
-                        <Typography variant="body2">{sel.position || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Qualified Material</Typography>
-                        <Typography variant="body2">{sel.material_group || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Thickness Range</Typography>
-                        <Typography variant="body2">{sel.thickness_range || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant="caption" color="text.secondary">Process</Typography>
-                        <Box sx={{ mt: 0.5 }}>
-                          {(sel.process || '')
-                            .split(',')
-                            .map((p: string, idx: number) => (
-                              <Chip key={idx} label={p.trim()} size="small" sx={{ mr: 0.5, mb: 0.5 }} />
-                            ))}
-                        </Box>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              );
-            })()}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Welder No</InputLabel>
                 <Select
-                  value={formData.welder_no || ''}
+                  value={formData.welder_no}
                   label="Welder No"
-                  onChange={(e) => {
-                    const val = String(e.target.value);
-                    const w = welderList.find((x: any) => x.welder_no === val);
-                    if (w) {
-                      setFormData({ ...formData, welder_no: w.welder_no, welder_validity: w.validity || '' });
-                    } else {
-                      setFormData({ ...formData, welder_no: val });
-                    }
-                  }}
+                  onChange={(e) => setFormData({ ...formData, welder_no: e.target.value })}
                 >
-                  {welderList.map((w: any) => (
-                    <MenuItem key={w.id} value={w.welder_no}>{w.welder_no}{w.welder_name ? ` - ${w.welder_name}` : ''}</MenuItem>
+                  <MenuItem value="">Select Welder</MenuItem>
+                  {welderList.map((welder) => (
+                    <MenuItem key={welder.id} value={welder.welder_no}>{welder.welder_no}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Welder Validity" value={formData.welder_validity || ''} fullWidth disabled />
+              <TextField
+                fullWidth
+                label="Weld Site"
+                value={formData.weld_site}
+                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
+              />
             </Grid>
-            {(() => {
-              const sel = welderList.find((w: any) => w.welder_no === formData.welder_no);
-              if (!sel) return null;
-              return (
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <Typography variant="subtitle2" gutterBottom>Welder Details</Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Job Trade</Typography>
-                        <Typography variant="body2">{sel.weld_process || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Position</Typography>
-                        <Typography variant="body2">{sel.qualified_position || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Qualified Material</Typography>
-                        <Typography variant="body2">{sel.qualified_material || '-'}</Typography>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <Typography variant="caption" color="text.secondary">Thickness Range</Typography>
-                        <Typography variant="body2">{sel.thickness_range || '-'}</Typography>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              );
-            })()}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Weld Length (mm)"
+                type="number"
+                value={formData.weld_length}
+                onChange={(e) => setFormData({ ...formData, weld_length: parseFloat(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Thickness (mm)"
+                value={formData.pipe_dia}
+                onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
+                InputProps={{
+                  readOnly: true,
+                }}
+                helperText="Auto-filled from fit-up records"
+              />
+            </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>NDT Type</InputLabel>
                 <Select
                   multiple
-                  value={(formData.ndt_type ? formData.ndt_type.split(',') : []) as any}
+                  value={formData.ndt_type ? formData.ndt_type.split(',').map(item => item.trim()) : []}
                   label="NDT Type"
-                  onChange={(e) => setFormData({ ...formData, ndt_type: (e.target.value as string[]).join(',') })}
+                  onChange={(e) => {
+                    const selected = Array.isArray(e.target.value) ? e.target.value : [e.target.value];
+                    setFormData({ ...formData, ndt_type: selected.join(', ') });
+                  }}
                   renderValue={(selected) => (selected as string[]).join(', ')}
                 >
                   {ndtOptions.map((opt) => (
-                    <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    <MenuItem key={opt} value={opt}>
+                      <Checkbox checked={formData.ndt_type ? formData.ndt_type.split(',').map(item => item.trim()).includes(opt) : false} />
+                      {opt}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                select
-                label="Weld Site"
-                value={formData.weld_site || ''}
-                onChange={(e) => setFormData({ ...formData, weld_site: e.target.value })}
                 fullWidth
-              >
-                <MenuItem value="shop weld">shop weld</MenuItem>
-                <MenuItem value="float weld">float weld</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Weld Length (mm)"
-                type="number"
-                value={formData.weld_length}
-                onChange={(e) => setFormData({ ...formData, weld_length: Number(e.target.value) })}
-                fullWidth
-              />
-            </Grid>
-            {selectedProject?.project_type === 'pipe' && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Pipe Dia"
-                  value={formData.pipe_dia}
-                  onChange={(e) => setFormData({ ...formData, pipe_dia: e.target.value })}
-                  fullWidth
-                />
-              </Grid>
-            )}
-            <Grid item xs={12} sm={6}>
-              <TextField
                 label="Final Date"
                 type="date"
                 value={formData.final_date}
                 onChange={(e) => setFormData({ ...formData, final_date: e.target.value })}
-                fullWidth
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
+                fullWidth
                 label="Final Report No"
                 value={formData.final_report_no}
                 onChange={(e) => setFormData({ ...formData, final_report_no: e.target.value })}
-                fullWidth
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -1493,6 +1591,7 @@ const FinalInspection: React.FC = () => {
                   label="Final Result"
                   onChange={(e) => setFormData({ ...formData, final_result: e.target.value })}
                 >
+                  <MenuItem value="">Select Result</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="accepted">Accepted</MenuItem>
                   <MenuItem value="rejected">Rejected</MenuItem>
@@ -1501,10 +1600,10 @@ const FinalInspection: React.FC = () => {
             </Grid>
             <Grid item xs={12}>
               <TextField
+                fullWidth
                 label="Remarks"
                 value={formData.remarks}
                 onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                fullWidth
                 multiline
                 rows={3}
               />
@@ -1514,17 +1613,25 @@ const FinalInspection: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleEditSubmit} variant="contained">
-            Update Final Inspection
+            {editGroupIds.length > 1 && editGroupIndex < editGroupIds.length - 1 ? 'Save & Next' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this final inspection record? This action cannot be undone.
+            Are you sure you want to delete this final inspection record?
+            {selectedRecord && (
+              <>
+                <br />
+                <strong>Joint No: {selectedRecord.joint_no}</strong>
+                <br />
+                <strong>Drawing No: {selectedRecord.draw_no || selectedRecord.spool_no}</strong>
+              </>
+            )}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1532,6 +1639,165 @@ const FinalInspection: React.FC = () => {
           <Button onClick={handleDeleteConfirm} variant="contained" color="error">
             Delete
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Update Dialog */}
+      <Dialog open={bulkUpdateDialogOpen} onClose={() => setBulkUpdateDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Bulk Update Final Inspections</DialogTitle>
+        <DialogContent>
+          {bulkUpdateResult ? (
+            <Box sx={{ mt: 2 }}>
+              <Alert 
+                severity={bulkUpdateResult.updated_count > 0 ? "success" : "warning"} 
+                sx={{ mb: 3 }}
+              >
+                {bulkUpdateResult.message}
+              </Alert>
+              
+              <Typography variant="h6" gutterBottom>
+                Summary
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'success.contrastText' }}>
+                    <Typography variant="h4">{bulkUpdateResult.updated_count}</Typography>
+                    <Typography variant="body2">Updated</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'warning.contrastText' }}>
+                    <Typography variant="h4">{bulkUpdateResult.skipped_count || 0}</Typography>
+                    <Typography variant="body2">Skipped</Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {bulkUpdateResult.errors && bulkUpdateResult.errors.length > 0 && (
+                <>
+                  <Typography variant="h6" gutterBottom color="error">
+                    Errors ({bulkUpdateResult.errors.length})
+                  </Typography>
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      {bulkUpdateResult.errors.map((error: string, index: number) => (
+                        <Box key={index} sx={{ mb: 0.5 }}>
+                          • {error}
+                        </Box>
+                      ))}
+                    </Typography>
+                  </Alert>
+                </>
+              )}
+
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 3 }}>
+                <strong>Note:</strong> The selected {selectedRows.length} records have been updated with the provided values.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  You are updating {selectedRows.length} selected final inspection records. 
+                  Only fill in the fields you want to update for all selected records.
+                </Alert>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>WPS No</InputLabel>
+                  <Select
+                    value={bulkUpdateForm.wps_no}
+                    label="WPS No"
+                    onChange={(e) => setBulkUpdateForm({ ...bulkUpdateForm, wps_no: e.target.value })}
+                  >
+                    <MenuItem value="">Leave unchanged</MenuItem>
+                    {wpsList.map((wps) => (
+                      <MenuItem key={wps.id} value={wps.wps_no}>{wps.wps_no}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Welder No</InputLabel>
+                  <Select
+                    value={bulkUpdateForm.welder_no}
+                    label="Welder No"
+                    onChange={(e) => setBulkUpdateForm({ ...bulkUpdateForm, welder_no: e.target.value })}
+                  >
+                    <MenuItem value="">Leave unchanged</MenuItem>
+                    {welderList.map((welder) => (
+                      <MenuItem key={welder.id} value={welder.welder_no}>{welder.welder_no}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>NDT Type</InputLabel>
+                  <Select
+                    value={bulkUpdateForm.ndt_type}
+                    label="NDT Type"
+                    onChange={(e) => setBulkUpdateForm({ ...bulkUpdateForm, ndt_type: e.target.value })}
+                  >
+                    <MenuItem value="">Leave unchanged</MenuItem>
+                    {ndtOptions.map((opt) => (
+                      <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Final Report No"
+                  value={bulkUpdateForm.final_report_no}
+                  onChange={(e) => setBulkUpdateForm({ ...bulkUpdateForm, final_report_no: e.target.value })}
+                  placeholder="Leave empty to keep unchanged"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Final Date"
+                  type="date"
+                  value={bulkUpdateForm.final_date}
+                  onChange={(e) => setBulkUpdateForm({ ...bulkUpdateForm, final_date: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                  placeholder="Leave empty to keep unchanged"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Alert severity="warning">
+                  <Typography variant="body2">
+                    <strong>Warning:</strong> This will update all {selectedRows.length} selected records with the values you provide above. 
+                    Empty fields will not be changed.
+                  </Typography>
+                </Alert>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {bulkUpdateResult ? (
+            <Button onClick={() => {
+              setBulkUpdateDialogOpen(false);
+              setBulkUpdateResult(null);
+            }} variant="contained">
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button onClick={() => setBulkUpdateDialogOpen(false)}>Cancel</Button>
+              <Button 
+                onClick={handleBulkUpdateSubmit} 
+                variant="contained" 
+                disabled={bulkUpdateLoading}
+              >
+                {bulkUpdateLoading ? <CircularProgress size={24} /> : `Update ${selectedRows.length} Records`}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </Container>

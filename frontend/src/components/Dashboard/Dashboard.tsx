@@ -32,6 +32,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ProjectSummary } from '../../types';
 import ApiService from '../../services/api';
 
+// Utility function to format percentages with 2 decimal places
+const formatPercentage = (value: number, decimals: number = 2): string => {
+  return value.toFixed(decimals);
+};
+
 interface KPICardProps {
   title: string;
   value: string | number;
@@ -52,7 +57,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtitle, icon, color, 
           {trend !== undefined && (
             <Chip
               size="small"
-              label={`${trend > 0 ? '+' : ''}${trend}%`}
+              label={`${trend > 0 ? '+' : ''}${formatPercentage(trend)}%`}
               color={trend > 0 ? 'success' : trend < 0 ? 'error' : 'default'}
               variant="outlined"
             />
@@ -74,41 +79,8 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, subtitle, icon, color, 
   );
 };
 
-interface ProgressCardProps {
-  title: string;
-  current: number;
-  total: number;
-  color: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
-}
-
-const ProgressCard: React.FC<ProgressCardProps> = ({ title, current, total, color }) => {
-  const percentage = total > 0 ? (current / total) * 100 : 0;
-
-  return (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        {title}
-      </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          {current} of {total}
-        </Typography>
-        <Typography variant="body2" fontWeight="bold">
-          {Math.round(percentage)}%
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
-        value={percentage}
-        color={color}
-        sx={{ height: 8, borderRadius: 4 }}
-      />
-    </Paper>
-  );
-};
-
 const Dashboard: React.FC = () => {
-  const { user, selectedProject } = useAuth();
+  const { selectedProject } = useAuth();
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -177,8 +149,6 @@ const Dashboard: React.FC = () => {
 
   const fitupProgress = summary ? (summary.fitup_done / summary.total_joints) * 100 : 0;
   const finalProgress = summary ? (summary.final_done / summary.total_joints) * 100 : 0;
-  const totalWeld = summary ? summary.weld_accept_length_total + summary.weld_reject_length_total : 0;
-  const weldSuccessRate = totalWeld > 0 ? (((summary?.weld_accept_length_total || 0) / totalWeld) * 100) : 0;
 
   return (
     <Container maxWidth="xl">
@@ -204,116 +174,253 @@ const Dashboard: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Key Performance Indicators */}
+      {/* Key Performance Indicators - Optimized for PC */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} lg={2.4}>
           <KPICard
             title="Total Joints"
             value={summary?.total_joints || 0}
-            icon={<Assignment sx={{ fontSize: 40 }} />}
+            icon={<Assignment sx={{ fontSize: 36 }} />}
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} lg={2.4}>
           <KPICard
-            title="Fit-up Completed"
+            title="Fit-up Done"
             value={summary?.fitup_done || 0}
-            subtitle={`${Math.round(fitupProgress)}% of total`}
-            icon={<Assignment sx={{ fontSize: 40 }} />}
+            subtitle={`${formatPercentage(fitupProgress)}%`}
+            icon={<Assignment sx={{ fontSize: 36 }} />}
             color="success"
+            trend={fitupProgress}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} lg={2.4}>
           <KPICard
-            title="Final Inspection"
+            title="Final Done"
             value={summary?.final_done || 0}
-            subtitle={`${Math.round(finalProgress)}% of total`}
-            icon={<Checklist sx={{ fontSize: 40 }} />}
+            subtitle={`${formatPercentage(finalProgress)}%`}
+            icon={<Checklist sx={{ fontSize: 36 }} />}
             color="info"
+            trend={finalProgress}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} lg={2.4}>
           <KPICard
             title="Material Used"
             value={summary?.material_used || 0}
-            icon={<Inventory sx={{ fontSize: 40 }} />}
+            subtitle={`${summary?.material_inspected || 0} inspected`}
+            icon={<Inventory sx={{ fontSize: 36 }} />}
             color="warning"
           />
         </Grid>
-      </Grid>
-
-      {/* Progress Overview */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <ProgressCard
-            title="Fit-up Progress"
-            current={summary?.fitup_done || 0}
-            total={summary?.total_joints || 0}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <ProgressCard
-            title="Final Inspection Progress"
-            current={summary?.final_done || 0}
-            total={summary?.total_joints || 0}
+        <Grid item xs={12} sm={6} md={3} lg={2.4}>
+          <KPICard
+            title="NDT Requests"
+            value={summary?.ndt_requests_total || 0}
+            subtitle={`${summary?.ndt_requests_pending || 0} pending`}
+            icon={<RequestQuote sx={{ fontSize: 36 }} />}
             color="secondary"
           />
         </Grid>
       </Grid>
 
-      {/* Detailed Statistics */}
+      {/* Progress Overview - Side by side for PC */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>
+              Project Progress Overview
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Fit-up Progress
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {formatPercentage(fitupProgress)}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={fitupProgress}
+                    color="primary"
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {summary?.fitup_done || 0} of {summary?.total_joints || 0} joints
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Final Inspection Progress
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {formatPercentage(finalProgress)}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={finalProgress}
+                    color="secondary"
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {summary?.final_done || 0} of {summary?.total_joints || 0} joints
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Material Inspection
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {summary?.material_inspected || 0} / {summary?.material_used || 0}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={summary?.material_used ? ((summary?.material_inspected || 0) / summary.material_used) * 100 : 0}
+                    color="warning"
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {summary?.material_pending_inspection || 0} pending inspection
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      NDT Completion
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {summary?.ndt_done || 0} / {summary?.ndt_requests_total || 0}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={summary?.ndt_requests_total ? ((summary?.ndt_done || 0) / summary.ndt_requests_total) * 100 : 0}
+                    color="info"
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {summary?.ndt_outstanding || 0} outstanding
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>
+              Quick Stats
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Material Rejected
+                </Typography>
+                <Typography variant="h5" color="error.main" fontWeight="bold">
+                  {summary?.material_rejected || 0}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Missing from Fit-up
+                </Typography>
+                <Typography variant="h5" color="warning.main" fontWeight="bold">
+                  {summary?.material_missing_from_fitup || 0}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  NDT Approved
+                </Typography>
+                <Typography variant="h5" color="success.main" fontWeight="bold">
+                  {summary?.ndt_requests_approved || 0}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Project Type
+                </Typography>
+                <Typography variant="h6" color="primary.main" fontWeight="bold">
+                  {selectedProject?.project_type === 'structure' ? 'Structure' : 'Pipe'}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Detailed Statistics - Optimized for PC with 2x2 grid */}
       <Grid container spacing={3}>
         {/* Material Management */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
+        <Grid item xs={12} lg={6}>
+          <Card sx={{ height: '100%', boxShadow: 2 }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Inventory sx={{ mr: 1, color: 'warning.main' }} />
-                <Typography variant="h6">
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Inventory sx={{ mr: 1.5, color: 'warning.main', fontSize: 28 }} />
+                <Typography variant="h6" fontWeight="600">
                   Material Management
                 </Typography>
               </Box>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Material Used
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="warning.main">
-                    {summary?.material_used || 0}
-                  </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Used
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="warning.main">
+                      {summary?.material_used || 0}
+                    </Typography>
+                  </Box>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Pending Inspection
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="error.main">
-                    {summary?.material_pending_inspection || 0}
-                  </Typography>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Inspected
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="success.main">
+                      {summary?.material_inspected || 0}
+                    </Typography>
+                  </Box>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Inspected
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="success.main">
-                    {summary?.material_inspected || 0}
-                  </Typography>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Pending
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="error.main">
+                      {summary?.material_pending_inspection || 0}
+                    </Typography>
+                  </Box>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Rejected
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="error.main">
-                    {summary?.material_rejected || 0}
-                  </Typography>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Rejected
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="error.main">
+                      {summary?.material_rejected || 0}
+                    </Typography>
+                  </Box>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="body2" color="text.secondary">
-                    Outstanding from Fit-up
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    {summary?.material_missing_from_fitup || 0}
-                  </Typography>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Missing from Fit-up: <Typography component="span" variant="body2" fontWeight="bold" color="warning.main">{summary?.material_missing_from_fitup || 0}</Typography>
+                    </Typography>
+                  </Box>
                 </Grid>
               </Grid>
             </CardContent>
@@ -321,65 +428,70 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         {/* NDT Requests */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
+        <Grid item xs={12} lg={6}>
+          <Card sx={{ height: '100%', boxShadow: 2 }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <RequestQuote sx={{ mr: 1, color: 'info.main' }} />
-                <Typography variant="h6">
-                  NDT Requests
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <RequestQuote sx={{ mr: 1.5, color: 'info.main', fontSize: 28 }} />
+                <Typography variant="h6" fontWeight="600">
+                  NDT Management
                 </Typography>
               </Box>
-              <Grid container spacing={2}>
-                <Grid item xs={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Requests
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="info.main">
-                    {summary?.ndt_requests_total || 0}
-                  </Typography>
-                </Grid>
-                <Grid item xs={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Pending
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="warning.main">
-                    {summary?.ndt_requests_pending || 0}
-                  </Typography>
-                </Grid>
-                <Grid item xs={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    Approved
-                  </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="success.main">
-                    {summary?.ndt_requests_approved || 0}
-                  </Typography>
-                </Grid>
-                </Grid>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      NDT Done
+              <Grid container spacing={3}>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Total
                     </Typography>
-                    <Typography variant="h6" color="success.main">
+                    <Typography variant="h4" fontWeight="bold" color="info.main">
+                      {summary?.ndt_requests_total || 0}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Pending
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="warning.main">
+                      {summary?.ndt_requests_pending || 0}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Approved
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="success.main">
+                      {summary?.ndt_requests_approved || 0}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Done
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="primary.main">
                       {summary?.ndt_done || 0}
                     </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      NDT Outstanding
-                    </Typography>
-                    <Typography variant="h6" color="warning.main">
-                      {summary?.ndt_outstanding || 0}
-                    </Typography>
-                  </Grid>
+                  </Box>
                 </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Outstanding: <Typography component="span" variant="body2" fontWeight="bold" color="warning.main">{summary?.ndt_outstanding || 0}</Typography>
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
 
         {/* Weld Quality */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -395,7 +507,7 @@ const Dashboard: React.FC = () => {
                     const tested = methods.reduce((s, m) => s + (src[m]?.tested_mm ?? ((src[m]?.accepted_mm || 0) + (src[m]?.rejected_mm || 0))), 0);
                     const rej = methods.reduce((s, m) => s + ((src[m]?.rejected_mm) || 0), 0);
                     const acc = Math.max(tested - rej, 0);
-                    const rate = tested > 0 ? Math.round((acc / tested) * 100) : 0;
+                    const rate = tested > 0 ? (acc / tested) * 100 : 0;
                     return { acc, rej, tested, rate };
                   };
                   const g1 = calc(['RT','UT']);
@@ -422,7 +534,7 @@ const Dashboard: React.FC = () => {
                           RT/UT Success Rate
                         </Typography>
                         <Typography variant="h5" fontWeight="bold" color="primary">
-                          {g1.rate}%
+                          {formatPercentage(g1.rate)}%
                         </Typography>
                         <LinearProgress
                           variant="determinate"
@@ -451,7 +563,7 @@ const Dashboard: React.FC = () => {
                           PT/MPI Success Rate
                         </Typography>
                         <Typography variant="h5" fontWeight="bold" color="primary">
-                          {g2.rate}%
+                          {formatPercentage(g2.rate)}%
                         </Typography>
                         <LinearProgress
                           variant="determinate"
@@ -486,7 +598,7 @@ const Dashboard: React.FC = () => {
                         const tested = methods.reduce((s, m) => s + (src[m]?.tested_mm ?? ((src[m]?.accepted_mm || 0) + (src[m]?.rejected_mm || 0))), 0);
                         const rej = methods.reduce((s, m) => s + ((src[m]?.rejected_mm) || 0), 0);
                         const tot = tested;
-                        const rate = tot > 0 ? Math.round((rej / tot) * 100) : 0;
+                        const rate = tot > 0 ? (rej / tot) * 100 : 0;
                         return { tested, rej, tot, rate };
                       };
                       const g1 = calc(['RT','UT']);
@@ -498,14 +610,14 @@ const Dashboard: React.FC = () => {
                             <TableCell align="right">{g1.tested.toFixed(1)}</TableCell>
                             <TableCell align="right">{g1.rej.toFixed(1)}</TableCell>
                             <TableCell align="right">{g1.tot.toFixed(1)}</TableCell>
-                            <TableCell align="right">{g1.rate}%</TableCell>
+                            <TableCell align="right">{formatPercentage(g1.rate)}%</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>PT + MPI</TableCell>
                             <TableCell align="right">{g2.tested.toFixed(1)}</TableCell>
                             <TableCell align="right">{g2.rej.toFixed(1)}</TableCell>
                             <TableCell align="right">{g2.tot.toFixed(1)}</TableCell>
-                            <TableCell align="right">{g2.rate}%</TableCell>
+                            <TableCell align="right">{formatPercentage(g2.rate)}%</TableCell>
                           </TableRow>
                         </>
                       );
@@ -535,13 +647,13 @@ const Dashboard: React.FC = () => {
                       const acc = counts?.accepted_joints || 0;
                       const rej = counts?.rejected_joints || 0;
                       const tot = acc + rej;
-                      const rate = tot > 0 ? Math.round((rej / tot) * 100) : 0;
+                      const rate = tot > 0 ? (rej / tot) * 100 : 0;
                       return (
                         <TableRow key={m}>
                           <TableCell>{m}</TableCell>
                           <TableCell align="right">{acc}</TableCell>
                           <TableCell align="right">{rej}</TableCell>
-                          <TableCell align="right">{rate}%</TableCell>
+                          <TableCell align="right">{formatPercentage(rate)}%</TableCell>
                         </TableRow>
                       );
                     })}
@@ -553,7 +665,7 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         {/* Welder Performance */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={6}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -578,7 +690,7 @@ const Dashboard: React.FC = () => {
                       <TableCell>{w.welder_no}</TableCell>
                       <TableCell align="right">{(w.total_mm || 0).toFixed(1)}</TableCell>
                       <TableCell align="right">{(w.rejected_mm || 0).toFixed(1)}</TableCell>
-                      <TableCell align="right">{Math.round(w.reject_rate)}%</TableCell>
+                      <TableCell align="right">{formatPercentage(w.reject_rate)}%</TableCell>
                       <TableCell align="right">
                         {w.retrain ? (
                           <Chip label="Retrain" color="error" size="small" />

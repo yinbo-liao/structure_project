@@ -1,0 +1,386 @@
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+import os
+import logging
+from datetime import datetime
+from sqlalchemy import text, inspect
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.database import engine, SessionLocal, check_database_health, get_database_stats
+from app.models import Base, User
+from app.auth import get_password_hash
+from app.routes import auth, users, projects, pipe_inspections, ai, structure_inspections
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Multi-Project Data Management System",
+    description="A comprehensive system for managing inspection records across multiple projects",
+    version="3.0.0",
+    docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
+    redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
+)
+
+# Database initialization and schema validation
+def initialize_database():
+    """Initialize database and validate schema"""
+    try:
+        # Create tables if they don't exist
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully")
+        
+        # Validate critical tables exist
+        inspector = inspect(engine)
+        required_tables = [
+            'projects', 'users', 
+            'structure_master_joint_list', 
+            'structure_material_register',
+            'structure_fitup_inspection,
+            'structure_final_inspection'
+            'structure_ndt_request',
+            'structure_ndt_status'
+        ]
+        
+        existing_tables = inspector.get_table_names()
+        missing_tables = [table for table in required_tables if table not in existing_tables]
+        
+        if missing_tables:
+            logger.warning(f"Missing tables: {missing_tables}")
+            # Try to create missing tables
+            Base.metadata.create_all(bind=engine, tables=[
+                table for table in Base.metadata.tables.values() 
+                if table.name in missing_tables
+            ])
+            logger.info(f"Created missing tables: {missing_tables}")
+        
+        # Create indexes for performance
+        create_performance_indexes()
+        
+        # Lightweight SQLite migrations for newly added columns
+        _ensure_structure_master_joint_columns()
+        _ensure_structure_material_register_columns()
+        _ensure_default_users()
+        
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        raise
+
+def create_performance_indexes():
+    try:
+        with engine.connect() as conn:
+            if engine.dialect.name == 'postgresql':
+                indexes = [
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_master_joint_project_system ON pipe_master_joint_list(project_id, system_no)",
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_master_joint_search ON pipe_master_joint_list(system_no, line_no, spool_no, joint_no)",
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_master_joint_category ON pipe_master_joint_list(inspection_category)",
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_final_project_date ON pipe_final_inspection(project_id, final_date)",
+                    "CREATE INDEX IF NOT EXISTS idx_pipe_final_result ON pipe_final_inspection(final_result)",
+
+                    "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_project_draw ON structure_master_joint_list(project_id, draw_no)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_category ON structure_master_joint_list(inspection_category)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_final_project_date ON structure_final_inspection(project_id, final_date)",
+                    "CREATE INDEX IF NOT EXISTS idx_structure_final_result ON structure_final_inspection(final_result)",
+
+                    "CREATE INDEX IF NOT EXISTS idx_structure_ndt_status_project_method ON structure_ndt_status_records(project_id, ndt_type)",
+
+                    "CREATE INDEX IF NOT EXISTS idx_structure_material_project_piece ON structure_material_register(project_id, piece_mark_no)",
+                ]
+                for index_sql in indexes:
+                    try:
+                        conn.execute(text(index_sql))
+                        conn.commit()
+                    except Exception as e:
+                        logger.warning(f"Could not create index: {e}")
+                        conn.rollback()
+            else:
+                logger.info(f"Using {engine.dialect.name} database, skipping PostgreSQL-specific indexes")
+    except Exception as e:
+        logger.error(f"Failed to create performance indexes: {e}")
+
+def _ensure_structure_master_joint_columns():
+    """Ensure required columns exist on structure_master_joint_list for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(structure_master_joint_list)").fetchall()
+            names = [r[1] for r in cols]
+            if "fit_up_report_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN fit_up_report_no VARCHAR(50)")
+                    logger.info("Added column fit_up_report_no to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add fit_up_report_no column: {e}")
+            if "final_report_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN final_report_no VARCHAR(50)")
+                    logger.info("Added column final_report_no to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add final_report_no column: {e}")
+            if "thickness" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN thickness VARCHAR(20)")
+                    logger.info("Added column thickness to structure_master_joint_list")
+                except Exception as e:
+                    logger.warning(f"Could not add thickness column: {e}")
+    except Exception as e:
+        logger.error(f"Structure column migration failed: {e}")
+
+def _ensure_structure_material_register_columns():
+    """Ensure required columns exist on structure_material_register for SQLite"""
+    try:
+        if engine.dialect.name != 'sqlite':
+            return
+        with engine.connect() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(structure_material_register)").fetchall()
+            names = [r[1] for r in cols]
+            if "block_no" not in names:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN block_no VARCHAR(50)")
+                    logger.info("Added column block_no to structure_material_register")
+                except Exception as e:
+                    logger.warning(f"Could not add block_no column: {e}")
+    except Exception as e:
+        logger.error(f"Structure material column migration failed: {e}")
+
+def _ensure_default_users():
+    """Ensure default users exist so TEST_LOGIN_BYPASS can work and admin can log in"""
+    try:
+        with SessionLocal() as db:
+            users = {
+                "admin@mpdms.com": {"role": "admin", "password": "admin"},
+                "inspector@mpdms.com": {"role": "inspector", "password": "inspect"},
+                "visitor@mpdms.com": {"role": "visitor", "password": "visit"},
+            }
+            for email, info in users.items():
+                u = db.query(User).filter(User.email == email).first()
+                if not u:
+                    u = User(
+                        email=email,
+                        full_name=email.split("@")[0].title(),
+                        role=info["role"],
+                        hashed_password=get_password_hash(info["password"]),
+                        is_active=True,
+                        password_change_required=False,
+                    )
+                    db.add(u)
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Could not ensure default users: {e}")
+
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup"""
+    logger.info("Starting Multi-Project Data Management System...")
+    initialize_database()
+    logger.info("Application startup completed successfully")
+
+# CORS middleware
+origins_env = os.getenv("ALLOW_ORIGINS")
+allow_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+]
+if origins_env:
+    try:
+        allow_origins = [o.strip() for o in origins_env.split(",") if o.strip()]
+    except Exception:
+        pass
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Trusted host middleware for security
+hosts_env = os.getenv("ALLOWED_HOSTS")
+allowed_hosts = ["*"]
+if hosts_env:
+    try:
+        allowed_hosts = [h.strip() for h in hosts_env.split(",") if h.strip()]
+    except Exception:
+        pass
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts
+)
+
+# Include routers
+app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
+app.include_router(users.router, prefix="/api/v1", tags=["Users"])
+app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
+
+app.include_router(structure_inspections.router, prefix="/api/v1", tags=["Structure Inspections"])
+app.include_router(ai.router, prefix="/api/v1", tags=["AI Services"])
+
+# Health check and monitoring endpoints
+@app.get("/")
+async def root():
+    return {
+        "message": "Multi-Project Data Management System API",
+        "version": "3.0.0",
+        "docs": "/docs",
+        "database": engine.dialect.name,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@app.get("/health")
+async def health_check():
+    """Comprehensive health check endpoint"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {}
+    }
+    
+    # Database health check
+    try:
+        db_healthy = check_database_health()
+        health_status["services"]["database"] = {
+            "status": "healthy" if db_healthy else "unhealthy",
+            "type": engine.dialect.name
+        }
+        
+        if db_healthy:
+            # Get database statistics
+            db_stats = get_database_stats()
+            health_status["services"]["database"]["stats"] = db_stats
+    except Exception as e:
+        health_status["services"]["database"] = {
+            "status": "error",
+            "error": str(e)
+        }
+        health_status["status"] = "degraded"
+    
+    # Check if all critical services are healthy
+    unhealthy_services = [
+        service for service, status in health_status["services"].items() 
+        if status.get("status") not in ["healthy", "ok"]
+    ]
+    
+    if unhealthy_services:
+        health_status["status"] = "degraded"
+        health_status["unhealthy_services"] = unhealthy_services
+    
+    return health_status
+
+@app.get("/metrics")
+async def metrics():
+    """Application metrics endpoint (for Prometheus monitoring)"""
+    try:
+        metrics_data = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "database": {
+                "type": engine.dialect.name,
+                "pool_stats": get_database_stats()
+            }
+        }
+        
+        # Add table counts for monitoring
+        if check_database_health():
+            with engine.connect() as conn:
+                tables = ['projects', 'users', 'pipe_master_joint_list', 'structure_master_joint_list']
+                for table in tables:
+                    try:
+                        result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                        count = result.scalar()
+                        metrics_data["database"][f"{table}_count"] = count
+                    except Exception:
+                        metrics_data["database"][f"{table}_count"] = "error"
+        
+        return JSONResponse(content=metrics_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Metrics collection failed: {str(e)}")
+
+@app.get("/database/info")
+async def database_info():
+    """Get database information and schema details"""
+    try:
+        with engine.connect() as conn:
+            # Get database version
+            if engine.dialect.name == 'postgresql':
+                version_result = conn.execute(text("SELECT version()"))
+                version = version_result.scalar()
+            else:
+                version = f"{engine.dialect.name} (development)"
+            
+            # Get table information
+            inspector = inspect(engine)
+            tables = inspector.get_table_names()
+            
+            table_info = {}
+            for table in tables[:10]:  # Limit to first 10 tables for performance
+                try:
+                    columns = inspector.get_columns(table)
+                    table_info[table] = {
+                        "columns": len(columns),
+                        "sample_columns": [col['name'] for col in columns[:3]]
+                    }
+                except Exception:
+                    table_info[table] = {"error": "Could not inspect table"}
+            
+            return {
+                "database_type": engine.dialect.name,
+                "version": version,
+                "table_count": len(tables),
+                "tables": table_info,
+                "connection_pool": get_database_stats()
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database info failed: {str(e)}")
+
+# Error handling middleware
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request, exc):
+    """Handle SQLAlchemy database errors"""
+    logger.error(f"Database error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Database error occurred",
+            "error": str(exc),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """Handle general exceptions"""
+    logger.error(f"Unhandled error: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "error": str(exc) if os.getenv("ENVIRONMENT") != "production" else "Internal error",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Production configuration
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    reload = os.getenv("ENVIRONMENT") == "development"
+    
+    uvicorn.run(
+        app, 
+        host=host, 
+        port=port, 
+        reload=reload,
+        log_level="info",
+        access_log=True
+    )

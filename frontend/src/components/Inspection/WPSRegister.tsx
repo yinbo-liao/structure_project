@@ -3,7 +3,8 @@ import {
   Container, Typography, Box, Paper, Grid, TextField, Button, 
   FormControl, InputLabel, Select, MenuItem, Chip, 
   Table, TableHead, TableRow, TableCell, TableBody,
-  Tabs, Tab, Stack, Dialog, DialogTitle, DialogContent, DialogActions
+  Tabs, Tab, Stack, Dialog, DialogTitle, DialogContent, DialogActions,
+  TableContainer
 } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
@@ -31,6 +32,7 @@ function TabPanel(props: TabPanelProps) {
 
 const WPSRegister: React.FC = () => {
   const { selectedProject, isAdmin } = useAuth();
+  const isStructureProject = selectedProject?.project_type === 'structure';
   const [items, setItems] = useState<any[]>([]);
   const [form, setForm] = useState<any>({ 
     wps_no: '', 
@@ -39,7 +41,6 @@ const WPSRegister: React.FC = () => {
     process: [], 
     material_group: '', 
     thickness_range: '', 
-    pipe_dia: '', 
     status: 'active' 
   });
   const [tabValue, setTabValue] = useState(0);
@@ -76,7 +77,6 @@ const WPSRegister: React.FC = () => {
       process: [], 
       material_group: '', 
       thickness_range: '', 
-      pipe_dia: '', 
       status: 'active' 
     });
     load();
@@ -91,7 +91,6 @@ const WPSRegister: React.FC = () => {
       process: item.process ? item.process.split(',') : [],
       material_group: item.material_group || '',
       thickness_range: item.thickness_range || '',
-      pipe_dia: item.pipe_dia || '',
       status: item.status || 'active'
     });
     setEditOpen(true);
@@ -124,7 +123,7 @@ const WPSRegister: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">WPS Register</Typography>
+        <Typography variant="h4">{isStructureProject ? 'Structure WPS Register' : 'Pipe WPS Register'}</Typography>
         <Typography variant="subtitle1" color="text.secondary">
           Total: {items.length} WPS
         </Typography>
@@ -155,7 +154,7 @@ const WPSRegister: React.FC = () => {
                   onChange={e => {
                     const jt = String(e.target.value);
                     const pos = positionOptions(jt);
-                    setForm({ ...form, job_trade: jt, position: pos.includes(form.position) ? form.position : '', pipe_dia: jt === 'structure' ? 'N.A' : '' });
+                    setForm({ ...form, job_trade: jt, position: pos.includes(form.position) ? form.position : '' });
                   }}
                 >
                   <MenuItem value="structure">Structure</MenuItem>
@@ -220,17 +219,6 @@ const WPSRegister: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <TextField 
-                label="Pipe Diameter" 
-                value={form.pipe_dia} 
-                onChange={e => setForm({ ...form, pipe_dia: e.target.value })} 
-                fullWidth 
-                size="small"
-                placeholder={form.job_trade === 'structure' ? 'N.A' : 'e.g., 6", 8"'}
-                disabled={form.job_trade === 'structure'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select 
@@ -260,7 +248,7 @@ const WPSRegister: React.FC = () => {
         </Paper>
       )}
 
-      <Paper sx={{ width: '100%' }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
             <Tab label={`All WPS (${items.length})`} />
@@ -280,72 +268,70 @@ const WPSRegister: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>WPS No</strong></TableCell>
-                  <TableCell><strong>Job Trade</strong></TableCell>
-                  <TableCell><strong>Position</strong></TableCell>
-                  <TableCell><strong>Process</strong></TableCell>
-                  <TableCell><strong>Material Group</strong></TableCell>
-                  <TableCell><strong>Thickness Range</strong></TableCell>
-                  <TableCell><strong>Pipe Dia</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  {isAdmin() && <TableCell><strong>Actions</strong></TableCell>}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {item.wps_no}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={item.job_trade || '-'} 
-                        size="small" 
-                        color={item.job_trade === 'pipe' ? 'primary' : 'secondary'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{item.position || '-'}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                        {item.process?.split(',').map((p: string, idx: number) => (
-                          <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
-                        ))}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{item.material_group || '-'}</TableCell>
-                    <TableCell>{item.thickness_range || '-'}</TableCell>
-                    <TableCell>
-                      {item.job_trade === 'pipe' ? (item.pipe_dia || '-') : 'N.A'}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={item.status || 'active'} 
-                        size="small" 
-                        color={getStatusColor(item.status)}
-                        variant="filled"
-                      />
-                    </TableCell>
-                    {isAdmin() && (
-                      <TableCell>
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
-                          onClick={() => openEdit(item)}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    )}
+            <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
+              <Table stickyHeader sx={{ tableLayout: 'fixed', minWidth: '100%' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '12%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>WPS No</strong></TableCell>
+                    <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Job Trade</strong></TableCell>
+                    <TableCell sx={{ width: '9%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Position</strong></TableCell>
+                    <TableCell sx={{ width: '24%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Process</strong></TableCell>
+                    <TableCell sx={{ width: '11%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Material Group</strong></TableCell>
+                    <TableCell sx={{ width: '12%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Thickness Range</strong></TableCell>
+                    <TableCell sx={{ width: '8%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Status</strong></TableCell>
+                    {isAdmin() && <TableCell sx={{ width: '6%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Actions</strong></TableCell>}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {items.map((item) => (
+                    <TableRow key={item.id} hover>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {item.wps_no}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Chip 
+                          label={item.job_trade || '-'} 
+                          size="small" 
+                          color={item.job_trade === 'pipe' ? 'primary' : 'secondary'}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.position || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          {item.process?.split(',').map((p: string, idx: number) => (
+                            <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
+                          ))}
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.material_group || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.thickness_range || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Chip 
+                          label={item.status || 'active'} 
+                          size="small" 
+                          color={getStatusColor(item.status)}
+                          variant="filled"
+                        />
+                      </TableCell>
+                      {isAdmin() && (
+                        <TableCell sx={{ padding: '12px 8px' }}>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            onClick={() => openEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </TabPanel>
 
@@ -357,61 +343,61 @@ const WPSRegister: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>WPS No</strong></TableCell>
-                  <TableCell><strong>Position</strong></TableCell>
-                  <TableCell><strong>Process</strong></TableCell>
-                  <TableCell><strong>Material Group</strong></TableCell>
-                  <TableCell><strong>Thickness Range</strong></TableCell>
-                  <TableCell><strong>Pipe Dia</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  {isAdmin() && <TableCell><strong>Actions</strong></TableCell>}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {structureWPS.map((item) => (
-                  <TableRow key={item.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {item.wps_no}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{item.position || '-'}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                        {item.process?.split(',').map((p: string, idx: number) => (
-                          <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
-                        ))}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{item.material_group || '-'}</TableCell>
-                    <TableCell>{item.thickness_range || '-'}</TableCell>
-                    <TableCell>N.A</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={item.status || 'active'} 
-                        size="small" 
-                        color={getStatusColor(item.status)}
-                        variant="filled"
-                      />
-                    </TableCell>
-                    {isAdmin() && (
-                      <TableCell>
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
-                          onClick={() => openEdit(item)}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    )}
+            <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
+              <Table stickyHeader sx={{ tableLayout: 'fixed', minWidth: '100%' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '15%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>WPS No</strong></TableCell>
+                    <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Position</strong></TableCell>
+                    <TableCell sx={{ width: '25%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Process</strong></TableCell>
+                    <TableCell sx={{ width: '15%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Material Group</strong></TableCell>
+                    <TableCell sx={{ width: '15%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Thickness Range</strong></TableCell>
+                    <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Status</strong></TableCell>
+                    {isAdmin() && <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Actions</strong></TableCell>}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {structureWPS.map((item) => (
+                    <TableRow key={item.id} hover>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {item.wps_no}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.position || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          {item.process?.split(',').map((p: string, idx: number) => (
+                            <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
+                          ))}
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.material_group || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.thickness_range || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Chip 
+                          label={item.status || 'active'} 
+                          size="small" 
+                          color={getStatusColor(item.status)}
+                          variant="filled"
+                        />
+                      </TableCell>
+                      {isAdmin() && (
+                        <TableCell sx={{ padding: '12px 8px' }}>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            onClick={() => openEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </TabPanel>
 
@@ -423,61 +409,68 @@ const WPSRegister: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>WPS No</strong></TableCell>
-                  <TableCell><strong>Position</strong></TableCell>
-                  <TableCell><strong>Process</strong></TableCell>
-                  <TableCell><strong>Material Group</strong></TableCell>
-                  <TableCell><strong>Thickness Range</strong></TableCell>
-                  <TableCell><strong>Pipe Dia</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  {isAdmin() && <TableCell><strong>Actions</strong></TableCell>}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {pipeWPS.map((item) => (
-                  <TableRow key={item.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {item.wps_no}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{item.position || '-'}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                        {item.process?.split(',').map((p: string, idx: number) => (
-                          <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
-                        ))}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{item.material_group || '-'}</TableCell>
-                    <TableCell>{item.thickness_range || '-'}</TableCell>
-                    <TableCell>{item.pipe_dia || '-'}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={item.status || 'active'} 
-                        size="small" 
-                        color={getStatusColor(item.status)}
-                        variant="filled"
-                      />
-                    </TableCell>
-                    {isAdmin() && (
-                      <TableCell>
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
-                          onClick={() => openEdit(item)}
-                        >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    )}
+            <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
+              <Table stickyHeader sx={{ tableLayout: 'fixed', minWidth: '100%' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: '15%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>WPS No</strong></TableCell>
+                    <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Job Trade</strong></TableCell>
+                    <TableCell sx={{ width: '20%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Process</strong></TableCell>
+                    <TableCell sx={{ width: '15%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Material Group</strong></TableCell>
+                    <TableCell sx={{ width: '12%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Thickness Range</strong></TableCell>
+                    <TableCell sx={{ width: '10%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Status</strong></TableCell>
+                    {isAdmin() && <TableCell sx={{ width: '6%', fontWeight: 600, backgroundColor: 'grey.100' }}><strong>Actions</strong></TableCell>}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {pipeWPS.map((item) => (
+                    <TableRow key={item.id} hover>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          {item.wps_no}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Chip 
+                          label={item.job_trade || '-'} 
+                          size="small" 
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          {item.process?.split(',').map((p: string, idx: number) => (
+                            <Chip key={idx} label={p.trim()} size="small" variant="outlined" />
+                          ))}
+                        </Stack>
+                      </TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.material_group || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>{item.thickness_range || '-'}</TableCell>
+                      <TableCell sx={{ padding: '12px 8px' }}>
+                        <Chip 
+                          label={item.status || 'active'} 
+                          size="small" 
+                          color={getStatusColor(item.status)}
+                          variant="filled"
+                        />
+                      </TableCell>
+                      {isAdmin() && (
+                        <TableCell sx={{ padding: '12px 8px' }}>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            onClick={() => openEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </TabPanel>
       </Paper>
@@ -486,118 +479,117 @@ const WPSRegister: React.FC = () => {
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Edit WPS</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label="WPS Number" 
-                value={editForm.wps_no} 
-                onChange={e => setEditForm({ ...editForm, wps_no: e.target.value })} 
-                fullWidth 
-                size="small"
-              />
+          <Box component="form" sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="WPS No"
+                  value={editForm.wps_no || ''}
+                  onChange={(e) => setEditForm({ ...editForm, wps_no: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Job Trade</InputLabel>
+                  <Select
+                    value={editForm.job_trade || 'structure'}
+                    label="Job Trade"
+                    onChange={(e) => {
+                       const jt = String(e.target.value);
+                       const pos = positionOptions(jt);
+                       setEditForm({ ...editForm, job_trade: jt, position: pos.includes(editForm.position) ? editForm.position : '' });
+                    }}
+                  >
+                    <MenuItem value="structure">Structure</MenuItem>
+                    <MenuItem value="pipe">Pipe</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Position</InputLabel>
+                  <Select 
+                    value={editForm.position || ''} 
+                    label="Position" 
+                    onChange={e => setEditForm({ ...editForm, position: String(e.target.value) })}
+                  >
+                    {positionOptions(editForm.job_trade || 'structure').map(p => (
+                      <MenuItem key={p} value={p}>{p}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Process</InputLabel>
+                  <Select 
+                    multiple 
+                    value={editForm.process || []} 
+                    label="Process" 
+                    onChange={e => setEditForm({ ...editForm, process: typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value })}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {(Array.isArray(selected) ? selected : []).map((value: any) => (
+                          <Chip key={value} label={value} size="small" />
+                        ))}
+                      </Box>
+                    )}
+                  >
+                    {processOptions.map(p => (
+                      <MenuItem key={p} value={p}>{p}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Material Group"
+                  value={editForm.material_group || ''}
+                  onChange={(e) => setEditForm({ ...editForm, material_group: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Thickness Range"
+                  value={editForm.thickness_range || ''}
+                  onChange={(e) => setEditForm({ ...editForm, thickness_range: e.target.value })}
+                />
+              </Grid>
+              {editForm.job_trade === 'pipe' && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Pipe Dia"
+                    value={editForm.pipe_dia || ''}
+                    onChange={(e) => setEditForm({ ...editForm, pipe_dia: e.target.value })}
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={editForm.status || 'active'}
+                    label="Status"
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  >
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Job Trade</InputLabel>
-                <Select 
-                  value={editForm.job_trade} 
-                  label="Job Trade" 
-                  onChange={e => {
-                    const jt = String(e.target.value);
-                    const pos = positionOptions(jt);
-                    setEditForm({ ...editForm, job_trade: jt, position: pos.includes(editForm.position) ? editForm.position : '', pipe_dia: jt === 'structure' ? 'N.A' : editForm.pipe_dia });
-                  }}
-                >
-                  <MenuItem value="structure">Structure</MenuItem>
-                  <MenuItem value="pipe">Pipe</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Position</InputLabel>
-                <Select 
-                  value={editForm.position} 
-                  label="Position" 
-                  onChange={e => setEditForm({ ...editForm, position: String(e.target.value) })}
-                >
-                  {positionOptions(editForm.job_trade).map(p => (
-                    <MenuItem key={p} value={p}>{p}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Process</InputLabel>
-                <Select 
-                  multiple 
-                  value={editForm.process} 
-                  label="Process" 
-                  onChange={e => setEditForm({ ...editForm, process: e.target.value })}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {(selected as string[]).map((value) => (
-                        <Chip key={value} label={value} size="small" />
-                      ))}
-                    </Box>
-                  )}
-                >
-                  {processOptions.map(p => (
-                    <MenuItem key={p} value={p}>{p}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label="Material Group" 
-                value={editForm.material_group} 
-                onChange={e => setEditForm({ ...editForm, material_group: e.target.value })} 
-                fullWidth 
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label="Thickness Range" 
-                value={editForm.thickness_range} 
-                onChange={e => setEditForm({ ...editForm, thickness_range: e.target.value })} 
-                fullWidth 
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField 
-                label="Pipe Diameter" 
-                value={editForm.pipe_dia} 
-                onChange={e => setEditForm({ ...editForm, pipe_dia: e.target.value })} 
-                fullWidth 
-                size="small"
-                placeholder={editForm.job_trade === 'structure' ? 'N.A' : 'e.g., 6", 8"'}
-                disabled={editForm.job_trade === 'structure'}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select 
-                  value={editForm.status} 
-                  label="Status" 
-                  onChange={e => setEditForm({ ...editForm, status: String(e.target.value) })}
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="expired">Expired</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditOpen(false)}>Cancel</Button>
-          <Button onClick={submitEdit} variant="contained">Save Changes</Button>
+          <Button onClick={submitEdit} variant="contained">
+            Update
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

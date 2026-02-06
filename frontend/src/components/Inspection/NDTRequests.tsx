@@ -7,11 +7,11 @@ import { NDTRequest, FinalInspection } from '../../types';
 
 const NDTRequests: React.FC = () => {
   const { selectedProject, canEdit } = useAuth();
-  const isStructureProject = selectedProject?.project_type === 'structure';
+  // Always Structure
   const [rows, setRows] = useState<NDTRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Partial<NDTRequest>>({ department: 'pipe', contractor: 'GW', status: 'pending', requirement: 'full joint', weld_process: 'GTAW', inspection_category: 'type-I' });
+  const [form, setForm] = useState<Partial<NDTRequest>>({ department: 'structure', contractor: 'GW', status: 'pending', requirement: 'full joint', weld_process: 'GTAW', inspection_category: 'type-I' });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [finals, setFinals] = useState<FinalInspection[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -21,14 +21,15 @@ const NDTRequests: React.FC = () => {
   const [snackSeverity, setSnackSeverity] = useState<'success' | 'error'>('success');
   const [methodFilter, setMethodFilter] = useState<string>('All');
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  const [bulk, setBulk] = useState<{ contractor: string; department: string; requirement: string; weld_process: string }>({ contractor: 'GW', department: 'pipe', requirement: 'full joint', weld_process: 'GTAW' });
+  const [bulk, setBulk] = useState<{ contractor: string; department: string; requirement: string; weld_process: string }>({ contractor: 'GW', department: 'structure', requirement: 'full joint', weld_process: 'GTAW' });
+  const contractorOptions = useMemo(() => ['Merlion', 'Renu-ndt', 'Jasscan NDT', 'A start NDT', 'GW', 'TOM'], []);
   const methodOrder = ['RT','UT','PT','MPI','FT','PMI'];
   const [requiredMethods, setRequiredMethods] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<Record<string, { request_time?: string; rfi_no?: string }>>({});
   const canonicalMethod = (m: string) => {
     const x = (m || '').trim().toUpperCase();
-    if (x === 'MT') return 'MPI';
-    if (x === 'PAUT') return 'UT';
+    if (x === 'MPI' || x === 'MPI') return 'MPI'; // Map MPI to MP for backend
+    if (x === 'PAUT') return 'PAUT';
     return x;
   };
   const finalOptions = useMemo(() => finals.map(fi => ({
@@ -44,7 +45,7 @@ const NDTRequests: React.FC = () => {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        ApiService.getNDTRequests(selectedProject.id),
+        ApiService.getStructureNDTRequests(selectedProject.id),
         ApiService.getFinalInspections(selectedProject.id),
         ApiService.getNDTRequirements(selectedProject.id)
       ]);
@@ -83,14 +84,7 @@ const NDTRequests: React.FC = () => {
 
   useEffect(() => { load(); }, [selectedProject]);
 
-  useEffect(() => {
-    const lf = async () => {
-      if (!selectedProject) return;
-      const all = await ApiService.getFinalInspections(selectedProject.id);
-      setFinals(all.filter(f => (f.final_result || '').toLowerCase() === 'accepted'));
-    };
-    lf();
-  }, [selectedProject]);
+  // Single source of truth: load() handles finals fetching with error tolerance
 
   const existingKeys = useMemo(() => {
     const s = new Set<string>();
@@ -191,8 +185,7 @@ const NDTRequests: React.FC = () => {
   }, [requiredFromFinals, methodFilter]);
 
   const downloadCSV = () => {
-    const headers = isStructureProject
-      ? [
+    const headers = [
           'NDT-Contractor',
           'Dept',
           'Drawing No',
@@ -200,26 +193,11 @@ const NDTRequests: React.FC = () => {
           'Page No',
           'Joint No',
           'Weld Type',
+          'Inspection Category',
           'Welder No',
           'Size',
           'Weld Length',
-          'Requirement',
-          'NDT Method',
-          'Request Status',
-          'Request Date',
-          'RFI No'
-        ]
-      : [
-          'NDT-Contractor',
-          'Dept',
-          'System No',
-          'Line No',
-          'Spool No',
-          'Joint No',
-          'Weld Type',
-          'Welder No',
-          'Pipe Dia',
-          'Weld Length',
+          'Weld Process',
           'Requirement',
           'NDT Method',
           'Request Status',
@@ -227,20 +205,21 @@ const NDTRequests: React.FC = () => {
           'RFI No'
         ];
     const csvRows = filteredRequired.map(e => {
-      const status = e.exists ? 'RFI raised' : 'pending';
+      const status = e.exists ? 'RFI Raised' : 'pending';
       const reqDate = e.exists ? (existingMap.get(e.key)?.request_time ? new Date(existingMap.get(e.key).request_time).toLocaleDateString() : '') : (selectedKeys.has(e.key) ? (drafts[e.key]?.request_time || '') : '');
       const rfiNo = e.exists ? (existingMap.get(e.key)?.ndt_report_no || '') : (selectedKeys.has(e.key) ? (drafts[e.key]?.rfi_no || '') : '');
       return [
         bulk.contractor || '',
         bulk.department || '',
-        e.final.system_no || '',
-        e.final.line_no || '',
-        e.final.spool_no || '',
+        e.final.block_no || '',
+
         e.final.joint_no || '',
         e.final.weld_type || '',
+        e.final.inspection_category || 'type-I',
         e.final.welder_no || '',
         (e.final as any).pipe_dia || (e.final as any).size || '',
         e.final.weld_length != null ? String(e.final.weld_length) : '',
+        bulk.weld_process || 'GTAW',
         bulk.requirement || '',
         e.method || '',
         status,
@@ -274,8 +253,8 @@ const NDTRequests: React.FC = () => {
       const ai = idx(canonicalMethod(a.ndt_type || ''));
       const bi = idx(canonicalMethod(b.ndt_type || ''));
       if (ai !== bi) return ai - bi;
-      const aj = `${a.system_no || ''}-${a.line_no || ''}-${a.spool_no || ''}-${a.joint_no || ''}`;
-      const bj = `${b.system_no || ''}-${b.line_no || ''}-${b.spool_no || ''}-${b.joint_no || ''}`;
+      const aj = `${a.block_no || ''}-${a.joint_no || ''}`;
+      const bj = `${b.block_no || ''}-${b.joint_no || ''}`;
       return aj.localeCompare(bj);
     });
   }, [rows, methodFilter]);
@@ -283,7 +262,7 @@ const NDTRequests: React.FC = () => {
   const createFromFinal = async (e: { final: FinalInspection; method: string }) => {
     if (!selectedProject) return;
     const fi = e.final;
-    const key = `${selectedProject?.id || 0}-${fi.system_no || ''}-${fi.line_no || ''}-${fi.spool_no || ''}-${fi.joint_no || ''}-${e.method}`;
+    const key = `${selectedProject?.id || 0}-${fi.block_no || ''}-${fi.joint_no || ''}-${e.method}`;
     const draft = drafts[key] || {};
     if (!draft.request_time || !draft.rfi_no) {
       setSnackMsg('Please fill Request Date and RFI No for this row');
@@ -310,7 +289,7 @@ const NDTRequests: React.FC = () => {
       final_id: fi.id
     } as any;
     try {
-      const created = await ApiService.createNDTRequest(payload);
+      const created = await ApiService.createStructureNDTRequest(payload);
       const createdRow = { ...created, ...payload } as any;
       setSnackMsg('NDT request created');
       setSnackSeverity('success');
@@ -329,7 +308,17 @@ const NDTRequests: React.FC = () => {
       // keep UI responsive; background refresh to sync server state
       load();
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || '';
+      const detail = err?.response?.data?.detail;
+      let msg = '';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail)) {
+        msg = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+      } else if (detail && typeof detail === 'object') {
+        msg = JSON.stringify(detail);
+      } else if (err?.message) {
+        msg = err.message;
+      }
       if (typeof msg === 'string' && msg.toLowerCase().includes('duplicate')) {
         setSnackMsg('NDT request already exists for this joint and method');
         setSnackSeverity('success');
@@ -383,19 +372,24 @@ const NDTRequests: React.FC = () => {
   const createSelected = async () => {
     if (!selectedProject) return;
     const toCreate = filteredRequired.filter(e => selectedKeys.has(e.key));
-    if (!toCreate.length) return;
-    try {
-      const createdList: any[] = [];
-      let missingCount = 0;
-      for (const e of toCreate) {
+    if (!toCreate.length) {
+      setSnackMsg('No rows selected');
+      setSnackSeverity('error');
+      setSnackOpen(true);
+      return;
+    }
+    const createdList: any[] = [];
+    let missingCount = 0;
+    const errors: string[] = [];
+    for (const e of toCreate) {
+      const fi = e.final;
+      const key = e.key;
+      const draft = drafts[key] || {};
+      if (!draft.request_time || !draft.rfi_no) {
+        missingCount++;
+        continue;
+      }
         try {
-          const fi = e.final;
-          const key = e.key;
-          const draft = drafts[key] || {};
-          if (!draft.request_time || !draft.rfi_no) {
-            missingCount++;
-            continue;
-          }
           const payload = {
             project_id: selectedProject.id,
             project_name: selectedProject.name,
@@ -414,17 +408,53 @@ const NDTRequests: React.FC = () => {
             ndt_report_no: draft.rfi_no,
             final_id: fi.id
           } as any;
-          const created = await ApiService.createNDTRequest(payload);
+          const created = await ApiService.createStructureNDTRequest(payload);
           const createdRow = { ...created, ...payload } as any;
           createdList.push(createdRow);
-        } catch (err) {}
-      }
-      if (createdList.length) {
-        setRows(prev => [...createdList, ...prev]);
-      }
-      setSnackMsg(createdList.length ? `Created ${createdList.length} selected NDT requests${missingCount ? ` • ${missingCount} missing date/RFI` : ''}` : (missingCount ? 'Please fill Request Date and RFI No for selected rows' : 'No rows created'));
-      setSnackSeverity('success');
-      setSnackOpen(true);
+          // Ensure NDT status record exists for this final inspection
+          try {
+            await ApiService.ensureNDTStatusRecord(fi.id);
+          } catch (err) {
+            // Silently ignore; status record may already exist
+          }
+        } catch (err: any) {
+          const detail = err?.response?.data?.detail;
+          let msg = 'Unknown error';
+          if (typeof detail === 'string') {
+            msg = detail;
+          } else if (Array.isArray(detail)) {
+            msg = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+          } else if (detail && typeof detail === 'object') {
+            msg = JSON.stringify(detail);
+          } else if (err?.message) {
+            msg = err.message;
+          }
+          errors.push(`${e.method} for joint ${fi.joint_no}: ${msg}`);
+        }
+    }
+    if (createdList.length) {
+      setRows(prev => [...createdList, ...prev]);
+    }
+    let snackMsg = '';
+    let snackSeverity: 'success' | 'error' = 'success';
+    if (createdList.length === 0 && missingCount === 0 && errors.length === 0) {
+      snackMsg = 'No rows created (unknown error)';
+      snackSeverity = 'error';
+    } else if (createdList.length === 0 && missingCount > 0) {
+      snackMsg = 'Please fill Request Date and RFI No for selected rows';
+      snackSeverity = 'error';
+    } else if (createdList.length === 0 && errors.length > 0) {
+      snackMsg = `Failed to create: ${errors[0]}`;
+      snackSeverity = 'error';
+    } else {
+      snackMsg = `Created ${createdList.length} selected NDT requests`;
+      if (missingCount) snackMsg += ` • ${missingCount} missing date/RFI`;
+      if (errors.length) snackMsg += ` • ${errors.length} errors`;
+    }
+    setSnackMsg(snackMsg);
+    setSnackSeverity(snackSeverity);
+    setSnackOpen(true);
+    if (createdList.length > 0) {
       setSelectedKeys(new Set());
       setDrafts(prev => {
         const next = { ...prev };
@@ -432,15 +462,11 @@ const NDTRequests: React.FC = () => {
         return next;
       });
       load();
-    } catch (e: any) {
-      setSnackMsg(e?.response?.data?.detail || 'Failed to create selected');
-      setSnackSeverity('error');
-      setSnackOpen(true);
     }
   };
 
   const updateStatus = async (id: number, status: string) => {
-    await ApiService.updateNDTStatus(id, status);
+    await ApiService.updateStructureNDTStatus(id, status);
     load();
   };
 
@@ -455,7 +481,7 @@ const NDTRequests: React.FC = () => {
         project_id: selectedProject.id,
         project_name: selectedProject.name,
         project_code: selectedProject.code,
-        department: form.department || 'pipe',
+        department: form.department || 'structure',
         incharge_person: form.incharge_person || 'QA',
         contact: form.contact || '',
         request_time: form.request_time || new Date().toISOString(),
@@ -471,12 +497,22 @@ const NDTRequests: React.FC = () => {
         final_id: form.final_id as number
       } as any;
       if (editingId) {
-        await ApiService.updateNDTRequest(editingId, payload);
+        await ApiService.updateStructureNDTRequest(editingId, payload);
       } else {
         try {
-          const created = await ApiService.createNDTRequest(payload);
+          const created = await ApiService.createStructureNDTRequest(payload);
         } catch (err: any) {
-          const msg = err?.response?.data?.detail || '';
+          const detail = err?.response?.data?.detail;
+          let msg = '';
+          if (typeof detail === 'string') {
+            msg = detail;
+          } else if (Array.isArray(detail)) {
+            msg = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+          } else if (detail && typeof detail === 'object') {
+            msg = JSON.stringify(detail);
+          } else if (err?.message) {
+            msg = err.message;
+          }
           if (typeof msg === 'string' && msg.toLowerCase().includes('duplicate')) {
             setSnackMsg('NDT request already exists for this joint and method');
             setSnackSeverity('success');
@@ -502,7 +538,7 @@ const NDTRequests: React.FC = () => {
     if (!extras.length) return;
     try {
       for (const id of extras) {
-        try { await ApiService.deleteNDTRequest(id); } catch {}
+        try { await ApiService.deleteStructureNDTRequest(id); } catch {}
       }
       setSnackMsg(`Deleted ${extras.length} duplicate request${extras.length > 1 ? 's' : ''}`);
       setSnackSeverity('success');
@@ -544,7 +580,7 @@ const NDTRequests: React.FC = () => {
 
   const onDelete = async (id: number) => {
     try {
-      await ApiService.deleteNDTRequest(id);
+      await ApiService.deleteStructureNDTRequest(id);
       setSnackMsg('NDT request deleted');
       setSnackSeverity('success');
       setSnackOpen(true);
@@ -574,7 +610,7 @@ const NDTRequests: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4 }}>
+    <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
       {!selectedProject ? (
         <Box sx={{ py: 6, textAlign: 'center' }}>
           <Typography>Please select a project first.</Typography>
@@ -586,7 +622,7 @@ const NDTRequests: React.FC = () => {
               <RequestQuote sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
               <Box>
                 <Typography variant="h4" component="h1" gutterBottom>
-                  {isStructureProject ? 'Structure NDT Requests' : 'Pipe NDT Requests'}
+                  Structure NDT Requests
                 </Typography>
                 <Typography variant="subtitle1" color="textSecondary">
                   {selectedProject.name} ({selectedProject.code})
@@ -599,98 +635,123 @@ const NDTRequests: React.FC = () => {
             </Box>
           </Box>
 
-          <Paper sx={{ mb: 3 }}>
-            <Box sx={{ px: 2, py: 2, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Paper sx={{ mb: 3, boxShadow: 2 }}>
+            <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', borderBottom: '1px solid', borderBottomColor: 'grey.200' }}>
+              <Typography variant="subtitle1" fontWeight="600" sx={{ mr: 2 }}>
+                NDT Method Filter:
+              </Typography>
               {methodOptions.map(m => (
-                <Chip key={m} label={m} color={methodFilter === m ? 'primary' : 'default'} onClick={() => setMethodFilter(m)} />
+                <Chip 
+                  key={m} 
+                  label={m} 
+                  color={methodFilter === m ? 'primary' : 'default'} 
+                  onClick={() => setMethodFilter(m)}
+                  size="medium"
+                  sx={{ fontWeight: methodFilter === m ? 600 : 400 }}
+                />
               ))}
               <Box sx={{ flexGrow: 1 }} />
-              <TextField select size="small" label="Contractor" value={bulk.contractor} onChange={e => setBulk({ ...bulk, contractor: e.target.value })} sx={{ minWidth: 140 }}>
-                {['GW','TOM'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </TextField>
-              <TextField select size="small" label="Dept" value={bulk.department} onChange={e => setBulk({ ...bulk, department: e.target.value })} sx={{ minWidth: 120 }}>
-                {['pipe','hull','ele','mech'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </TextField>
-              <TextField select size="small" label="Requirement" value={bulk.requirement} onChange={e => setBulk({ ...bulk, requirement: e.target.value })} sx={{ minWidth: 160 }}>
-                {['full joint','partial'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </TextField>
-              <TextField select size="small" label="Weld Process" value={bulk.weld_process} onChange={e => setBulk({ ...bulk, weld_process: e.target.value })} sx={{ minWidth: 160 }}>
-                {['GTAW','SMAW','FCAW'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
-              </TextField>
-              <Button variant="contained" onClick={downloadCSV} disabled={filteredRequired.length === 0}>Download CSV</Button>
-              {canEdit() && <Button variant="contained" onClick={createSelected} disabled={!filteredRequired.some(e => selectedKeys.has(e.key))}>Create Selected</Button>}
-              {duplicateGroups.length > 0 && canEdit() && (
-                <Button variant="outlined" color="warning" onClick={deleteDuplicateRequests}>Delete Duplicate Requests</Button>
-              )}
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField select size="small" label="Contractor" value={bulk.contractor} onChange={e => setBulk({ ...bulk, contractor: e.target.value })} sx={{ minWidth: 180 }}>
+                  {contractorOptions.map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </TextField>
+                <TextField select size="small" label="Dept" value={bulk.department} onChange={e => setBulk({ ...bulk, department: e.target.value })} sx={{ minWidth: 130 }}>
+                  {['structure','hull','ele','mech'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </TextField>
+                <TextField select size="small" label="Requirement" value={bulk.requirement} onChange={e => setBulk({ ...bulk, requirement: e.target.value })} sx={{ minWidth: 170 }}>
+                  {['full joint','partial'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </TextField>
+                <TextField select size="small" label="Weld Process" value={bulk.weld_process} onChange={e => setBulk({ ...bulk, weld_process: e.target.value })} sx={{ minWidth: 170 }}>
+                  {['GTAW','SMAW','FCAW'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                </TextField>
+                <Button variant="contained" onClick={downloadCSV} disabled={filteredRequired.length === 0} sx={{ minWidth: 140 }}>Download CSV</Button>
+                {canEdit() && <Button variant="contained" onClick={createSelected} disabled={!filteredRequired.some(e => selectedKeys.has(e.key))} sx={{ minWidth: 160 }}>Create Selected</Button>}
+                {duplicateGroups.length > 0 && canEdit() && (
+                  <Button variant="outlined" color="warning" onClick={deleteDuplicateRequests} sx={{ minWidth: 200 }}>Delete Duplicate Requests</Button>
+                )}
+              </Box>
             </Box>
-            <Table>
+            <Box sx={{ width: '100%', overflowX: 'auto', p: 1 }}>
+            <Table size="medium" sx={{ minWidth: 1600 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Select</strong></TableCell>
-                  <TableCell><strong>NDT-Contractor</strong></TableCell>
-                  <TableCell><strong>Dept</strong></TableCell>
-                  <TableCell><strong>{isStructureProject ? 'Drawing No' : 'System No'}</strong></TableCell>
-                  <TableCell><strong>{isStructureProject ? 'Structure Category' : 'Line No'}</strong></TableCell>
-                  <TableCell><strong>{isStructureProject ? 'Page No' : 'Spool No'}</strong></TableCell>
-                  <TableCell><strong>Joint No</strong></TableCell>
-                  <TableCell><strong>Weld Type</strong></TableCell>
-                  <TableCell><strong>Inspection Category</strong></TableCell>
-                  <TableCell><strong>Welder No</strong></TableCell>
-                  {selectedProject?.project_type === 'pipe' && (
-                    <TableCell><strong>Pipe Dia</strong></TableCell>
-                  )}
-                  <TableCell><strong>Weld Length</strong></TableCell>
-                  <TableCell><strong>Requirement</strong></TableCell>
-                  <TableCell><strong>NDT Method</strong></TableCell>
-                  <TableCell><strong>Request Status</strong></TableCell>
-                  <TableCell><strong>Request Date</strong></TableCell>
-                  <TableCell><strong>RFI No</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 8px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 60 }}><strong>Select</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Block no</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Drawing No</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 160, minWidth: 160 }}><strong>NDT Contractor</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 120, minWidth: 120 }}><strong>contractor</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Structure Category</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Joint No</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Weld Type</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 160, minWidth: 160 }}><strong>Inspection Category</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Welder No</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>Weld Length</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 160, minWidth: 160 }}><strong>Requirement</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 140, minWidth: 140 }}><strong>NDT Method</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 180, minWidth: 180 }}><strong>Request Status</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 180, minWidth: 180 }}><strong>Request Date</strong></TableCell>
+                  <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', fontSize: '0.875rem', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', width: 160, minWidth: 160 }}><strong>RFI No</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredRequired.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={16} align="center">No required NDT methods from final inspections</TableCell>
-                  </TableRow>
-                ) : filteredRequired.map((e) => (
-                  <TableRow key={e.key}>
-                    <TableCell>
-                      <Checkbox checked={selectedKeys.has(e.key)} onChange={() => toggleSelected(e.key)} disabled={e.exists} />
+                    <TableCell colSpan={17} align="center" sx={{ padding: '24px 16px' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No required NDT methods from final inspections
+                      </Typography>
                     </TableCell>
-                    <TableCell>{bulk.contractor}</TableCell>
-                    <TableCell>{bulk.department}</TableCell>
-                    <TableCell>{e.final.system_no || '-'}</TableCell>
-                    <TableCell>{e.final.line_no || '-'}</TableCell>
-                    <TableCell>{e.final.spool_no || '-'}</TableCell>
-                    <TableCell>{e.final.joint_no || '-'}</TableCell>
-                    <TableCell>{e.final.weld_type || '-'}</TableCell>
-                    <TableCell>{e.final.inspection_category || 'type-I'}</TableCell>
-                    <TableCell>{e.final.welder_no || '-'}</TableCell>
-                    {selectedProject?.project_type === 'pipe' && (
-                      <TableCell>{(e.final as any).pipe_dia || '-'}</TableCell>
-                    )}
-                    <TableCell>{e.final.weld_length || '-'}</TableCell>
-                    <TableCell>{bulk.requirement}</TableCell>
-                    <TableCell>{e.method}</TableCell>
-                    <TableCell>
+                  </TableRow>
+                ) : filteredRequired.map((e) => {
+                    const req = existingMap.get(e.key);
+                    return (
+                  <TableRow 
+                    key={e.key}
+                    sx={{ 
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  >
+                    <TableCell sx={{ padding: '12px 8px' }}>
+                      <Checkbox 
+                        checked={selectedKeys.has(e.key)} 
+                        onChange={() => toggleSelected(e.key)} 
+                        disabled={e.exists}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.final.block_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{(req as any)?.draw_no || (e.final as any).draw_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{bulk.contractor || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{(req as any)?.draw_no || (e.final as any).draw_no || e.final.system_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{(req as any)?.structure_category || (e.final as any).structure_category || e.final.line_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{(req as any)?.joint_no || (e.final as any).joint_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.final.weld_type || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.final.inspection_category || 'type-I'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.final.welder_no || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.final.weld_length || '-'}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{bulk.requirement}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px', fontSize: '0.875rem' }}>{e.method}</TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
                       <TextField
                         select
                         size="small"
-                        value={e.exists ? 'RFI raised' : 'pending'}
+                        value={e.exists ? 'RFI Raised' : 'pending'}
                         onChange={(ev) => {
                           const val = String(ev.target.value);
-                          if (val === 'RFI raised' && !e.exists) {
+                          if (val === 'RFI Raised' && !e.exists) {
                             createFromFinal(e);
                           }
                         }}
                         disabled={!(selectedKeys.has(e.key) && !e.exists && drafts[e.key]?.request_time && drafts[e.key]?.rfi_no)}
-                        sx={{ minWidth: 160 }}
+                        sx={{ minWidth: 140 }}
                       >
                         <MenuItem value="pending">pending</MenuItem>
-                        <MenuItem value="RFI raised">RFI raised</MenuItem>
+                        <MenuItem value="RFI Raised">RFI Raised</MenuItem>
                       </TextField>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
                       {e.exists ? (
                         existingMap.get(e.key)?.request_time ? new Date(existingMap.get(e.key).request_time).toLocaleDateString() : '-'
                       ) : selectedKeys.has(e.key) ? (
@@ -699,13 +760,13 @@ const NDTRequests: React.FC = () => {
                           type="date"
                           value={drafts[e.key]?.request_time || ''}
                           onChange={(ev) => setDrafts(prev => ({ ...prev, [e.key]: { ...prev[e.key], request_time: ev.target.value } }))}
-                          sx={{ minWidth: 200 }}
+                          sx={{ minWidth: 160 }}
                         />
                       ) : (
                         '-'
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ padding: '12px 16px' }}>
                       {e.exists ? (
                         existingMap.get(e.key)?.ndt_report_no || '-'
                       ) : selectedKeys.has(e.key) ? (
@@ -714,22 +775,25 @@ const NDTRequests: React.FC = () => {
                           placeholder="Enter RFI No"
                           value={drafts[e.key]?.rfi_no || ''}
                           onChange={(ev) => setDrafts(prev => ({ ...prev, [e.key]: { ...prev[e.key], rfi_no: ev.target.value } }))}
-                          sx={{ minWidth: 160 }}
+                          sx={{ minWidth: 140 }}
                         />
                       ) : (
                         '-'
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                );
+              })
+            }
               </TableBody>
             </Table>
+            </Box>
           </Paper>
 
           
 
           <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-            <DialogTitle>{editingId ? 'Edit' : 'New'} {isStructureProject ? 'Structure NDT' : 'NDT'} Request</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit' : 'New'} Structure NDT Request</DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="Joint (Final Accepted)" value={form.final_id as any || ''} onChange={e => {
@@ -747,20 +811,31 @@ const NDTRequests: React.FC = () => {
                     weld_type: fi.weld_type,
                     welder_no: fi.welder_no,
                     weld_size: fi.weld_length,
-                    pipe_dia: (fi as any).pipe_dia
+                    pipe_dia: (fi as any).pipe_dia,
+                    inspection_category: fi.inspection_category || 'type-I'  // Auto-populate inspection category
                   });
                 }}>
                   {finalOptions.map(o => (
                     <MenuItem key={o.id} value={o.id}>{o.label}</MenuItem>
                   ))}
                 </TextField></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label="NDT-Contractor" value={form.contractor || ''} onChange={e => setForm({ ...form, contractor: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="NDT-Contractor"
+                    value={form.contractor || ''}
+                    onChange={e => setForm({ ...form, contractor: e.target.value })}
+                  >
+                    {contractorOptions.map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
+                  </TextField>
+                </Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth label="Department" value={form.department || ''} onChange={e => setForm({ ...form, department: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="Requirement" value={form.requirement || 'full joint'} onChange={e => setForm({ ...form, requirement: e.target.value })}>
                   {['full joint','partial'].map(v => (<MenuItem key={v} value={v}>{v}</MenuItem>))}
                 </TextField></Grid>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="NDT Type" value={form.ndt_type || 'UT'} onChange={e => setForm({ ...form, ndt_type: e.target.value })}>
-                  {['RT','UT','PT','MPI','FT','PMI'].map(m => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
+                  {['RT','UT','PT','MP','FT','PMI'].map(m => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
                 </TextField></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth label="Report No" value={form.ndt_report_no || ''} onChange={e => setForm({ ...form, ndt_report_no: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}><TextField select fullWidth label="Result" value={form.ndt_result || ''} onChange={e => setForm({ ...form, ndt_result: e.target.value })}>
@@ -771,9 +846,9 @@ const NDTRequests: React.FC = () => {
                 </TextField></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth type="datetime-local" label="Request Time" value={form.request_time as any || ''} onChange={e => setForm({ ...form, request_time: e.target.value })} InputLabelProps={{ shrink: true }} /></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth type="datetime-local" label="Test Time" value={form.test_time as any || ''} onChange={e => setForm({ ...form, test_time: e.target.value })} InputLabelProps={{ shrink: true }} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Drawing No' : 'System No'} value={form.system_no || ''} onChange={e => setForm({ ...form, system_no: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Structure Category' : 'Line No'} value={form.line_no || ''} onChange={e => setForm({ ...form, line_no: e.target.value })} /></Grid>
-                <Grid item xs={12} sm={6}><TextField fullWidth label={isStructureProject ? 'Page No' : 'Spool No'} value={form.spool_no || ''} onChange={e => setForm({ ...form, spool_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Drawing No" value={form.system_no || ''} onChange={e => setForm({ ...form, system_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Structure Category" value={form.line_no || ''} onChange={e => setForm({ ...form, line_no: e.target.value })} /></Grid>
+                <Grid item xs={12} sm={6}><TextField fullWidth label="Page No" value={form.spool_no || ''} onChange={e => setForm({ ...form, spool_no: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}><TextField fullWidth label="Joint No" value={form.joint_no || ''} onChange={e => setForm({ ...form, joint_no: e.target.value })} /></Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField

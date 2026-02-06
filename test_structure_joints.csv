@@ -1,0 +1,5 @@
+draw_no,drawing_rev,page_no,joint_no,weld_type,size,structure_category,part1_piece_mark_no,part2_piece_mark_no,inspection_category,weld_length,block_no
+DWG-001,REV-A,PAGE-01,JNT-001,BUTT,W200x100,BEAM,PM-001,PM-002,type-I,150,BLK-01
+DWG-001,REV-A,PAGE-01,JNT-002,SOCKET,H150x150,COLUMN,PM-003,PM-004,type-II,200,BLK-01
+DWG-001,REV-B,PAGE-02,JNT-003,BUTT,W250x125,BEAM,PM-005,PM-006,type-III,180,BLK-02
+DWG-002,REV-C,PAGE-03,JNT-004,SOCKET,H200x200,COLUMN,PM-007,PM-008,type-I,220,BLK-02
