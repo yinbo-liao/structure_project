@@ -13,7 +13,6 @@ import {
   PasswordChange,
   MasterJointList,
   NDTTest,
-  NDTJointStatus,
   NDTRequirement,
   NDTStatusRecord,
   WeeklyNDTSummary
