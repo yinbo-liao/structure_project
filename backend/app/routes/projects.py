@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from typing import List
 
 from app.database import get_db
-from app.models import (
+from app.models_fixed import (
     Project as ProjectModel,
     User as UserModel,
     StructureFitUpInspection,

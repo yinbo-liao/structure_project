@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 # Database URL configuration - Use PostgreSQL by default in production
 database_url = os.getenv(
     "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost:5432/project_management"
+    "postgresql://postgres:password123@localhost:5432/project_management"
 )
 
 # Check environment for database selection
-use_sqlite = os.getenv("USE_SQLITE", "false").lower() == "true"
+use_sqlite = True # Force SQLite for debugging
 is_testing = os.getenv("TESTING", "false").lower() == "true"
 
 if use_sqlite or is_testing:

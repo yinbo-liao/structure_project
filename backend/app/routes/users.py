@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models_minimal import User as UserModel
-# Temporarily remove Project import to fix login
-# from app.models_fixed import Project
-from app.schemas import User as UserSchema, UserCreate, UserUpdate, UserWithProjects, PasswordChange, PasswordReset
+from app.models_fixed import User as UserModel, Project as ProjectModel
+from app.schemas import User as UserSchema, UserCreate, UserUpdate, UserWithProjects, PasswordChange, PasswordReset, Project as ProjectSchema
 from app.auth import get_current_user, get_password_hash, verify_password, require_admin
 
 router = APIRouter()
@@ -100,10 +99,31 @@ def reset_password(user_id: int, password_reset: PasswordReset, db: Session = De
 
 @router.post("/users/{user_id}/assign-projects")
 def assign_projects_to_user(user_id: int, assignment: dict, db: Session = Depends(get_db), current_user: UserModel = Depends(require_admin)):
-    # Temporarily disabled to fix login
-    raise HTTPException(status_code=503, detail="Project assignment temporarily disabled while fixing login")
+    """Assign projects to a user"""
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    project_ids = assignment.get('project_ids', [])
+    
+    # Get all projects with these IDs
+    projects = db.query(ProjectModel).filter(ProjectModel.id.in_(project_ids)).all()
+    
+    # Update user's assigned projects
+    user.assigned_projects = projects
+    
+    db.commit()
+    return {"message": "Projects assigned successfully"}
 
-@router.get("/users/{user_id}/projects")
+@router.get("/users/{user_id}/projects", response_model=list[ProjectSchema])
 def get_user_projects(user_id: int, db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
-    # Temporarily disabled to fix login
-    raise HTTPException(status_code=503, detail="Project retrieval temporarily disabled while fixing login")
+    """Get projects assigned to a user"""
+    # Users can see their own projects, admins can see anyone's
+    if current_user.id != user_id and current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Not authorized to view these projects")
+        
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    return user.assigned_projects

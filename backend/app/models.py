@@ -355,6 +355,27 @@ class StructureMasterJointList(MasterJointList):
     drawing_rev = Column(String(20), nullable=False)
     thickness = Column(String(20))
     
+    # NDT Testing Columns for each method
+    ndt_rt_report_no = Column(String(100))
+    ndt_rt_result = Column(String(20))
+    ndt_ut_report_no = Column(String(100))
+    ndt_ut_result = Column(String(20))
+    ndt_mpi_report_no = Column(String(100))
+    ndt_mpi_result = Column(String(20))
+    ndt_pt_report_no = Column(String(100))
+    ndt_pt_result = Column(String(20))
+    ndt_pmi_report_no = Column(String(100))
+    ndt_pmi_result = Column(String(20))
+    ndt_ft_report_no = Column(String(100))
+    ndt_ft_result = Column(String(20))
+    ndt_paut_report_no = Column(String(100))
+    ndt_paut_result = Column(String(20))
+    
+    # Comprehensive NDT Status
+    ndt_comprehensive_status = Column(String(50))
+    ndt_last_sync = Column(DateTime(timezone=True))
+    ndt_sync_status = Column(String(20))
+    
     __table_args__ = (
         UniqueConstraint(
             'project_id', 'draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no',
@@ -363,6 +384,9 @@ class StructureMasterJointList(MasterJointList):
         Index(create_unique_index_name(__tablename__, 'block_no'), 'block_no'),
         Index(create_unique_index_name(__tablename__, 'draw_no', 'page_no'), 'draw_no', 'page_no'),
         Index(create_unique_index_name(__tablename__, 'structure_category'), 'structure_category'),
+        Index(create_unique_index_name(__tablename__, 'ndt_comprehensive_status'), 'ndt_comprehensive_status'),
+        Index(create_unique_index_name(__tablename__, 'ndt_last_sync'), 'ndt_last_sync'),
+        Index(create_unique_index_name(__tablename__, 'ndt_sync_status'), 'ndt_sync_status'),
     )
 
 

@@ -221,7 +221,7 @@ def update_structure_master_joint(
     if not joint:
         raise HTTPException(status_code=404, detail="Structure master joint not found")
     project = db.query(ProjectModel).filter(ProjectModel.id == joint.project_id).first()
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
 
     update_data = joint_update if isinstance(joint_update, dict) else joint_update.model_dump(exclude_unset=True)
@@ -244,7 +244,7 @@ def delete_structure_master_joint(
     if not joint:
         raise HTTPException(status_code=404, detail="Structure master joint not found")
     project = db.query(ProjectModel).filter(ProjectModel.id == joint.project_id).first()
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     db.delete(joint)
     db.commit()
@@ -462,7 +462,7 @@ def upload_structure_material_register(
     project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     
     allowed_types = [
@@ -644,7 +644,7 @@ def update_structure_material_register(
     if not rec:
         raise HTTPException(status_code=404, detail="Material record not found")
     project = db.query(ProjectModel).filter(ProjectModel.id == rec.project_id).first()
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     
     # Validate structure category if provided in payload
@@ -1204,6 +1204,7 @@ def create_structure_final_inspection(
         rec = StructureNDTStatusRecord(
             project_id=db_final.project_id,
             final_id=db_final.id,
+            draw_no=(get_fitup_attr('draw_no') or getattr(db_final, 'draw_no', None)),
             structure_category=(get_fitup_attr('structure_category') or getattr(db_final, 'structure_category', None)),
             page_no=(get_fitup_attr('page_no') or getattr(db_final, 'page_no', None)),
             drawing_rev=(get_fitup_attr('drawing_rev') or getattr(db_final, 'drawing_rev', None)),
@@ -1629,6 +1630,7 @@ def create_structure_ndt_request(
             rec = StructureNDTStatusRecord(
                 project_id=final.project_id,
                 final_id=final.id,
+                draw_no=(getattr(fitup, 'draw_no', None) or getattr(final, 'draw_no', None) or ndt.draw_no),
                 structure_category=struct_cat,
                 page_no=(getattr(fitup, 'page_no', None) or getattr(final, 'page_no', None) or ndt.page_no),
                 drawing_rev=(getattr(fitup, 'drawing_rev', None) or getattr(final, 'drawing_rev', None) or ndt.drawing_rev),
@@ -2130,7 +2132,7 @@ def get_structure_ndt_requirements(
     project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     
     requirements = db.query(NDTRequirement).filter(NDTRequirement.project_id == project_id).all()
@@ -2166,7 +2168,7 @@ def get_wps_register(
         project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        if current_user.role != 'admin' and project not in current_user.assigned_projects:
+        if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
             raise HTTPException(status_code=403, detail="Not authorized to access this project")
         query = query.filter(WPSRegister.project_id == project_id)
     else:
@@ -2213,13 +2215,13 @@ def update_wps_register(
 def delete_wps_register(
     wps_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     wps = db.query(WPSRegister).filter(WPSRegister.id == wps_id).first()
     if not wps:
         raise HTTPException(status_code=404, detail="WPS not found")
     project = db.query(ProjectModel).filter(ProjectModel.id == wps.project_id).first()
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     db.delete(wps)
     db.commit()
@@ -2238,7 +2240,7 @@ def get_welder_register(
         project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        if current_user.role != 'admin' and project not in current_user.assigned_projects:
+        if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
             raise HTTPException(status_code=403, detail="Not authorized to access this project")
         query = query.filter(WelderRegister.project_id == project_id)
     else:
@@ -2321,13 +2323,13 @@ def update_welder_register(
 def delete_welder_register(
     welder_id: int,
     db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
+    current_user: UserModel = Depends(require_admin)
 ):
     welder = db.query(WelderRegister).filter(WelderRegister.id == welder_id).first()
     if not welder:
         raise HTTPException(status_code=404, detail="Welder not found")
     project = db.query(ProjectModel).filter(ProjectModel.id == welder.project_id).first()
-    if current_user.role != 'admin' and project not in current_user.assigned_projects:
+    if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     db.delete(welder)
     db.commit()

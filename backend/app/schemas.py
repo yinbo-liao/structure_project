@@ -156,6 +156,25 @@ class StructureMasterJointBase(MasterJointBase):
     drawing_rev: str
     thickness: Optional[str] = None
 
+    # NDT Fields
+    ndt_rt_report_no: Optional[str] = None
+    ndt_rt_result: Optional[str] = None
+    ndt_ut_report_no: Optional[str] = None
+    ndt_ut_result: Optional[str] = None
+    ndt_mpi_report_no: Optional[str] = None
+    ndt_mpi_result: Optional[str] = None
+    ndt_pt_report_no: Optional[str] = None
+    ndt_pt_result: Optional[str] = None
+    ndt_pmi_report_no: Optional[str] = None
+    ndt_pmi_result: Optional[str] = None
+    ndt_ft_report_no: Optional[str] = None
+    ndt_ft_result: Optional[str] = None
+    ndt_paut_report_no: Optional[str] = None
+    ndt_paut_result: Optional[str] = None
+    ndt_comprehensive_status: Optional[str] = None
+    ndt_last_sync: Optional[datetime] = None
+    ndt_sync_status: Optional[str] = None
+
 class StructureMasterJoint(StructureMasterJointBase, TimestampSchema):
     id: int
     project_id: int
