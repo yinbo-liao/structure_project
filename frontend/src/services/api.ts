@@ -694,6 +694,59 @@ export class ApiService {
     });
     return response.data;
   }
+
+  // NDT Sync Services
+  static async syncNDTStatus(projectId: number): Promise<{
+    synced_count: number;
+    skipped_count: number;
+    details: Array<{
+      joint_id: number;
+      draw_no: string;
+      joint_no: string;
+      ndt_type: string;
+      ndt_report_no: string;
+      ndt_result: string;
+      status: string;
+    }>;
+  }> {
+    const response = await axios.post(`/ndt-sync/sync/${projectId}`);
+    return response.data;
+  }
+
+  static async autoSyncNDTStatus(projectId: number): Promise<{
+    success: boolean;
+    project_id: number;
+    project_name: string;
+    total_joints: number;
+    synced_joints: number;
+    failed_joints: number;
+    details: Array<{
+      joint_id: number;
+      draw_no: string;
+      joint_no: string;
+      ndt_type: string;
+      ndt_report_no: string;
+      ndt_result: string;
+      status: string;
+    }>;
+    skipped_joints: number;
+    synced_count: number;
+    skipped_count: number;
+  }> {
+    const response = await axios.post(`/ndt-sync/auto-sync/${projectId}`);
+    return response.data;
+  }
+
+  static async getNDTSyncStatus(projectId: number): Promise<{
+    last_sync: string | null;
+    total_joints: number;
+    synced_joints: number;
+    pending_joints: number;
+    sync_status: string;
+  }> {
+    const response = await axios.get(`/ndt-sync/status/${projectId}`);
+    return response.data;
+  }
 }
 
 export default ApiService;

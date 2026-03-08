@@ -717,7 +717,7 @@ const NDTRequests: React.FC = () => {
                       <Checkbox 
                         checked={selectedKeys.has(e.key)} 
                         onChange={() => toggleSelected(e.key)} 
-                        disabled={e.exists}
+                        disabled={e.exists || !canEdit()}
                         size="small"
                       />
                     </TableCell>

@@ -695,32 +695,37 @@ const StructureFitUpInspection: React.FC = () => {
           >
             Refresh
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Sync />}
-            onClick={handleSyncMaterials}
-            disabled={loading || !canEdit()}
-            sx={{ mr: 2 }}
-          >
-            Sync Materials
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={handleBulkCreateFinal}
-            disabled={loading || !canEdit() || selectedRows.length === 0}
-            sx={{ mr: 2 }}
-            color="secondary"
-          >
-            Create Final Insp ({selectedRows.length})
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAddClick}
-            disabled={!canEdit()}
-          >
-            Add Fit-up
-          </Button>
+          {canEdit() && (
+            <Button
+              variant="outlined"
+              startIcon={<Sync />}
+              onClick={handleSyncMaterials}
+              disabled={loading}
+              sx={{ mr: 2 }}
+            >
+              Sync Materials
+            </Button>
+          )}
+          {canEdit() && (
+            <Button
+              variant="outlined"
+              onClick={handleBulkCreateFinal}
+              disabled={loading || selectedRows.length === 0}
+              sx={{ mr: 2 }}
+              color="secondary"
+            >
+              Create Final Insp ({selectedRows.length})
+            </Button>
+          )}
+          {canEdit() && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAddClick}
+            >
+              Add Fit-up
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -771,7 +776,7 @@ const StructureFitUpInspection: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', minWidth: 180 }}>Fit-up Report No</TableCell>
                 <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', minWidth: 160 }}>Inspection Category</TableCell>
                 <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', minWidth: 140 }}>Fit Up Result</TableCell>
-                <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', minWidth: 140 }}>Actions</TableCell>
+                {(canEdit() || canDelete()) && <TableCell sx={{ fontWeight: 600, backgroundColor: 'grey.100', padding: '16px 16px', borderBottom: '2px solid', borderBottomColor: 'primary.main', minWidth: 140 }}>Actions</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -959,30 +964,32 @@ const StructureFitUpInspection: React.FC = () => {
                         />
                       )}
                     </TableCell>
-                    <TableCell sx={{ padding: '12px 16px' }}>
-                      {editingId === record.id ? (
-                        <>
-                          <IconButton size="small" color="primary" onClick={() => handleInlineSave(record)}>
-                            <Save />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={handleInlineCancel}>
-                            <Cancel />
-                          </IconButton>
-                        </>
-                      ) : (
-                        <>
-                          <IconButton size="small" color="primary" onClick={() => handleInlineEditClick(record)}>
-                            <Edit />
-                          </IconButton>
-                          <IconButton size="small" color="primary" onClick={() => handleEditDialogClick(record)}>
-                            <Info />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)}>
-                            <Delete />
-                          </IconButton>
-                        </>
-                      )}
-                    </TableCell>
+                    {(canEdit() || canDelete()) && (
+                      <TableCell sx={{ padding: '12px 16px' }}>
+                        {editingId === record.id ? (
+                          <>
+                            <IconButton size="small" color="primary" onClick={() => handleInlineSave(record)}>
+                              <Save />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={handleInlineCancel}>
+                              <Cancel />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <>
+                            <IconButton size="small" color="primary" onClick={() => handleInlineEditClick(record)} disabled={!canEdit()}>
+                              <Edit />
+                            </IconButton>
+                            <IconButton size="small" color="primary" onClick={() => handleEditDialogClick(record)}>
+                              <Info />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(record)} disabled={!canDelete()}>
+                              <Delete />
+                            </IconButton>
+                          </>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -1195,7 +1202,7 @@ const StructureFitUpInspection: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleEditSubmit} variant="contained">Update Fit-up</Button>
+          <Button onClick={handleEditSubmit} variant="contained" disabled={!canEdit()}>Update Fit-up</Button>
         </DialogActions>
       </Dialog>
 

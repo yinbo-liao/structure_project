@@ -77,6 +77,25 @@ export interface MasterJointList {
   structure_category?: string;
   page_no?: string;
   drawing_rev?: string;
+
+  // NDT Fields
+  ndt_rt_report_no?: string;
+  ndt_rt_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_ut_report_no?: string;
+  ndt_ut_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_mpi_report_no?: string;
+  ndt_mpi_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_pt_report_no?: string;
+  ndt_pt_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_pmi_report_no?: string;
+  ndt_pmi_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_ft_report_no?: string;
+  ndt_ft_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_paut_report_no?: string;
+  ndt_paut_result?: 'Accepted' | 'Rejected' | 'Pending';
+  ndt_comprehensive_status?: string;
+  ndt_last_sync?: string;
+  ndt_sync_status?: string;
 }
 
 export interface MaterialRegister {

@@ -603,21 +603,23 @@ const StructureFinalInspection: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth={false} disableGutters sx={{ mt: 2, mb: 2, px: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" component="h1">
           Structure Final Inspection
         </Typography>
         <Box>
-          <Button
-            variant="outlined"
-            startIcon={<Edit />}
-            onClick={handleBulkUpdateClick}
-            disabled={!canEdit || selectedRows.length === 0}
-            sx={{ mr: 2 }}
-          >
-            Bulk Update
-          </Button>
+          {canEdit() && (
+            <Button
+              variant="outlined"
+              startIcon={<Edit />}
+              onClick={handleBulkUpdateClick}
+              disabled={selectedRows.length === 0}
+              sx={{ mr: 2 }}
+            >
+              Bulk Update
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={<Download />}
@@ -626,14 +628,15 @@ const StructureFinalInspection: React.FC = () => {
           >
             Export CSV
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleAddClick}
-            disabled={!canEdit}
-          >
-            New Inspection
-          </Button>
+          {canEdit() && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAddClick}
+            >
+              New Inspection
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -720,7 +723,7 @@ const StructureFinalInspection: React.FC = () => {
 
       {/* Table Section */}
       <TableContainer component={Paper}>
-        <Table stickyHeader size="small">
+        <Table stickyHeader size="small" sx={{ minWidth: 1500 }}>
           <TableHead>
             <TableRow>
               <TableCell padding="checkbox">
@@ -746,7 +749,7 @@ const StructureFinalInspection: React.FC = () => {
               <TableCell>Result</TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Report No</TableCell>
-              <TableCell>Actions</TableCell>
+              {(canEdit() || canDelete()) && <TableCell>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -790,10 +793,12 @@ const StructureFinalInspection: React.FC = () => {
                    </TableCell>
                    <TableCell>{formatDate(record.final_date)}</TableCell>
                    <TableCell>{record.final_report_no}</TableCell>
-                   <TableCell>
-                      <IconButton size="small" onClick={() => handleEditClick(record)} disabled={!canEdit}><Edit fontSize="small" /></IconButton>
-                      <IconButton size="small" onClick={() => handleDeleteClick(record)} disabled={!canDelete}><Delete fontSize="small" /></IconButton>
-                   </TableCell>
+                   {(canEdit() || canDelete()) && (
+                     <TableCell>
+                      <IconButton size="small" onClick={() => handleEditClick(record)} disabled={!canEdit()}><Edit fontSize="small" /></IconButton>
+                      <IconButton size="small" onClick={() => handleDeleteClick(record)} disabled={!canDelete()}><Delete fontSize="small" /></IconButton>
+                     </TableCell>
+                   )}
                 </TableRow>
               ))
             )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Typography, Box, Button, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, TextField, MenuItem, TablePagination, IconButton, Snackbar, Alert, InputAdornment, FormControlLabel, Checkbox, Tooltip } from '@mui/material';
-import { Edit, Delete, Search, Clear, Warning, Info } from '@mui/icons-material';
+import { Edit, Delete, Search, Clear, Warning, Info, Download } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { NDTStatusRecord, NDTTest, NDTRequest, FinalInspection } from '../../types';
@@ -785,6 +785,58 @@ const NDTStatus: React.FC = () => {
     return sortedStats;
   }, [rows, tests]);
 
+  const downloadCSV = () => {
+    if (!displayRows.length) return;
+
+    const headers = isStructureProject 
+      ? ['Block No', 'Drawing No', 'Structure Category', 'Page No', 'Joint No', 'Weld Type', 'Weld Size', 'NDT Method', 'Report No', 'Result']
+      : ['System No', 'Line No', 'Spool No', 'Joint No', 'Weld Type', 'Weld Size', 'Pipe Dia', 'NDT Method', 'Report No', 'Result'];
+    
+    const csvContent = [
+      headers.join(','),
+      ...displayRows.map(row => {
+        const data = isStructureProject
+          ? [
+              row.block_no || '',
+              row.system_no || '',
+              row.line_no || '',
+              row.spool_no || '',
+              row.joint_no || '',
+              row.weld_type || '',
+              row.weld_size || '',
+              row.method || '',
+              row.report_no || '',
+              row.result || ''
+            ]
+          : [
+              row.system_no || '',
+              row.line_no || '',
+              row.spool_no || '',
+              row.joint_no || '',
+              row.weld_type || '',
+              row.weld_size || '',
+              row.pipe_dia || '',
+              row.method || '',
+              row.report_no || '',
+              row.result || ''
+            ];
+        return data.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${isStructureProject ? 'structure' : 'pipe'}_ndt_status.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1023,6 +1075,7 @@ const NDTStatus: React.FC = () => {
           ))}
           <Box sx={{ flex: 1 }} />
           <Button variant="outlined" onClick={load} disabled={loading}>Refresh</Button>
+          <Button variant="outlined" startIcon={<Download />} onClick={downloadCSV} disabled={loading || displayRows.length === 0} sx={{ ml: 1 }}>Export CSV</Button>
         </Box>
         <Table>
           <TableHead>
