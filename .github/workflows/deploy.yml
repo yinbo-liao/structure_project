@@ -124,7 +124,7 @@ jobs:
             POSTGRES_DB=${POSTGRES_DB:-appdb}
             POSTGRES_USER=${POSTGRES_USER:-appuser}
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-            JWT_SECRET=${JWT_SECRET:-please-change-this-secret-key}
+            SECRET_KEY=${SECRET_KEY:-please-change-this-secret-key}
             CERTBOT_EMAIL=${CERTBOT_EMAIL:-${{ secrets.CERTBOT_EMAIL }}}
             EOF
             
