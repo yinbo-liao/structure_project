@@ -15,6 +15,7 @@ from ..models import (
     StructureFitUpInspection,
     StructureFinalInspection,
     StructureNDTStatusRecord,
+    NDTTest,
     Project
 )
 
@@ -102,35 +103,103 @@ class NDTSyncService:
         Get all NDT status records for a specific joint
         Matching logic: Project ID + Drawing No + Joint No
         Also includes records with empty/null drawing number if joint number matches
+        
+        Priority: Check StructureNDTStatusRecord table first, then fall back to NDTTest table
         """
-        # Relaxed matching criteria to include records with missing drawing number
-        # Also using case-insensitive matching for drawing number
-        ndt_records = self.db.query(StructureNDTStatusRecord).filter(
-            and_(
-                StructureNDTStatusRecord.project_id == project_id,
-                StructureNDTStatusRecord.joint_no == joint_no,
-                or_(
-                    func.lower(StructureNDTStatusRecord.draw_no) == draw_no.lower() if draw_no else False,
-                    StructureNDTStatusRecord.draw_no == None,
-                    StructureNDTStatusRecord.draw_no == ""
-                )
-            )
-        ).order_by(StructureNDTStatusRecord.updated_at.asc(), StructureNDTStatusRecord.id.asc()).all()
+        logger.info(f"DEBUG: get_ndt_status_for_joint called for Project: {project_id}, Joint: {joint_no}, Draw: {draw_no}")
+        target_joint = (joint_no or "").strip()
+        if not target_joint:
+            logger.info("DEBUG: Joint No is empty, returning empty list")
+            return []
         
+        # FIRST: Check NDTTest table (primary source for individual NDT results)
+        logger.info(f"DEBUG: Checking NDTTest table for joint '{target_joint}'")
+        
+        # Check if joint_no is unique in the project
+        # If unique, we can be more lenient with drawing number matching
+        joint_count = self.db.query(func.count(StructureMasterJointList.id)).filter(
+            StructureMasterJointList.project_id == project_id,
+            func.lower(StructureMasterJointList.joint_no) == target_joint.lower()
+        ).scalar()
+        
+        is_unique_joint = (joint_count == 1)
+        logger.info(f"DEBUG: Joint '{target_joint}' unique? {is_unique_joint} (Count: {joint_count})")
+        
+        # Query NDTTest joined with StructureFinalInspection to get comprehensive test history
+        candidates = self.db.query(NDTTest, StructureFinalInspection).join(
+            StructureFinalInspection, NDTTest.final_id == StructureFinalInspection.id
+        ).filter(
+            NDTTest.project_id == project_id,
+            func.lower(StructureFinalInspection.joint_no) == target_joint.lower()
+        ).all()
+        
+        logger.info(f"DEBUG: NDTTest Query - Project: {project_id}, Joint: {target_joint}")
+        logger.info(f"DEBUG: Found {len(candidates)} candidate NDTTest records")
+        for idx, (t, f) in enumerate(candidates):
+            logger.info(f"  [{idx}] ID: {t.id}, Method: {t.method}, Report: {t.report_no}, Result: {t.result}, Final Joint: {f.joint_no}")
+
         records = []
-        for record in ndt_records:
-            records.append({
-                'id': record.id,
-                'ndt_type': record.ndt_type,
-                'ndt_report_no': record.ndt_report_no,
-                'ndt_result': record.ndt_result,
-                'test_length': record.test_length,
-                'weld_length': record.weld_length,
-                'rejected_length': record.rejected_length,
-                'created_at': record.created_at
-            })
+        target_draw = (draw_no or "").strip().lower()
         
-        return records
+        if candidates:
+            logger.info(f"DEBUG: Found {len(candidates)} candidate NDTTest records for joint '{target_joint}'")
+            for test, final in candidates:
+                rec_draw = (final.draw_no or "").strip().lower()
+                
+                # Match logic...
+                match = False
+                if not rec_draw:
+                    match = True
+                elif target_draw and rec_draw == target_draw:
+                    match = True
+                elif is_unique_joint:
+                    match = True
+                
+                if match:
+                    records.append({
+                        'id': test.id,
+                        'ndt_type': test.method,
+                        'ndt_report_no': test.report_no,
+                        'ndt_result': test.result,
+                        'test_length': test.test_length,
+                        'weld_length': getattr(final, 'weld_length', None),
+                        'rejected_length': 0.0,
+                        'created_at': test.test_date or datetime.now()
+                    })
+        
+        if records:
+            logger.info(f"DEBUG: Returning {len(records)} matched records from NDTTest table")
+            return records
+
+        # SECOND: Fall back to StructureNDTStatusRecord table if no NDTTest records found
+        logger.info(f"DEBUG: No NDTTest records found, checking StructureNDTStatusRecord table")
+        ndt_status_records = self.db.query(StructureNDTStatusRecord).filter(
+            StructureNDTStatusRecord.project_id == project_id,
+            func.lower(StructureNDTStatusRecord.joint_no) == target_joint.lower()
+        ).all()
+        
+        if ndt_status_records:
+            logger.info(f"DEBUG: Found {len(ndt_status_records)} NDT status records in StructureNDTStatusRecord table")
+            for status in ndt_status_records:
+                # Parse comma-separated NDT types (e.g., "FT, PMI, RT, UT")
+                ndt_types = [t.strip() for t in status.ndt_type.split(',')] if status.ndt_type else []
+                logger.info(f"DEBUG: Parsed NDT types: {ndt_types} from '{status.ndt_type}'")
+                
+                for ndt_type in ndt_types:
+                    records.append({
+                        'ndt_type': ndt_type,
+                        'ndt_report_no': status.ndt_report_no,
+                        'ndt_result': status.ndt_result,
+                        'test_length': 0.0,
+                        'weld_length': 0.0,
+                        'rejected_length': 0.0,
+                        'created_at': status.created_at or datetime.now()
+                    })
+            
+            logger.info(f"DEBUG: Returning {len(records)} records from StructureNDTStatusRecord table")
+            return records
+            
+        return []
     
     def calculate_comprehensive_status(self, ndt_results: List[Dict]) -> str:
         """
@@ -152,20 +221,36 @@ class NDTSyncService:
             return "NDT Accepted"
         else:
             return "NDT In Progress"
+
+    def _normalize_result_for_master_joint(self, result: Optional[str]) -> Optional[str]:
+        if result is None:
+            return None
+        val = result.strip()
+        if not val:
+            return None
+        lv = val.lower()
+        if lv == "accepted":
+            return "Accepted"
+        if lv == "rejected":
+            return "Rejected"
+        return val
     
     def sync_joint_ndt_data(self, joint_id: int) -> Dict:
         """
         Sync NDT data for a single joint
         Returns: Dict with sync results
         """
+        print(f"DEBUG: sync_joint_ndt_data (ID) called for Joint ID: {joint_id}")
         joint = self.db.query(StructureMasterJointList).filter(
             StructureMasterJointList.id == joint_id
         ).first()
         
         if not joint:
+            print(f"DEBUG: Joint ID {joint_id} not found in Master Joint List")
             return {'success': False, 'error': 'Joint not found'}
         
         # Get NDT status records for this joint
+        print(f"DEBUG: Fetching NDT records for joint {joint.joint_no}")
         ndt_records = self.get_ndt_status_for_joint(
             joint.project_id, joint.draw_no, joint.structure_category,
             joint.page_no, joint.drawing_rev, joint.joint_no
@@ -175,6 +260,7 @@ class NDTSyncService:
         method_mapping = self.get_ndt_method_mapping()
         
         logger.info(f"Syncing joint {joint.joint_no} (ID: {joint.id}). Found {len(ndt_records)} NDT records.")
+        print(f"DEBUG: Syncing joint {joint.joint_no} (ID: {joint.id}). Found {len(ndt_records)} NDT records.")
 
         # Update individual NDT method columns
         updates_made = False
@@ -199,23 +285,52 @@ class NDTSyncService:
                     report_col, result_col = method_mapping[single_type_clean]
                     
                     logger.info(f"Checking {single_type_clean} for joint {joint.joint_no}. Current: {getattr(joint, report_col)}/{getattr(joint, result_col)}. New: {record['ndt_report_no']}/{record['ndt_result']}")
+                    print(f"DEBUG: Checking {single_type_clean} ({report_col}/{result_col}). New: {record['ndt_report_no']}/{record['ndt_result']}")
 
-                    # Update report number if different
+                    # Only sync if we have actual data (not None/pending)
+                    # User requirement: Don't sync "pending" results to master joint list
+                    # Only sync when we have actual report numbers and non-pending results
+                    ndt_report_no = record['ndt_report_no']
+                    ndt_result = self._normalize_result_for_master_joint(record.get('ndt_result'))
+                    
+                    # Check if this is actual data worth syncing
+                    has_actual_report = ndt_report_no and ndt_report_no.strip() and ndt_report_no.lower() not in ['none', 'pending', '']
+                    has_actual_result = ndt_result and ndt_result.strip() and ndt_result.lower() not in ['none', 'pending', '']
+                    
+                    print(f"DEBUG: has_actual_report={has_actual_report}, has_actual_result={has_actual_result}")
+
+                    # Update report number if we have actual data
                     current_report = getattr(joint, report_col)
-                    if current_report != record['ndt_report_no']:
-                        setattr(joint, report_col, record['ndt_report_no'])
+                    if has_actual_report and current_report != ndt_report_no:
+                        print(f"DEBUG: Updating Report No from '{current_report}' to '{ndt_report_no}'")
+                        setattr(joint, report_col, ndt_report_no)
                         updates_made = True
                         updated_ndt_types.append(single_type)
-                        updated_ndt_report_nos.append(record['ndt_report_no'] or "")
+                        updated_ndt_report_nos.append(ndt_report_no)
                     
-                    # Update result if different
+                    # Update result if we have actual data
                     current_result = getattr(joint, result_col)
-                    if current_result != record['ndt_result']:
-                        setattr(joint, result_col, record['ndt_result'])
+                    if has_actual_result and current_result != ndt_result:
+                        print(f"DEBUG: Updating Result from '{current_result}' to '{ndt_result}'")
+                        setattr(joint, result_col, ndt_result)
                         updates_made = True
-                        updated_ndt_results.append(record['ndt_result'] or "")
+                        updated_ndt_results.append(ndt_result)
+                    
+                    # If we have pending data, clear the columns (don't show "pending")
+                    if not has_actual_report and current_report and current_report.strip():
+                        # Clear report number if it exists but NDT status has no actual report
+                        print(f"DEBUG: Clearing Report No '{current_report}' because new data is pending/empty")
+                        setattr(joint, report_col, None)
+                        updates_made = True
+                    
+                    if not has_actual_result and current_result and current_result.strip() and current_result.lower() not in ['', 'none']:
+                        # Clear result if it exists but NDT status has no actual result
+                        print(f"DEBUG: Clearing Result '{current_result}' because new data is pending/empty")
+                        setattr(joint, result_col, None)
+                        updates_made = True
                 else:
                     logger.warning(f"NDT Type '{single_type}' (cleaned: '{single_type_clean}') not found in mapping for joint {joint.joint_no}")
+                    print(f"DEBUG: NDT Type '{single_type}' not found in mapping")
         
         # Clear NDT columns for types not present in NDT status records
         # Get all mapped columns
@@ -243,12 +358,14 @@ class NDTSyncService:
                 current_val = getattr(joint, col)
                 if current_val is not None and current_val != "":
                     logger.info(f"Clearing NDT column {col} for joint {joint.joint_no} as no corresponding NDT record exists.")
+                    print(f"DEBUG: Clearing NDT column {col} (was '{current_val}') as no corresponding NDT record exists.")
                     setattr(joint, col, None)
                     updates_made = True
 
         # Calculate and update comprehensive status
         comprehensive_status = self.calculate_comprehensive_status(ndt_records)
         if joint.ndt_comprehensive_status != comprehensive_status:
+            print(f"DEBUG: Updating Comprehensive Status to '{comprehensive_status}'")
             joint.ndt_comprehensive_status = comprehensive_status
             updates_made = True
         
@@ -259,6 +376,7 @@ class NDTSyncService:
         if updates_made:
             self.db.commit()
             logger.info(f"Synced NDT data for joint {joint.joint_no} in project {joint.project_id}")
+            print(f"DEBUG: Sync completed successfully. Updates made.")
             
             # Prepare detail object for frontend
             detail = {
@@ -281,6 +399,7 @@ class NDTSyncService:
                 'detail': detail
             }
         else:
+            print(f"DEBUG: Sync completed. No updates needed.")
             # Prepare detail object for frontend (no changes)
             detail = {
                 'joint_id': joint.id,

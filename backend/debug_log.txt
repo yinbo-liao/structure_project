@@ -22795,3 +22795,2435 @@ DEBUG: ProjectModel module: app.models_fixed
 DEBUG: ProjectModel.project_type type: VARCHAR(50)
 DEBUG: Fetched 1 projects
 DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:08.110554
+DEBUG: Entering get_current_user at 2026-03-08 18:11:11.268209
+DEBUG: Entering get_current_user at 2026-03-08 18:11:11.322064
+DEBUG: Entering get_current_user at 2026-03-08 18:11:12.050376
+DEBUG: Entered read_projects at 2026-03-08 18:11:12.057476
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:12.078179
+DEBUG: Entered read_projects at 2026-03-08 18:11:12.086010
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:12.962901
+DEBUG: Entering get_current_user at 2026-03-08 18:11:12.992025
+DEBUG: Entering get_current_user at 2026-03-08 18:11:21.567509
+DEBUG: Entering get_current_user at 2026-03-08 18:11:21.587317
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.480557
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.491694
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.504437
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.518504
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.557137
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.572406
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.580607
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.591312
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.604194
+DEBUG: Entering get_current_user at 2026-03-08 18:11:24.629591
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.731471
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.740318
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.749260
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.777868
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.787027
+DEBUG: Entering get_current_user at 2026-03-08 18:11:27.796186
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.663713
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.672670
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.680636
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.687865
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.707204
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.723887
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.736366
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.744516
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.752710
+DEBUG: Entering get_current_user at 2026-03-08 18:11:28.790190
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.069909
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.078221
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.086946
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.115600
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.125507
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.139394
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.148743
+DEBUG: Entering get_current_user at 2026-03-08 18:11:29.186614
+DEBUG: Entering get_current_user at 2026-03-08 18:11:30.422942
+DEBUG: Entering get_current_user at 2026-03-08 18:11:30.516470
+DEBUG: Entering get_current_user at 2026-03-08 18:11:46.094187
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:46.109700
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:46.121361
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:46.134633
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:49.250171
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:49.273795
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:49.288987
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:49.309190
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:50.025248
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:50.061617
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:50.083936
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entered read_projects at 2026-03-08 18:11:50.112800
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 18:11:50.669777
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:50.735327
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:50.805585
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:51.334822
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:51.372681
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:51.774607
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:51.815686
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:52.917497
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EFC0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:52.942277
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:52.965430
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:53.002851
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:53.032452
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F750>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:53.057495
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:53.080621
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:53.116866
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.553258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.572748
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E780>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.590938
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.610031
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F750>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.652257
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F120>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.678999
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F540>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.699641
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.720870
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.739680
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EFC0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:54.790046
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.335224
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315ED00>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.355279
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FA10>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.376004
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F3E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.411535
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315ED00>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.433032
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:56.452659
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FA10>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.276217
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.294220
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.316270
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.361342
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.382722
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.408889
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315ED00>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.427454
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:57.470882
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.641204
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.663939
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.684750
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.709295
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EFC0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.755290
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.786600
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EA40>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.810877
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.836535
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.870222
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:11:58.912223
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.097475
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.125008
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FCD0>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.149845
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.196837
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FB70>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.218324
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FA10>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.243960
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.272810
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:01.314582
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FC20>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:02.776953
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:02.804855
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.793765
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.812452
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.830428
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FEE0>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.866095
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.886943
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.910106
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.931332
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EF10>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:03.972061
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:04.825354
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:11.497283
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:11.745540
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:11.768169
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:26.416599
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:26.992155
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:27.026242
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FE30>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:36.109354
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:12:36.148147
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:13:34.027755
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:13:34.502345
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:28.199196
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F6A0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:30.012599
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FB70>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:40.271831
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:40.720041
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F330>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.186040
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FEE0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.330150
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EF10>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.350634
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F490>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.372179
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FCD0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.413946
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F8B0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.431545
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.452258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FEE0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.472327
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.490114
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FD80>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:50.525476
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.286874
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.310919
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FD80>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.331355
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F750>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.362191
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.379265
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FEE0>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.413015
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EF10>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.440756
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E780>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:52.469815
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:56.209541
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:56.239717
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:58.162432
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:58.202083
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:59.039124
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:59.263439
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F120>
+DEBUG: Entering get_current_user at 2026-03-08 18:14:59.319892
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F120>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.017890
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.036134
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.054998
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EF10>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.072980
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EE60>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.122525
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.142547
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.163210
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6ED00>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.180063
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.206538
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4D983C0>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:08.252996
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:09.482857
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:10.349046
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:12.293554
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:37.664980
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:38.433352
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:38.471562
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.710084
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.737455
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F3E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.763006
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.799181
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.819997
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:39.847444
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E150>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:53.337010
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:53.998829
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:54.025646
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:54.040468
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:15:54.057297
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:08.880077
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:09.556399
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:09.590449
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:09.612573
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:09.632861
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:21.287677
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:21.944986
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:21.971704
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:21.985880
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F070>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:22.001288
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EA40>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.007976
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.035555
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315FAC0>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.058215
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.083939
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E8E0>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.128747
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.154230
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E780>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.174456
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.199178
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F800>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.223821
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:24.266780
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.570681
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.601051
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.620818
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.647723
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.675664
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E780>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.705604
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.728662
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315CD60>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:25.756446
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.315840
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.334917
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E780>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.355458
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F5F0>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.388313
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.408329
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315EA40>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:26.427954
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.113304
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.140582
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.164155
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.198296
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.231903
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.257949
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.280256
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F750>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:27.309770
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:49.971622
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:50.605091
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:50.648713
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:50.688222
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:16:50.719832
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:06.490604
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:07.145704
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:07.184384
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:07.221569
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:07.256030
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:13.761155
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:14.165415
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:14.214267
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:14.250109
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:14.288835
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:21.946749
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:22.360544
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:22.405986
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:22.449859
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:22.483333
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:30.890820
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:31.302504
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:31.336025
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:31.377170
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:31.413401
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:35.241993
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:35.270704
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:35.774631
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4D98680>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:35.797508
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C100>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:36.398984
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:36.449392
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:44.347348
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:44.752608
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:54.898771
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:55.061814
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:58.524829
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:17:58.702692
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:03.459456
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:03.652211
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.170637
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.198260
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.222623
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4D98AA0>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.253431
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.274060
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.306822
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.331148
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315E830>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:06.358149
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:32.581867
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:32.602060
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD4C6C050>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:34.908249
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 18:18:35.073524
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027DD315F960>
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.064848
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.130614
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.136124
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.141560
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.291024
+DEBUG: Entered read_projects at 2026-03-08 19:32:29.296793
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.310291
+DEBUG: Entered read_projects at 2026-03-08 19:32:29.314051
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.335478
+DEBUG: Entered read_projects at 2026-03-08 19:32:29.340001
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:29.348503
+DEBUG: Entered read_projects at 2026-03-08 19:32:29.352254
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:48.088568
+DEBUG: Entering get_current_user at 2026-03-08 19:32:48.250645
+DEBUG: Entering get_current_user at 2026-03-08 19:32:48.298450
+DEBUG: Entering get_current_user at 2026-03-08 19:32:49.048248
+DEBUG: Entered read_projects at 2026-03-08 19:32:49.054927
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:49.071029
+DEBUG: Entered read_projects at 2026-03-08 19:32:49.080918
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:32:49.698865
+DEBUG: Entering get_current_user at 2026-03-08 19:32:49.726852
+DEBUG: Entering get_current_user at 2026-03-08 19:32:58.315880
+DEBUG: Entering get_current_user at 2026-03-08 19:32:58.517442
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.742835
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.772976
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.791896
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.825134
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.838702
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.865162
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.892124
+DEBUG: Entering get_current_user at 2026-03-08 19:35:10.924583
+DEBUG: Entering get_current_user at 2026-03-08 19:39:58.236497
+DEBUG: Entering get_current_user at 2026-03-08 19:39:58.248027
+DEBUG: Entering get_current_user at 2026-03-08 19:39:58.307112
+DEBUG: Entered read_projects at 2026-03-08 19:39:58.310696
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:39:58.318309
+DEBUG: Entered read_projects at 2026-03-08 19:39:58.322111
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:40:01.615476
+DEBUG: Entered read_projects at 2026-03-08 19:40:01.653046
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:40:01.662179
+DEBUG: Entered read_projects at 2026-03-08 19:40:01.665327
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:40:03.468293
+DEBUG: Entering get_current_user at 2026-03-08 19:40:03.525776
+DEBUG: Entering get_current_user at 2026-03-08 19:40:03.545018
+DEBUG: Entering get_current_user at 2026-03-08 19:40:08.826063
+DEBUG: Entering get_current_user at 2026-03-08 19:40:08.839698
+DEBUG: Entering get_current_user at 2026-03-08 19:40:28.590350
+DEBUG: Entering get_current_user at 2026-03-08 19:40:28.600541
+DEBUG: Entering get_current_user at 2026-03-08 19:40:28.693357
+DEBUG: Entered read_projects at 2026-03-08 19:40:28.698470
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:40:28.711074
+DEBUG: Entered read_projects at 2026-03-08 19:40:28.718644
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:40:29.866892
+DEBUG: Entering get_current_user at 2026-03-08 19:40:30.121632
+DEBUG: Entering get_current_user at 2026-03-08 19:40:30.177672
+DEBUG: Entering get_current_user at 2026-03-08 19:40:32.401279
+DEBUG: Entering get_current_user at 2026-03-08 19:40:32.424211
+DEBUG: Entering get_current_user at 2026-03-08 19:40:39.124323
+DEBUG: Entering get_current_user at 2026-03-08 19:40:39.333731
+DEBUG: Entering get_current_user at 2026-03-08 19:41:15.954321
+DEBUG: Entering get_current_user at 2026-03-08 19:41:16.009697
+DEBUG: Entering get_current_user at 2026-03-08 19:45:06.722954
+DEBUG: Entering get_current_user at 2026-03-08 19:45:06.776240
+DEBUG: Entering get_current_user at 2026-03-08 19:45:15.024787
+DEBUG: Entering get_current_user at 2026-03-08 19:45:15.032945
+DEBUG: Entering get_current_user at 2026-03-08 19:45:15.128221
+DEBUG: Entered read_projects at 2026-03-08 19:45:15.131677
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:45:15.139258
+DEBUG: Entered read_projects at 2026-03-08 19:45:15.143180
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:45:16.306115
+DEBUG: Entering get_current_user at 2026-03-08 19:45:16.334285
+DEBUG: Entering get_current_user at 2026-03-08 19:45:16.361127
+DEBUG: Entering get_current_user at 2026-03-08 19:45:18.717861
+DEBUG: Entering get_current_user at 2026-03-08 19:45:18.727922
+DEBUG: Entering get_current_user at 2026-03-08 19:53:29.459767
+DEBUG: Entering get_current_user at 2026-03-08 19:53:29.508500
+DEBUG: Entering get_current_user at 2026-03-08 19:53:30.048000
+DEBUG: Entered read_projects at 2026-03-08 19:53:30.234087
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:53:30.477548
+DEBUG: Entered read_projects at 2026-03-08 19:53:30.575776
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:53:35.166241
+DEBUG: Entering get_current_user at 2026-03-08 19:53:35.185444
+DEBUG: Entering get_current_user at 2026-03-08 19:53:36.096216
+DEBUG: Entered read_projects at 2026-03-08 19:53:36.119771
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 19:53:36.160623
+DEBUG: Entered read_projects at 2026-03-08 19:53:36.176893
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:09:21.507638
+DEBUG: Entering get_current_user at 2026-03-08 21:09:21.516244
+DEBUG: Entering get_current_user at 2026-03-08 21:09:21.599971
+DEBUG: Entered read_projects at 2026-03-08 21:09:21.607243
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:09:21.617345
+DEBUG: Entered read_projects at 2026-03-08 21:09:21.622449
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:09:22.727635
+DEBUG: Entering get_current_user at 2026-03-08 21:09:22.997963
+DEBUG: Entering get_current_user at 2026-03-08 21:09:23.028784
+DEBUG: Entering get_current_user at 2026-03-08 21:09:23.703500
+DEBUG: Entering get_current_user at 2026-03-08 21:09:23.715529
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.489686
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.503632
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.513174
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.538300
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.546194
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.570663
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.577624
+DEBUG: Entering get_current_user at 2026-03-08 21:09:34.596788
+DEBUG: Entering get_current_user at 2026-03-08 21:10:01.468300
+DEBUG: Entering get_current_user at 2026-03-08 21:10:01.481822
+DEBUG: Entering get_current_user at 2026-03-08 21:10:05.090136
+DEBUG: Entering get_current_user at 2026-03-08 21:10:05.103507
+DEBUG: Entering get_current_user at 2026-03-08 21:10:11.126496
+DEBUG: Entering get_current_user at 2026-03-08 21:10:11.208451
+DEBUG: Entering get_current_user at 2026-03-08 21:11:42.137549
+DEBUG: Entering get_current_user at 2026-03-08 21:11:42.143500
+DEBUG: Entering get_current_user at 2026-03-08 21:11:42.217810
+DEBUG: Entered read_projects at 2026-03-08 21:11:42.221090
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:11:42.228399
+DEBUG: Entered read_projects at 2026-03-08 21:11:42.231529
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:34:30.818239
+DEBUG: Entering get_current_user at 2026-03-08 21:34:37.534034
+DEBUG: Entering get_current_user at 2026-03-08 21:34:44.031134
+DEBUG: Entering get_current_user at 2026-03-08 21:34:44.049908
+DEBUG: Entering get_current_user at 2026-03-08 21:34:44.181090
+DEBUG: Entered read_projects at 2026-03-08 21:34:44.190230
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:34:44.213199
+DEBUG: Entered read_projects at 2026-03-08 21:34:44.225036
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:34:45.642406
+DEBUG: Entering get_current_user at 2026-03-08 21:34:45.917126
+DEBUG: Entering get_current_user at 2026-03-08 21:34:46.016311
+DEBUG: Entering get_current_user at 2026-03-08 21:34:46.746116
+DEBUG: Entering get_current_user at 2026-03-08 21:34:46.782776
+DEBUG: Entering get_current_user at 2026-03-08 21:35:14.058925
+DEBUG: Entering get_current_user at 2026-03-08 21:35:14.081130
+DEBUG: Entering get_current_user at 2026-03-08 21:35:14.232369
+DEBUG: Entered read_projects at 2026-03-08 21:35:14.240412
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:35:14.256069
+DEBUG: Entered read_projects at 2026-03-08 21:35:14.262750
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:35:15.625746
+DEBUG: Entering get_current_user at 2026-03-08 21:35:15.702597
+DEBUG: Entering get_current_user at 2026-03-08 21:35:15.772394
+DEBUG: Entering get_current_user at 2026-03-08 21:35:17.905175
+DEBUG: Entering get_current_user at 2026-03-08 21:35:17.931135
+DEBUG: Entering get_current_user at 2026-03-08 21:40:19.204447
+DEBUG: Entering get_current_user at 2026-03-08 21:40:19.853891
+DEBUG: Entering get_current_user at 2026-03-08 21:43:39.582172
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000226ABCC0C20>
+DEBUG: Entered read_projects at 2026-03-08 21:43:39.621210
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:43:43.713144
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000226ABCABC50>
+DEBUG: Entering get_current_user at 2026-03-08 21:43:47.948551
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000226ABCA8910>
+DEBUG: Entering get_current_user at 2026-03-08 21:43:50.295556
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000226ACDC5CD0>
+DEBUG: Entering get_current_user at 2026-03-08 21:43:52.764083
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000226ACDC6B10>
+DEBUG: Entering get_current_user at 2026-03-08 21:57:27.091421
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A4DEE033D0>
+DEBUG: Entered read_projects at 2026-03-08 21:57:27.107439
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-08 21:57:29.132930
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A4DEE1D110>
+DEBUG: Entering get_current_user at 2026-03-08 22:02:01.484613
+DEBUG: Entering get_current_user at 2026-03-08 22:02:02.065837
+DEBUG: Entering get_current_user at 2026-03-08 22:02:11.011343
+DEBUG: Entering get_current_user at 2026-03-08 22:02:11.199364
+DEBUG: Entering get_current_user at 2026-03-08 22:03:20.151670
+DEBUG: Entering get_current_user at 2026-03-08 22:03:21.072080
+DEBUG: Entering get_current_user at 2026-03-08 22:08:57.576172
+DEBUG: Entering get_current_user at 2026-03-08 22:08:58.116182
+DEBUG: Entering get_current_user at 2026-03-09 04:56:50.516090
+DEBUG: Entering get_current_user at 2026-03-09 04:56:50.532351
+DEBUG: Entering get_current_user at 2026-03-09 04:56:50.637326
+DEBUG: Entered read_projects at 2026-03-09 04:56:50.642897
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 04:56:50.655825
+DEBUG: Entered read_projects at 2026-03-09 04:56:50.664826
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 04:56:52.147867
+DEBUG: Entering get_current_user at 2026-03-09 04:56:52.310016
+DEBUG: Entering get_current_user at 2026-03-09 04:56:52.354306
+DEBUG: Entering get_current_user at 2026-03-09 04:56:53.160467
+DEBUG: Entering get_current_user at 2026-03-09 04:56:53.193905
+DEBUG: Entering get_current_user at 2026-03-09 04:59:06.043000
+DEBUG: Entering get_current_user at 2026-03-09 04:59:12.611748
+DEBUG: Entering get_current_user at 2026-03-09 06:51:30.783603
+DEBUG: Entering get_current_user at 2026-03-09 06:51:30.795639
+DEBUG: Entering get_current_user at 2026-03-09 06:51:30.856413
+DEBUG: Entered read_projects at 2026-03-09 06:51:30.861274
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 06:51:30.871077
+DEBUG: Entered read_projects at 2026-03-09 06:51:30.877417
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 06:51:31.419775
+DEBUG: Entering get_current_user at 2026-03-09 06:51:31.501739
+DEBUG: Entering get_current_user at 2026-03-09 06:51:31.531178
+DEBUG: Entering get_current_user at 2026-03-09 06:51:32.536754
+DEBUG: Entering get_current_user at 2026-03-09 06:51:32.548744
+DEBUG: Entering get_current_user at 2026-03-09 06:51:37.898773
+DEBUG: Entering get_current_user at 2026-03-09 06:51:37.906738
+DEBUG: Entering get_current_user at 2026-03-09 06:51:37.976750
+DEBUG: Entered read_projects at 2026-03-09 06:51:37.981430
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 06:51:37.990771
+DEBUG: Entered read_projects at 2026-03-09 06:51:37.996290
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 06:51:39.228540
+DEBUG: Entering get_current_user at 2026-03-09 06:51:39.255778
+DEBUG: Entering get_current_user at 2026-03-09 06:51:39.301131
+DEBUG: Entering get_current_user at 2026-03-09 06:51:40.807362
+DEBUG: Entering get_current_user at 2026-03-09 06:51:40.823887
+DEBUG: Entering get_current_user at 2026-03-09 06:51:41.907331
+DEBUG: Entering get_current_user at 2026-03-09 06:51:42.085290
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.123890
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.138561
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.147238
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.176684
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.183913
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.210100
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.217154
+DEBUG: Entering get_current_user at 2026-03-09 06:51:53.268823
+DEBUG: Entering get_current_user at 2026-03-09 18:25:41.097616
+DEBUG: Entering get_current_user at 2026-03-09 18:25:41.241115
+DEBUG: Entering get_current_user at 2026-03-09 18:25:41.363626
+DEBUG: Entered read_projects at 2026-03-09 18:25:41.377111
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 18:25:41.435303
+DEBUG: Entered read_projects at 2026-03-09 18:25:41.462099
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 18:25:42.565402
+DEBUG: Entering get_current_user at 2026-03-09 18:25:42.919659
+DEBUG: Entering get_current_user at 2026-03-09 18:25:42.955438
+DEBUG: Entering get_current_user at 2026-03-09 18:25:44.947442
+DEBUG: Entering get_current_user at 2026-03-09 18:25:44.964951
+DEBUG: Entering get_current_user at 2026-03-09 18:25:47.267091
+DEBUG: Entering get_current_user at 2026-03-09 18:25:47.288636
+DEBUG: Entering get_current_user at 2026-03-09 18:57:25.593025
+DEBUG: Entering get_current_user at 2026-03-09 18:57:25.941051
+DEBUG: Entering get_current_user at 2026-03-09 18:57:30.829043
+DEBUG: Entering get_current_user at 2026-03-09 18:57:31.060588
+DEBUG: Entering get_current_user at 2026-03-09 18:57:46.375667
+DEBUG: Entering get_current_user at 2026-03-09 18:57:46.394494
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.008108
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.024169
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.038237
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.051281
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.113011
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.126364
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.143961
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.157517
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.174049
+DEBUG: Entering get_current_user at 2026-03-09 18:57:49.224724
+DEBUG: Entering get_current_user at 2026-03-09 18:57:53.494970
+DEBUG: Entering get_current_user at 2026-03-09 18:57:53.700170
+DEBUG: Entering get_current_user at 2026-03-09 18:57:53.718036
+DEBUG: Entering get_current_user at 2026-03-09 18:57:57.111899
+DEBUG: Entering get_current_user at 2026-03-09 18:57:57.310284
+DEBUG: Entering get_current_user at 2026-03-09 18:57:57.335763
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.814245
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.828473
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.834179
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.862520
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.889579
+DEBUG: Entering get_current_user at 2026-03-09 18:57:58.903021
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.116154
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.211959
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.229395
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.282276
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.297984
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.332521
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.342911
+DEBUG: Entering get_current_user at 2026-03-09 18:58:00.390770
+DEBUG: Entering get_current_user at 2026-03-09 18:58:05.489683
+DEBUG: Entering get_current_user at 2026-03-09 18:58:05.503711
+DEBUG: Entering get_current_user at 2026-03-09 18:58:06.203834
+DEBUG: Entering get_current_user at 2026-03-09 18:58:06.218984
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.650595
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.657185
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.667515
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.702323
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.712548
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.727402
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.744983
+DEBUG: Entering get_current_user at 2026-03-09 18:58:07.788119
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.727145
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.734896
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.742983
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.751378
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.775417
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.783484
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.796240
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.808882
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.819158
+DEBUG: Entering get_current_user at 2026-03-09 18:58:12.859030
+DEBUG: Entering get_current_user at 2026-03-09 18:58:14.716160
+DEBUG: Entering get_current_user at 2026-03-09 18:58:16.953374
+DEBUG: Entering get_current_user at 2026-03-09 18:58:37.617231
+DEBUG: Entering get_current_user at 2026-03-09 18:58:38.282777
+DEBUG: Entering get_current_user at 2026-03-09 18:58:38.316760
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.355161
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.364781
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.372743
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.395903
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.416955
+DEBUG: Entering get_current_user at 2026-03-09 18:58:41.427629
+DEBUG: Entering get_current_user at 2026-03-09 18:58:57.489590
+DEBUG: Entering get_current_user at 2026-03-09 18:58:58.197203
+DEBUG: Entering get_current_user at 2026-03-09 18:58:58.217438
+DEBUG: Entering get_current_user at 2026-03-09 18:58:58.226779
+DEBUG: Entering get_current_user at 2026-03-09 18:58:58.238612
+DEBUG: Entering get_current_user at 2026-03-09 18:59:12.053339
+DEBUG: Entering get_current_user at 2026-03-09 18:59:12.707371
+DEBUG: Entering get_current_user at 2026-03-09 18:59:12.728804
+DEBUG: Entering get_current_user at 2026-03-09 18:59:12.743327
+DEBUG: Entering get_current_user at 2026-03-09 18:59:12.755238
+DEBUG: Entering get_current_user at 2026-03-09 18:59:25.108910
+DEBUG: Entering get_current_user at 2026-03-09 18:59:25.767363
+DEBUG: Entering get_current_user at 2026-03-09 18:59:25.790011
+DEBUG: Entering get_current_user at 2026-03-09 18:59:25.801215
+DEBUG: Entering get_current_user at 2026-03-09 18:59:25.813569
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.116977
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.153975
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.165473
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.196117
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.211377
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.228911
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.251743
+DEBUG: Entering get_current_user at 2026-03-09 18:59:27.265368
+DEBUG: Entering get_current_user at 2026-03-09 18:59:58.295236
+DEBUG: Entering get_current_user at 2026-03-09 18:59:58.926585
+DEBUG: Entering get_current_user at 2026-03-09 18:59:58.974331
+DEBUG: Entering get_current_user at 2026-03-09 18:59:59.102248
+DEBUG: Entering get_current_user at 2026-03-09 18:59:59.202626
+DEBUG: Entering get_current_user at 2026-03-09 19:00:12.615907
+DEBUG: Entering get_current_user at 2026-03-09 19:00:13.249497
+DEBUG: Entering get_current_user at 2026-03-09 19:00:13.287238
+DEBUG: Entering get_current_user at 2026-03-09 19:00:13.339621
+DEBUG: Entering get_current_user at 2026-03-09 19:00:13.372436
+DEBUG: Entering get_current_user at 2026-03-09 19:00:26.239099
+DEBUG: Entering get_current_user at 2026-03-09 19:00:26.858096
+DEBUG: Entering get_current_user at 2026-03-09 19:00:26.898567
+DEBUG: Entering get_current_user at 2026-03-09 19:00:26.939984
+DEBUG: Entering get_current_user at 2026-03-09 19:00:26.978924
+DEBUG: Entering get_current_user at 2026-03-09 19:00:29.016942
+DEBUG: Entering get_current_user at 2026-03-09 19:00:29.036373
+DEBUG: Entering get_current_user at 2026-03-09 19:00:33.860987
+DEBUG: Entering get_current_user at 2026-03-09 19:00:34.264005
+DEBUG: Entering get_current_user at 2026-03-09 19:00:37.320215
+DEBUG: Entering get_current_user at 2026-03-09 19:00:37.508823
+DEBUG: Entering get_current_user at 2026-03-09 19:00:44.855133
+DEBUG: Entering get_current_user at 2026-03-09 19:00:44.865071
+DEBUG: Entering get_current_user at 2026-03-09 19:00:44.958454
+DEBUG: Entered read_projects at 2026-03-09 19:00:44.964759
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:00:44.988535
+DEBUG: Entered read_projects at 2026-03-09 19:00:44.998234
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:00:45.948886
+DEBUG: Entering get_current_user at 2026-03-09 19:00:46.328700
+DEBUG: Entering get_current_user at 2026-03-09 19:00:46.452864
+DEBUG: Entering get_current_user at 2026-03-09 19:00:47.253978
+DEBUG: Entering get_current_user at 2026-03-09 19:00:47.269628
+DEBUG: Entering get_current_user at 2026-03-09 19:04:36.115785
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000258360B9690>
+DEBUG: Entered read_projects at 2026-03-09 19:04:36.225226
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:04:40.326836
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000258360CE390>
+DEBUG: Entering get_current_user at 2026-03-09 19:04:44.585724
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000258370D9310>
+DEBUG: Entering get_current_user at 2026-03-09 19:04:46.865664
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002583712F550>
+DEBUG: Entering get_current_user at 2026-03-09 19:04:49.263334
+DEBUG: Querying user inspector@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002583718F850>
+DEBUG: Entering get_current_user at 2026-03-09 19:08:39.452117
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002101E7C9B10>
+DEBUG: Entered read_projects at 2026-03-09 19:08:39.535803
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:08:43.600324
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002101E7E0C50>
+DEBUG: Entering get_current_user at 2026-03-09 19:10:40.942612
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002321E0D9D10>
+DEBUG: Entered read_projects at 2026-03-09 19:10:41.043573
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:10:45.108492
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002321E0F0DD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:11:21.922040
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002046ABC9450>
+DEBUG: Entered read_projects at 2026-03-09 19:11:22.002852
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:11:24.033935
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002046ABD6E50>
+DEBUG: Entering get_current_user at 2026-03-09 19:11:28.103851
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002046BBD8590>
+DEBUG: Entering get_current_user at 2026-03-09 19:11:30.450498
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002046BC22C10>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:16.891530
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000183B3E79650>
+DEBUG: Entered read_projects at 2026-03-09 19:12:16.974505
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:12:19.009980
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000183B3E87450>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:21.059914
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000183B3EA98D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:23.118261
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000183B3E71F90>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:45.751043
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DC809990>
+DEBUG: Entered read_projects at 2026-03-09 19:12:45.849051
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:12:47.884748
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DC817610>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:49.933543
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DC817690>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:51.976009
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DD84CD50>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:54.033853
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DD8938D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:12:56.068857
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000157DD89CDD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:24.698398
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E489890>
+DEBUG: Entered read_projects at 2026-03-09 19:13:24.774258
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:13:26.814299
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E497550>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:28.863763
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E4C8310>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:30.914340
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E480D10>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:32.961768
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E53F990>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:35.020070
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E54D2D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:37.241165
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E547490>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:39.641598
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E5B1990>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:41.858530
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E5B39D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:13:44.249733
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A71E5B1210>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:05.926844
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C923C9190>
+DEBUG: Entered read_projects at 2026-03-09 19:14:06.017021
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:14:08.062258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C91BF6350>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:10.114251
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C923F9DD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:12.162435
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C91DAE590>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:14.202255
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C93453390>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:16.249540
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C934608D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:18.483885
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C93457490>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:20.535074
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C9349E890>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:22.585887
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C9349EA10>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:24.789863
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C9349EED0>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:26.856856
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C934A5CD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:28.901568
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C934A7750>
+DEBUG: Entering get_current_user at 2026-03-09 19:14:33.103849
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000027C934A4310>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:04.588659
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB3099B50>
+DEBUG: Entered read_projects at 2026-03-09 19:15:04.681347
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:15:06.714725
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB30A7950>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:08.759804
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB30D4AD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:10.807009
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB310E250>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:12.865853
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB314F9D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:14.909399
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB315CF10>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:17.118270
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FAFA5CC90>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:19.179185
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB319EF90>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:21.211753
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB319F2D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:23.386117
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB319DCD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:25.445390
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB31A2450>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:27.484669
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB31A3ED0>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:31.677013
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000023FB31A2410>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:50.260568
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068B45D90>
+DEBUG: Entered read_projects at 2026-03-09 19:15:50.348570
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:15:52.379149
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068B53950>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:54.428810
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068B5B510>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:56.514280
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068BBE710>
+DEBUG: Entering get_current_user at 2026-03-09 19:15:58.554388
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068BFFBD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:00.602721
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C0D090>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:02.827609
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C4C550>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:04.902256
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C4EFD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:06.947791
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C4E610>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:09.146509
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C4F210>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:11.183427
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C52450>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:13.228862
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C53DD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:15.426202
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C506D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:16:19.469357
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000021068C51450>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:08.121572
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6E0EFD0>
+DEBUG: Entered read_projects at 2026-03-09 19:24:08.177486
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:24:10.388251
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6E0F110>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:12.921456
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6F96190>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:15.596555
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6F96520>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:17.881919
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF70A8A70>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:20.703521
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6E27680>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:25.337236
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF6E27350>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:26.729015
+DEBUG: Entering get_current_user at 2026-03-09 19:24:31.382001
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF7097E50>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:31.945058
+DEBUG: Entering get_current_user at 2026-03-09 19:24:34.406449
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF70FDA90>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:38.379111
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF7129550>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:41.175489
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF7129390>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:41.564324
+DEBUG: Entering get_current_user at 2026-03-09 19:24:46.713965
+DEBUG: Entering get_current_user at 2026-03-09 19:24:46.997888
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF70EA690>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:51.189512
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF58F6D00>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:55.785621
+DEBUG: Entering get_current_user at 2026-03-09 19:24:56.297159
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DFF58F71D0>
+DEBUG: Entering get_current_user at 2026-03-09 19:24:58.596133
+DEBUG: Entering get_current_user at 2026-03-09 19:24:59.056719
+DEBUG: Entering get_current_user at 2026-03-09 19:25:07.581755
+DEBUG: Entering get_current_user at 2026-03-09 19:27:00.802141
+DEBUG: Entering get_current_user at 2026-03-09 19:27:00.811265
+DEBUG: Entering get_current_user at 2026-03-09 19:27:00.966792
+DEBUG: Entered read_projects at 2026-03-09 19:27:00.972694
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:27:00.982687
+DEBUG: Entered read_projects at 2026-03-09 19:27:00.987434
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:28:12.157401
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C88108F250>
+DEBUG: Entered read_projects at 2026-03-09 19:28:12.168653
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:28:14.220300
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C88108F390>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:16.263833
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882316060>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:18.747889
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882315F30>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:20.815010
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C8821D1D90>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:22.854236
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C8821B3CE0>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:24.915931
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C8821B3CE0>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:27.148853
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C88253BA50>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:29.200278
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C8825A8350>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:31.242790
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C8825858B0>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:33.486308
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882585040>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:35.519268
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882352C10>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:37.580676
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882571B70>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:39.769520
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C882598390>
+DEBUG: Entering get_current_user at 2026-03-09 19:28:43.803363
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001C88251ABD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:22.686212
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002531F39B250>
+DEBUG: Entered read_projects at 2026-03-09 19:37:22.698781
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:37:24.726499
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002531F39B390>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:26.774542
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002532062DF30>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:28.821635
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002532062E2C0>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:30.872884
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000025320728830>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:32.922586
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002531F4F38A0>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:35.121045
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002531F4F3570>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:37.172218
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000025320717A50>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:39.209750
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000025320717450>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:41.406568
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000025320770140>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:43.444736
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000025320771130>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:45.487820
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002532075E7B0>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:47.683492
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002532075D390>
+DEBUG: Entering get_current_user at 2026-03-09 19:37:51.732237
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000253207902C0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:04.779006
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604D3B2E90>
+DEBUG: Entered read_projects at 2026-03-09 19:45:04.790225
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:45:06.857768
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604D3B2FD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:08.917962
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E525E00>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:10.977283
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E526190>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:13.104210
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E6185F0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:15.192614
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604D3D38A0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:17.454910
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604D3D3570>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:19.541241
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E607A50>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:21.945111
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E607C50>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:24.227784
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E660140>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:26.333667
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E661130>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:28.400551
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E64A7B0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:30.630892
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E6492B0>
+DEBUG: Entering get_current_user at 2026-03-09 19:45:34.690370
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001604E67C460>
+DEBUG: Entering get_current_user at 2026-03-09 19:47:23.209201
+DEBUG: Entering get_current_user at 2026-03-09 19:47:23.216895
+DEBUG: Entering get_current_user at 2026-03-09 19:47:27.887201
+DEBUG: Entered read_projects at 2026-03-09 19:47:27.967990
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:47:27.992806
+DEBUG: Entered read_projects at 2026-03-09 19:47:28.003481
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:52:03.011402
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D209940>
+DEBUG: Entered read_projects at 2026-03-09 19:52:03.047886
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 19:52:05.081506
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D209480>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:07.137305
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D142450>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:09.188503
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236C12EAD0>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:11.259890
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236C12F8A0>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:13.302748
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D368E50>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:15.533510
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D368450>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:17.587656
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3C08C0>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:19.631978
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3C0F50>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:21.821521
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3AEEB0>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:23.859637
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3AEA50>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:25.905364
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3D0390>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:28.093689
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3B8B90>
+DEBUG: Entering get_current_user at 2026-03-09 19:52:32.136576
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001236D3B9250>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:13.401258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DCB0F390>
+DEBUG: Entered read_projects at 2026-03-09 20:44:13.410542
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 20:44:15.431258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DCB0F390>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:17.494901
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDDCDE00>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:19.524234
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDDCCD60>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:21.582406
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDC46330>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:23.621783
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDC2B8A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:26.075774
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDC2B8A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:28.128736
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDE97C50>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:30.173760
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDE97650>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:32.412400
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDEF9400>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:34.446653
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDEFA120>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:36.490086
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDEDE270>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:38.693109
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDEDDFD0>
+DEBUG: Entering get_current_user at 2026-03-09 20:44:42.736763
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000265DDF101F0>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:43.851598
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296C9623390>
+DEBUG: Entered read_projects at 2026-03-09 20:50:43.861519
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 20:50:45.914393
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296C9623390>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:47.996923
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA8DDE00>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:50.079170
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA8DCD60>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:52.140789
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296C9782330>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:54.197798
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296C97678A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:56.683286
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296C97678A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:50:58.722484
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA9A7C50>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:00.753711
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA9A7650>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:02.974019
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CAA09400>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:05.013659
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CAA0A120>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:07.061935
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA9EE270>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:09.330133
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CA9EDFD0>
+DEBUG: Entering get_current_user at 2026-03-09 20:51:13.414850
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x00000296CAA1C2C0>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:14.029249
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20B94F390>
+DEBUG: Entered read_projects at 2026-03-09 20:57:14.044876
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 20:57:16.082371
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20B94F390>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:18.145660
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CC0DE00>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:20.207389
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CC0CD60>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:22.283543
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CA82330>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:24.312515
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CA678A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:26.787786
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CA678A0>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:28.822573
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CCD7C50>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:30.861267
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CCD7650>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:33.092141
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CD39400>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:35.132265
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CD3A120>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:37.181722
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CD22270>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:39.447183
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CD21FD0>
+DEBUG: Entering get_current_user at 2026-03-09 20:57:43.507392
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001A20CD501F0>
+DEBUG: Entering get_current_user at 2026-03-09 20:59:54.309211
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDDE76FD0>
+DEBUG: Entered read_projects at 2026-03-09 20:59:54.325968
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-09 20:59:56.374770
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDDE76FD0>
+DEBUG: Entering get_current_user at 2026-03-09 20:59:58.432665
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDEFEDCD0>
+DEBUG: Entering get_current_user at 2026-03-09 21:00:00.508700
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDEFECC30>
+DEBUG: Entering get_current_user at 2026-03-09 21:00:02.560272
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDDE8F410>
+DEBUG: Entering get_current_user at 2026-03-09 21:00:04.598950
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDDE6B8A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:16:17.759640
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF0B4E50>
+DEBUG: Entered read_projects at 2026-03-10 07:16:17.793574
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 07:16:19.846047
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF0B4E50>
+DEBUG: Entering get_current_user at 2026-03-10 07:16:21.890324
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF1B9C70>
+DEBUG: Entering get_current_user at 2026-03-10 07:16:23.943360
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF1BA120>
+DEBUG: Entering get_current_user at 2026-03-10 07:16:26.000009
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF146970>
+DEBUG: Entering get_current_user at 2026-03-10 07:16:28.044382
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001CCDF146B30>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:06.155202
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CC37AFD0>
+DEBUG: Entered read_projects at 2026-03-10 07:17:06.173353
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 07:17:08.215351
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CC37AFD0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:10.272536
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD501CD0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:12.317068
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD500C30>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:14.385081
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CC3BB1D0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:16.434839
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CC3978A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:18.924565
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CC3978A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:20.966442
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD5C7B50>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:23.015263
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD5C7550>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:25.247779
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD629310>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:27.307501
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD62A030>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:29.337263
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD612350>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:31.582330
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD6120B0>
+DEBUG: Entering get_current_user at 2026-03-10 07:17:35.640678
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002A4CD63C390>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:15.194120
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE5366FD0>
+DEBUG: Entered read_projects at 2026-03-10 07:19:15.207961
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 07:19:17.265261
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE5366FD0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:19.329111
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE551DCD0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:21.400242
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE551CC30>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:23.469950
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE53AB1D0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:25.504875
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE53838A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:28.119099
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE53838A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:30.170520
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE55E7C50>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:32.214983
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE55E7650>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:34.554970
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE565D9A0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:36.597585
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE565E6C0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:38.647132
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE566E5F0>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:41.001258
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE566DC50>
+DEBUG: Entering get_current_user at 2026-03-10 07:19:45.052873
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x0000020AE5658C80>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:26.379919
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE1CB2FD0>
+DEBUG: Entered read_projects at 2026-03-10 07:25:26.396793
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 07:25:28.448882
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE1CB3110>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:30.508183
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE2F3DF30>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:32.557981
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE2F3E2C0>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:34.607185
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE3038830>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:36.659588
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE1E0B570>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:39.273533
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE1E0B240>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:41.325867
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE3027C50>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:43.365775
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE30BC250>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:45.607205
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE307CD70>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:47.665228
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE307E030>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:49.715079
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE30AF850>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:51.935611
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE30ACD70>
+DEBUG: Entering get_current_user at 2026-03-10 07:25:55.994706
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000001DAE3089300>
+DEBUG: Entering get_current_user at 2026-03-10 18:27:59.652628
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F51CD160>
+DEBUG: Entered read_projects at 2026-03-10 18:27:59.707112
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 18:28:01.752353
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F50774D0>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:03.789124
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F5077750>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:05.838122
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F62C6060>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:07.881210
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F62C6FD0>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:09.947435
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F6404050>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:12.635773
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F6480490>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:14.678601
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F6480E20>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:16.728097
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F63EF650>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:19.045242
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F63EF950>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:21.086252
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F6441F40>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:23.130886
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F64425D0>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:25.363872
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F647AA50>
+DEBUG: Entering get_current_user at 2026-03-10 18:28:29.412785
+DEBUG: Querying user admin@mpdms.com
+DEBUG: User query result: <app.models_fixed.User object at 0x000002D0F647B930>
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.250783
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.369509
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.376925
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.384196
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.528008
+DEBUG: Entered read_projects at 2026-03-10 19:49:00.533358
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.545184
+DEBUG: Entered read_projects at 2026-03-10 19:49:00.549422
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.575146
+DEBUG: Entered read_projects at 2026-03-10 19:49:00.580196
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 19:49:00.588975
+DEBUG: Entered read_projects at 2026-03-10 19:49:00.592923
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-03-10 19:49:10.942396
+DEBUG: Entering get_current_user at 2026-03-10 19:49:11.253656
+DEBUG: Entering get_current_user at 2026-03-10 19:49:11.573660
+DEBUG: Entering get_current_user at 2026-03-10 19:49:12.785686
+DEBUG: Entering get_current_user at 2026-03-10 19:49:12.964264
+DEBUG: Entering get_current_user at 2026-03-10 19:49:22.536357
+DEBUG: Entering get_current_user at 2026-03-10 19:49:24.042740
+DEBUG: Entering get_current_user at 2026-03-10 19:49:35.072696
+DEBUG: Entering get_current_user at 2026-03-10 19:49:35.166641
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.590932
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.637713
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.694179
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.770445
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.839955
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.875716
+DEBUG: Entering get_current_user at 2026-03-10 19:49:37.947796
+DEBUG: Entering get_current_user at 2026-03-10 19:49:38.020706
+DEBUG: Entering get_current_user at 2026-03-10 19:49:38.897840
+DEBUG: Entering get_current_user at 2026-03-10 19:50:00.570065
+DEBUG: Entering get_current_user at 2026-03-10 19:50:01.690988
+DEBUG: Entering get_current_user at 2026-03-10 19:50:01.738346
+DEBUG: Entering get_current_user at 2026-03-10 19:50:10.422728
+DEBUG: Entering get_current_user at 2026-03-10 19:50:10.550008
+DEBUG: Entering get_current_user at 2026-03-10 19:50:11.047131
+DEBUG: Entering get_current_user at 2026-03-10 19:50:11.119740
+DEBUG: Entering get_current_user at 2026-03-10 19:50:59.641810
+DEBUG: Entering get_current_user at 2026-03-10 19:51:09.105434
+DEBUG: Entering get_current_user at 2026-03-10 19:51:10.458958
+DEBUG: Entering get_current_user at 2026-03-10 19:51:15.850872
+DEBUG: Entering get_current_user at 2026-03-10 19:51:15.912693
+DEBUG: Entering get_current_user at 2026-03-10 19:51:15.973273
+DEBUG: Entering get_current_user at 2026-03-10 19:51:16.034269
+DEBUG: Entering get_current_user at 2026-03-10 19:51:16.107165
+DEBUG: Entering get_current_user at 2026-03-10 19:51:16.175337
+DEBUG: Entering get_current_user at 2026-03-10 19:51:16.286717
+DEBUG: Entering get_current_user at 2026-03-10 19:51:16.366246
+DEBUG: Entering get_current_user at 2026-03-10 19:51:19.089839
+DEBUG: Entering get_current_user at 2026-03-10 19:51:19.182376
+DEBUG: Entering get_current_user at 2026-03-10 19:52:10.731723
+DEBUG: Entering get_current_user at 2026-03-10 19:52:11.423522
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.663526
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.681914
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.697825
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.726676
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.741844
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.791609
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.816723
+DEBUG: Entering get_current_user at 2026-03-10 19:52:13.852650
+DEBUG: Entering get_current_user at 2026-03-10 19:52:15.899552
+DEBUG: Entering get_current_user at 2026-03-10 19:52:16.289939
+DEBUG: Entering get_current_user at 2026-03-10 19:52:16.327019
+DEBUG: Entering get_current_user at 2026-03-10 19:52:31.399465
+DEBUG: Entering get_current_user at 2026-03-10 19:52:32.157413
+DEBUG: Entering get_current_user at 2026-03-10 19:52:32.186678
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.658436
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.675394
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.686502
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.695854
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.763534
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.778725
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.793997
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.811440
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.825967
+DEBUG: Entering get_current_user at 2026-03-10 19:52:39.913724
+DEBUG: Entering get_current_user at 2026-03-10 19:53:02.104549
+DEBUG: Entering get_current_user at 2026-03-10 19:53:02.753901
+DEBUG: Entering get_current_user at 2026-03-10 19:53:02.780431
+DEBUG: Entering get_current_user at 2026-03-10 19:53:05.720419
+DEBUG: Entering get_current_user at 2026-03-10 19:53:06.035279
+DEBUG: Entering get_current_user at 2026-03-10 19:53:06.065212
+DEBUG: Entering get_current_user at 2026-03-10 19:53:07.368785
+DEBUG: Entering get_current_user at 2026-03-10 19:53:09.838331
+DEBUG: Entering get_current_user at 2026-03-10 19:53:30.011120
+DEBUG: Entering get_current_user at 2026-03-10 19:53:31.084798
+DEBUG: Entering get_current_user at 2026-03-10 19:53:31.125115
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.859706
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.867936
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.882040
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.940385
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.963080
+DEBUG: Entering get_current_user at 2026-03-10 19:53:32.976882
+DEBUG: Entering get_current_user at 2026-03-10 19:53:47.000332
+DEBUG: Entering get_current_user at 2026-03-10 19:53:48.108685
+DEBUG: Entering get_current_user at 2026-03-10 19:53:48.131208
+DEBUG: Entering get_current_user at 2026-03-10 19:53:48.141919
+DEBUG: Entering get_current_user at 2026-03-10 19:53:48.165870
+DEBUG: Entering get_current_user at 2026-03-10 19:53:59.324144
+DEBUG: Entering get_current_user at 2026-03-10 19:54:00.303007
+DEBUG: Entering get_current_user at 2026-03-10 19:54:00.327707
+DEBUG: Entering get_current_user at 2026-03-10 19:54:00.338900
+DEBUG: Entering get_current_user at 2026-03-10 19:54:00.348178
+DEBUG: Entering get_current_user at 2026-03-10 19:54:12.548226
+DEBUG: Entering get_current_user at 2026-03-10 19:54:13.573803
+DEBUG: Entering get_current_user at 2026-03-10 19:54:13.596618
+DEBUG: Entering get_current_user at 2026-03-10 19:54:13.609428
+DEBUG: Entering get_current_user at 2026-03-10 19:54:13.627531
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.580574
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.638576
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.663132
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.708698
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.724469
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.757332
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.770351
+DEBUG: Entering get_current_user at 2026-03-10 19:54:14.811465
+DEBUG: Entering get_current_user at 2026-03-10 19:54:28.926844
+DEBUG: Entering get_current_user at 2026-03-10 19:54:29.912533
+DEBUG: Entering get_current_user at 2026-03-10 19:54:29.987190
+DEBUG: Entering get_current_user at 2026-03-10 19:54:30.084915
+DEBUG: Entering get_current_user at 2026-03-10 19:54:30.169666
+DEBUG: Entering get_current_user at 2026-03-10 19:54:43.205685
+DEBUG: Entering get_current_user at 2026-03-10 19:54:44.179997
+DEBUG: Entering get_current_user at 2026-03-10 19:54:44.238317
+DEBUG: Entering get_current_user at 2026-03-10 19:54:44.303082
+DEBUG: Entering get_current_user at 2026-03-10 19:54:44.383926
+DEBUG: Entering get_current_user at 2026-03-10 19:54:55.043853
+DEBUG: Entering get_current_user at 2026-03-10 19:54:55.818867
+DEBUG: Entering get_current_user at 2026-03-10 19:54:55.874816
+DEBUG: Entering get_current_user at 2026-03-10 19:54:55.930548
+DEBUG: Entering get_current_user at 2026-03-10 19:54:55.979337
+DEBUG: Entering get_current_user at 2026-03-10 19:54:59.865924
+DEBUG: Entering get_current_user at 2026-03-10 19:54:59.884145
+DEBUG: Entering get_current_user at 2026-03-10 19:55:00.960673
+DEBUG: Entering get_current_user at 2026-03-10 19:55:01.010239
+DEBUG: Entering get_current_user at 2026-03-10 19:55:02.142832
+DEBUG: Entering get_current_user at 2026-03-10 19:55:02.879117
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.284921
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.292192
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.298972
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.317337
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.325285
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.347752
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.360622
+DEBUG: Entering get_current_user at 2026-03-10 19:55:25.376758
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.536466
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.732349
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.742879
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.753458
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.786964
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.813585
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.826429
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.844350
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.854725
+DEBUG: Entering get_current_user at 2026-03-10 19:55:26.900474
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.484968
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.495162
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.504455
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.537991
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.549057
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.557313
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.567373
+DEBUG: Entering get_current_user at 2026-03-10 19:55:27.639192
+DEBUG: Entering get_current_user at 2026-03-10 19:56:15.509939
+DEBUG: Entering get_current_user at 2026-03-10 19:56:39.601565
+DEBUG: Entering get_current_user at 2026-03-10 19:56:39.625738
+DEBUG: Entering get_current_user at 2026-03-10 19:57:15.982617
+DEBUG: Entering get_current_user at 2026-03-10 19:57:16.597748
+DEBUG: Entering get_current_user at 2026-03-10 19:57:18.948909
+DEBUG: Entering get_current_user at 2026-03-10 19:57:19.260304
+DEBUG: Entering get_current_user at 2026-03-10 19:57:20.859729
+DEBUG: Entering get_current_user at 2026-03-10 19:57:21.161984
+DEBUG: Entering get_current_user at 2026-03-10 19:57:22.957163
+DEBUG: Entering get_current_user at 2026-03-10 19:57:23.248696
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.418434
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.431989
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.441796
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.466358
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.486304
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.511284
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.535874
+DEBUG: Entering get_current_user at 2026-03-10 19:57:38.553659
+DEBUG: Entering get_current_user at 2026-03-10 19:57:41.986510
+DEBUG: Entering get_current_user at 2026-03-10 19:57:41.997273
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.008961
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.022255
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.072127
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.088875
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.108271
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.125798
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.148655
+DEBUG: Entering get_current_user at 2026-03-10 19:57:42.214431
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.701381
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.711228
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.725606
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.762781
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.777661
+DEBUG: Entering get_current_user at 2026-03-10 19:57:44.801367
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.619565
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.639888
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.661458
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.709301
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.723982
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.755308
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.768606
+DEBUG: Entering get_current_user at 2026-03-10 19:57:45.787409

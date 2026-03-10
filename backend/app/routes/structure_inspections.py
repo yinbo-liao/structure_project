@@ -13,6 +13,9 @@ import json
 import pandas as pd
 from datetime import datetime
 from app.database import get_db
+
+from app.utils.ndt_report_validator import validate_ndt_report_number, is_valid_ndt_report_number, suggest_correction
+
 from app.models import (
     StructureMasterJointList, StructureMaterialRegister,
     StructureFitUpInspection, StructureFinalInspection, StructureNDTRequest,
@@ -29,6 +32,9 @@ from app.schemas import (
 )
 from app.auth import get_current_user, require_editor, require_admin
 from sqlalchemy.orm import joinedload
+from app.services.ndt_sync_service import NDTSyncService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -72,6 +78,71 @@ def _audit(kind: str, action: str, user, before=None, after=None, record_id: Opt
         _audit_write(kind, entry)
     except Exception:
         pass
+
+def _trigger_ndt_sync_by_final_id(db: Session, final_id: int):
+    """
+    Trigger NDT sync for a specific joint via final inspection ID.
+    Finds the master joint associated with the final inspection and syncs NDT data.
+    """
+    try:
+        final = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == final_id).first()
+        if not final:
+            return
+        
+        fitup = None
+        if final.fitup_id:
+            fitup = db.query(StructureFitUpInspection).filter(StructureFitUpInspection.id == final.fitup_id).first()
+        
+        target_joint = None
+        if fitup and fitup.master_joint_id:
+             target_joint = db.query(StructureMasterJointList).filter(StructureMasterJointList.id == fitup.master_joint_id).first()
+
+        if not target_joint:
+            # Fallback: try to find master joint by fields
+            draw_no = getattr(final, 'draw_no', None) or (fitup.draw_no if fitup else None)
+            structure_category = getattr(final, 'structure_category', None) or (fitup.structure_category if fitup else None)
+            page_no = getattr(final, 'page_no', None) or (fitup.page_no if fitup else None)
+            drawing_rev = getattr(final, 'drawing_rev', None) or (fitup.drawing_rev if fitup else None)
+            joint_no = final.joint_no
+            
+            if not joint_no:
+                 return
+
+            query = db.query(StructureMasterJointList).filter(
+                StructureMasterJointList.project_id == final.project_id,
+                StructureMasterJointList.joint_no == joint_no
+            )
+            
+            if draw_no:
+                query = query.filter(StructureMasterJointList.draw_no == draw_no)
+            if structure_category:
+                query = query.filter(StructureMasterJointList.structure_category == structure_category)
+            if page_no:
+                query = query.filter(StructureMasterJointList.page_no == page_no)
+            if drawing_rev:
+                 query = query.filter(StructureMasterJointList.drawing_rev == drawing_rev)
+                 
+            target_joint = query.first()
+            
+            # If strict match failed, try lenient match on joint_no only if unique
+            if not target_joint:
+                 candidates = db.query(StructureMasterJointList).filter(
+                    StructureMasterJointList.project_id == final.project_id,
+                    StructureMasterJointList.joint_no == joint_no
+                 ).all()
+                 if len(candidates) == 1:
+                     target_joint = candidates[0]
+                     logging.info(f"Found unique master joint match by joint_no only: {target_joint.id}")
+
+        if target_joint:
+            service = NDTSyncService(db)
+            logging.info(f"Triggering sync for master joint ID: {target_joint.id}")
+            service.sync_joint_ndt_data(target_joint.id)
+        else:
+            logging.warning(f"Could not find master joint for Final {final.id}")
+
+    except Exception as e:
+        logging.error(f"Error triggering NDT sync: {e}")
 
 # Audit log endpoints (admin-only)
 @router.get("/audit-logs/dates")
@@ -1817,6 +1888,19 @@ def update_structure_ndt_request(
     for k in list(update_data.keys()):
         if k in immutable:
             update_data.pop(k, None)
+    
+    # Validate NDT report number if provided
+    if 'ndt_report_no' in update_data and update_data['ndt_report_no']:
+        report_no = update_data['ndt_report_no']
+        if report_no.lower() != 'pending':
+            is_valid, error_msg = validate_ndt_report_number(report_no)
+            if not is_valid:
+                suggestion = suggest_correction(report_no)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid NDT report number: {error_msg}" + (f" Suggested format: {suggestion}" if suggestion else "")
+                )
+    
     # Normalize datetime strings for request_time and test_time
     for dt_field in ("request_time", "test_time"):
         if dt_field in update_data and update_data[dt_field]:
@@ -1862,19 +1946,29 @@ def update_structure_ndt_request(
             rvl = result.strip().lower()
             result = rvl if rvl in ('accepted', 'rejected') else None
         report_no = update_data.get('ndt_report_no') or update_data.get('report_no')
+        
+        logger.info(f"Updating NDT Request {ndt_id}: Method={method}, Result={result}, Report={report_no}")
+
         if ndt.final_id and result in ('accepted', 'rejected'):
+            # Update Status Record (legacy/summary?)
             rec = db.query(StructureNDTStatusRecord).filter(StructureNDTStatusRecord.final_id == ndt.final_id).first()
             if rec:
                 if method:
+                    # check if we should overwrite ndt_type? 
+                    # If multiple types exist, this might be problematic if StatusRecord is single-row per joint
+                    # For now, we update it as per existing logic but log it
+                    logger.info(f"Updating StatusRecord {rec.id} type from {rec.ndt_type} to {method}")
                     rec.ndt_type = method
                 if report_no is not None:
                     rec.ndt_report_no = report_no
                 rec.ndt_result = result
                 rec.weld_length = ndt.weld_size
-            # upsert NDTTest for (final_id, method)
+            
+            # Upsert NDTTest for (final_id, method)
             if method:
                 test = db.query(NDTTest).filter(NDTTest.final_id == ndt.final_id, NDTTest.method == method).first()
                 if not test:
+                    logger.info(f"Creating new NDTTest for Final {ndt.final_id} / {method} with result {result} and report {report_no}")
                     test = NDTTest(
                         project_id=ndt.project_id,
                         final_id=ndt.final_id,
@@ -1886,14 +1980,18 @@ def update_structure_ndt_request(
                     )
                     db.add(test)
                 else:
+                    logger.info(f"Updating existing NDTTest {test.id} for Final {ndt.final_id} / {method} with result {result} and report {report_no}")
                     test.result = result
                     if report_no is not None:
                         test.report_no = report_no
                     test.test_length = ndt.weld_size
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Error updating NDTTest/Status: {e}")
     db.commit()
     db.refresh(ndt)
+    # Trigger NDT Sync
+    if ndt.final_id:
+        _trigger_ndt_sync_by_final_id(db, ndt.final_id)
     return ndt
 
 @router.delete("/structure/ndt-requests/{ndt_id}")
@@ -1966,6 +2064,9 @@ def create_structure_ndt_test(
     db.add(ndt)
     db.commit()
     db.refresh(ndt)
+    # Trigger NDT Sync
+    if ndt.final_id:
+        _trigger_ndt_sync_by_final_id(db, ndt.final_id)
     return ndt
 
 @router.put("/structure/ndt-tests/{test_id}", response_model=NDTTestSchema)
@@ -1998,6 +2099,9 @@ def update_structure_ndt_test(
     
     db.commit()
     db.refresh(ndt)
+    # Trigger NDT Sync
+    if ndt.final_id:
+        _trigger_ndt_sync_by_final_id(db, ndt.final_id)
     return ndt
 
 @router.delete("/structure/ndt-tests/{test_id}")
@@ -2019,6 +2123,9 @@ def delete_structure_ndt_test(
         _audit("ndt_test", "delete", current_user, before=before, after=None, record_id=ndt.id, project_id=ndt.project_id)
     except Exception:
         pass
+    # Trigger NDT Sync
+    if ndt.final_id:
+        _trigger_ndt_sync_by_final_id(db, ndt.final_id)
     return {"message": "NDT test deleted successfully"}
 
 # Structure NDT Status Routes
@@ -2479,6 +2586,18 @@ def update_structure_ndt_status_record(
         project = db.query(ProjectModel).filter(ProjectModel.id == rec.project_id).first()
         if current_user.role != 'admin' and project not in current_user.assigned_projects:
             raise HTTPException(status_code=403, detail="Not authorized to access this project")
+        
+        # Validate NDT report number if provided
+        if 'ndt_report_no' in payload and payload['ndt_report_no']:
+            report_no = payload['ndt_report_no']
+            if report_no.lower() != 'pending':
+                is_valid, error_msg = validate_ndt_report_number(report_no)
+                if not is_valid:
+                    suggestion = suggest_correction(report_no)
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid NDT report number: {error_msg}" + (f" Suggested format: {suggestion}" if suggestion else "")
+                    )
             
         # Update fields
         for key, value in payload.items():
