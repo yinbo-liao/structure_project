@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -55,6 +55,8 @@ interface EditableTableProps {
   selectable?: boolean;
   showActions?: boolean;
   maxHeight?: number;
+  selectedIds?: number[];
+  onSelectionChange?: (ids: number[]) => void;
 }
 
 const EditableTable: React.FC<EditableTableProps> = ({
@@ -67,7 +69,9 @@ const EditableTable: React.FC<EditableTableProps> = ({
   loading = false,
   selectable = true,
   showActions = true,
-  maxHeight = 600
+  maxHeight = 600,
+  selectedIds: controlledSelectedIds,
+  onSelectionChange
 }) => {
   const { canEdit, canDelete } = useAuth();
   const [editingIds, setEditingIds] = useState<number[]>([]);
@@ -77,7 +81,27 @@ const EditableTable: React.FC<EditableTableProps> = ({
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(50);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [internalSelectedIds, setInternalSelectedIds] = useState<number[]>([]);
+  const selectedIds = controlledSelectedIds ?? internalSelectedIds;
+  const isControlledSelection = controlledSelectedIds !== undefined;
+
+  const updateSelectedIds = useCallback((next: number[] | ((prev: number[]) => number[])) => {
+    const resolvedNext = typeof next === 'function' ? next(selectedIds) : next;
+    if (isControlledSelection) {
+      onSelectionChange?.(resolvedNext);
+    } else {
+      setInternalSelectedIds(resolvedNext);
+      onSelectionChange?.(resolvedNext);
+    }
+  }, [isControlledSelection, onSelectionChange, selectedIds]);
+
+  useEffect(() => {
+    const validIds = new Set(data.map(row => row.id));
+    const filteredSelectedIds = selectedIds.filter(id => validIds.has(id));
+    if (filteredSelectedIds.length !== selectedIds.length) {
+      updateSelectedIds(filteredSelectedIds);
+    }
+  }, [data, selectedIds, updateSelectedIds]);
 
   const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const allSelected = selectable && paginatedData.length > 0 && paginatedData.every(row => selectedIds.includes(row.id));
@@ -86,15 +110,18 @@ const EditableTable: React.FC<EditableTableProps> = ({
   const handleSelectAll = (checked: boolean) => {
     if (!selectable) return;
     if (checked) {
-      setSelectedIds(paginatedData.map(row => row.id));
+      const pageIds = paginatedData.map(row => row.id);
+      const next = Array.from(new Set([...selectedIds, ...pageIds]));
+      updateSelectedIds(next);
     } else {
-      setSelectedIds([]);
+      const pageIds = new Set(paginatedData.map(row => row.id));
+      updateSelectedIds(selectedIds.filter(id => !pageIds.has(id)));
     }
   };
 
   const handleSelectOne = (id: number) => {
     if (!selectable) return;
-    setSelectedIds(prev =>
+    updateSelectedIds(prev =>
       prev.includes(id) ? prev.filter(value => value !== id) : [...prev, id]
     );
   };

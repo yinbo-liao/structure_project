@@ -85,14 +85,14 @@ const StructureFitUpInspection: React.FC = () => {
     block_no: ''
   });
   const [search, setSearch] = useState({
-    system_no: '',
-    spool_no: '',
+    draw_no: '',
     joint_no: '',
+    piece_mark: '',
     fit_up_report_no: '',
     fit_up_result: ''
   });
-  const [filterOptions, setFilterOptions] = useState<{ system_no: string[]; spool_no: string[]; joint_no: string[]; fit_up_report_no: string[]; fit_up_result: string[] }>({
-    system_no: [], spool_no: [], joint_no: [], fit_up_report_no: [], fit_up_result: []
+  const [filterOptions, setFilterOptions] = useState<{ fit_up_result: string[] }>({
+    fit_up_result: []
   });
 
   const fetchFitUpRecords = async () => {
@@ -107,10 +107,6 @@ const StructureFitUpInspection: React.FC = () => {
       try {
         const opts = await ApiService.getStructureFitUpFilters(selectedProject.id);
         setFilterOptions({
-          system_no: opts?.structure_category || [],
-          spool_no: opts?.drawing_rev || [],
-          joint_no: opts?.joint_no || [],
-          fit_up_report_no: opts?.fit_up_report_no || [],
           fit_up_result: opts?.fit_up_result || []
         });
       } catch {}
@@ -649,17 +645,25 @@ const StructureFitUpInspection: React.FC = () => {
   };
 
   const filteredRecords = records.filter(r => {
-    const sys = (r.system_no || '').trim();
-    const spool = (r.spool_no || '').trim();
-    const joint = (r.joint_no || '').trim();
-    const rep = (r.fit_up_report_no || '').trim();
-    const res = (r.fit_up_result || '').trim().toLowerCase();
-    const qs = search.system_no.trim();
-    const qsp = search.spool_no.trim();
-    const qj = search.joint_no.trim();
-    const qr = search.fit_up_report_no.trim();
-    const qres = search.fit_up_result.trim().toLowerCase();
-    return (!qs || sys === qs) && (!qsp || spool === qsp) && (!qj || joint === qj) && (!qr || rep === qr) && (!qres || res === qres);
+    const drawNo = (r.draw_no || '').trim().toLowerCase();
+    const jointNo = (r.joint_no || '').trim().toLowerCase();
+    const pieceMark = `${r.part1_piece_mark_no || ''} ${r.part2_piece_mark_no || ''}`.trim().toLowerCase();
+    const reportNo = (r.fit_up_report_no || '').trim().toLowerCase();
+    const result = (r.fit_up_result || '').trim().toLowerCase();
+
+    const qDraw = search.draw_no.trim().toLowerCase();
+    const qJoint = search.joint_no.trim().toLowerCase();
+    const qPiece = search.piece_mark.trim().toLowerCase();
+    const qReport = search.fit_up_report_no.trim().toLowerCase();
+    const qResult = search.fit_up_result.trim().toLowerCase();
+
+    return (
+      (!qDraw || drawNo.includes(qDraw)) &&
+      (!qJoint || jointNo.includes(qJoint)) &&
+      (!qPiece || pieceMark.includes(qPiece)) &&
+      (!qReport || reportNo.includes(qReport)) &&
+      (!qResult || result === qResult)
+    );
   });
 
   if (!selectedProject) {
@@ -748,6 +752,87 @@ const StructureFitUpInspection: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
+      )}
+
+      {!loading && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Search Fit-up Records
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Joint No"
+                value={search.joint_no}
+                onChange={(e) => setSearch(prev => ({ ...prev, joint_no: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Drawing No"
+                value={search.draw_no}
+                onChange={(e) => setSearch(prev => ({ ...prev, draw_no: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Piece Mark"
+                value={search.piece_mark}
+                onChange={(e) => setSearch(prev => ({ ...prev, piece_mark: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Fit-up Report No"
+                value={search.fit_up_report_no}
+                onChange={(e) => setSearch(prev => ({ ...prev, fit_up_report_no: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2.4}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="Fit-up Result"
+                value={search.fit_up_result}
+                onChange={(e) => setSearch(prev => ({ ...prev, fit_up_result: e.target.value }))}
+              >
+                <MenuItem value="">All</MenuItem>
+                {Array.from(new Set(filterOptions.fit_up_result.filter(Boolean))).map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    setSearch({
+                      draw_no: '',
+                      joint_no: '',
+                      piece_mark: '',
+                      fit_up_report_no: '',
+                      fit_up_result: ''
+                    })
+                  }
+                >
+                  Clear Search
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
       )}
 
       {/* Enhanced Table with all required columns */}

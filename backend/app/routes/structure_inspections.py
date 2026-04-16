@@ -998,6 +998,125 @@ def update_structure_fitup_inspection(
         pass
     return fitup
 
+@router.post("/structure/fitup-inspection/bulk-from-master-joints")
+def bulk_create_or_update_fitup_from_master_joints(
+    master_joint_ids: List[int] = Body(..., description="List of master joint IDs to create or update fit-up records from"),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_editor)
+):
+    """
+    Bulk create or update structure fit-up inspection records from selected master joints.
+    If a fit-up already exists for a joint, its joint/material reference fields are refreshed from master joint data.
+    """
+    if not master_joint_ids:
+        raise HTTPException(status_code=400, detail="No master joint IDs provided")
+
+    def _normalize_fitup_result(status_value: Optional[str]) -> Optional[str]:
+        if not status_value:
+            return None
+        normalized = status_value.strip().lower()
+        if normalized in {"accepted", "rejected", "pending"}:
+            return normalized
+        return None
+
+    created_count = 0
+    updated_count = 0
+    skipped_count = 0
+    errors = []
+    touched_fitups = []
+
+    for master_joint_id in master_joint_ids:
+        try:
+            joint = db.query(StructureMasterJointList).filter(
+                StructureMasterJointList.id == master_joint_id
+            ).first()
+            if not joint:
+                errors.append(f"Master Joint ID {master_joint_id}: Not found")
+                skipped_count += 1
+                continue
+
+            project = db.query(ProjectModel).filter(ProjectModel.id == joint.project_id).first()
+            if not project:
+                errors.append(f"Master Joint ID {master_joint_id}: Project not found")
+                skipped_count += 1
+                continue
+
+            if current_user.role != 'admin' and project not in current_user.assigned_projects:
+                errors.append(f"Master Joint ID {master_joint_id}: Not authorized to access this project")
+                skipped_count += 1
+                continue
+
+            existing_fitup = db.query(StructureFitUpInspection).filter(
+                StructureFitUpInspection.master_joint_id == joint.id
+            ).first()
+
+            if not existing_fitup:
+                existing_fitup = db.query(StructureFitUpInspection).filter(
+                    StructureFitUpInspection.project_id == joint.project_id,
+                    StructureFitUpInspection.draw_no == (joint.draw_no or ""),
+                    StructureFitUpInspection.structure_category == (joint.structure_category or ""),
+                    StructureFitUpInspection.page_no == (joint.page_no or ""),
+                    StructureFitUpInspection.drawing_rev == (joint.drawing_rev or ""),
+                    StructureFitUpInspection.joint_no == (joint.joint_no or "")
+                ).first()
+
+            fitup_result = _normalize_fitup_result(joint.fitup_status)
+            fitup_payload = {
+                "project_id": joint.project_id,
+                "master_joint_id": joint.id,
+                "block_no": joint.block_no,
+                "draw_no": joint.draw_no,
+                "structure_category": joint.structure_category,
+                "page_no": joint.page_no,
+                "drawing_rev": joint.drawing_rev,
+                "joint_no": joint.joint_no,
+                "weld_type": joint.weld_type,
+                "weld_length": joint.weld_length,
+                "part1_piece_mark_no": joint.part1_piece_mark_no,
+                "part2_piece_mark_no": joint.part2_piece_mark_no,
+                "inspection_category": joint.inspection_category,
+                "fit_up_report_no": joint.fit_up_report_no or None,
+            }
+            if fitup_result:
+                fitup_payload["fit_up_result"] = fitup_result
+
+            if existing_fitup:
+                for field, value in fitup_payload.items():
+                    setattr(existing_fitup, field, value)
+                try:
+                    existing_fitup.updated_by = current_user.email
+                except Exception:
+                    pass
+                db.commit()
+                db.refresh(existing_fitup)
+                touched_fitups.append(existing_fitup)
+                updated_count += 1
+            else:
+                new_fitup = StructureFitUpInspection(**fitup_payload)
+                try:
+                    new_fitup.updated_by = current_user.email
+                except Exception:
+                    pass
+                db.add(new_fitup)
+                db.commit()
+                db.refresh(new_fitup)
+                touched_fitups.append(new_fitup)
+                created_count += 1
+
+        except Exception as e:
+            db.rollback()
+            errors.append(f"Master Joint ID {master_joint_id}: {str(e)}")
+            skipped_count += 1
+
+    return {
+        "message": f"Processed {len(master_joint_ids)} selected master joints",
+        "created_count": created_count,
+        "updated_count": updated_count,
+        "skipped_count": skipped_count,
+        "fitup_ids": [fitup.id for fitup in touched_fitups],
+        "errors": errors if errors else None,
+    }
+
 @router.delete("/structure/fitup-inspection/{fitup_id}")
 def delete_structure_fitup_inspection(
     fitup_id: int,

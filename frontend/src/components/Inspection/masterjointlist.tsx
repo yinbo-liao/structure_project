@@ -16,14 +16,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
-  Card,
-  CardContent,
-  IconButton,
   Tooltip,
   CircularProgress
 } from '@mui/material';
-import { Add, Refresh, Upload, Download, Sync, SyncDisabled, CheckCircle, Error } from '@mui/icons-material';
+import { Add, Refresh, Upload, Download, Sync } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import EditableTable, { Column } from '../Common/EditableTable';
 import ApiService from '../../services/api';
@@ -38,7 +34,8 @@ const MasterJointList: React.FC = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [, setSyncStatus] = useState<any>(null);
+  const [selectedJointIds, setSelectedJointIds] = useState<number[]>([]);
 
   const [searchBlockNo, setSearchBlockNo] = useState('');
   const [searchDrawingNo, setSearchDrawingNo] = useState('');
@@ -261,6 +258,33 @@ const MasterJointList: React.FC = () => {
       setMessage(error.response?.data?.detail || 'Error auto-syncing NDT data');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleBulkCreateOrUpdateFitUp = async () => {
+    if (!selectedProject || selectedJointIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Create or update fit-up records for ${selectedJointIds.length} selected master joint(s)? Existing fit-up records will be updated from the latest master joint data.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      const result = await ApiService.bulkCreateOrUpdateStructureFitUpFromMasterJoints(selectedJointIds);
+      await fetchJoints();
+      setSelectedJointIds([]);
+
+      let msg = `Fit-up sync completed: ${result.created_count} created, ${result.updated_count} updated, ${result.skipped_count} skipped.`;
+      if (result.errors && result.errors.length > 0) {
+        msg += ` ${result.errors.length} error(s) occurred.`;
+        console.warn('Bulk fit-up sync errors:', result.errors);
+      }
+      setMessage(msg);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.detail || 'Error creating/updating fit-up records from selected master joints');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -546,6 +570,19 @@ const MasterJointList: React.FC = () => {
             Download Records
           </Button>
           {canEdit() && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<Add />}
+              onClick={handleBulkCreateOrUpdateFitUp}
+              disabled={loading || selectedJointIds.length === 0}
+            >
+              {selectedJointIds.length > 0
+                ? `Create/Update Fit Up (${selectedJointIds.length})`
+                : 'Create/Update Fit Up'}
+            </Button>
+          )}
+          {canEdit() && (
             <>
               <Button
                 variant="outlined"
@@ -654,6 +691,8 @@ const MasterJointList: React.FC = () => {
           onDelete={canDelete() ? handleDelete : undefined}
           loading={loading}
           maxHeight={600}
+          selectedIds={selectedJointIds}
+          onSelectionChange={setSelectedJointIds}
         />
       </Paper>
 

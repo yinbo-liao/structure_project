@@ -534,6 +534,18 @@ export class ApiService {
     await axios.delete(`/structure/fitup-inspection/${fitupId}`);
   }
 
+  static async bulkCreateOrUpdateStructureFitUpFromMasterJoints(masterJointIds: number[]): Promise<{
+    message: string;
+    created_count: number;
+    updated_count: number;
+    skipped_count: number;
+    fitup_ids: number[];
+    errors?: string[];
+  }> {
+    const response = await axios.post('/structure/fitup-inspection/bulk-from-master-joints', masterJointIds);
+    return response.data;
+  }
+
   // Structure Final Inspection
   static async getStructureFinalInspections(projectId?: number): Promise<any[]> {
     const params = projectId ? { project_id: projectId } : {};

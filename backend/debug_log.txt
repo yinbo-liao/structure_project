@@ -25246,3 +25246,497 @@ DEBUG: Entering get_current_user at 2026-03-11 20:21:05.058938
 DEBUG: Entering get_current_user at 2026-03-11 20:21:05.081739
 DEBUG: Entering get_current_user at 2026-03-11 20:21:09.884530
 DEBUG: Entering get_current_user at 2026-03-11 20:21:10.505512
+DEBUG: Entering get_current_user at 2026-04-16 22:10:08.236791
+DEBUG: Entering get_current_user at 2026-04-16 22:10:08.382962
+DEBUG: Entering get_current_user at 2026-04-16 22:10:08.928564
+DEBUG: Entered read_projects at 2026-04-16 22:10:08.933158
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:08.943258
+DEBUG: Entered read_projects at 2026-04-16 22:10:08.947273
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:38.032427
+DEBUG: Entered read_projects at 2026-04-16 22:10:38.039854
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:38.055747
+DEBUG: Entered read_projects at 2026-04-16 22:10:38.062357
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:38.718399
+DEBUG: Entered read_projects at 2026-04-16 22:10:38.750705
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:38.764448
+DEBUG: Entered read_projects at 2026-04-16 22:10:38.773054
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:39.394910
+DEBUG: Entered read_projects at 2026-04-16 22:10:39.404075
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:39.419993
+DEBUG: Entered read_projects at 2026-04-16 22:10:39.428103
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:39.937346
+DEBUG: Entered read_projects at 2026-04-16 22:10:39.947227
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:39.964277
+DEBUG: Entered read_projects at 2026-04-16 22:10:39.972735
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:40.892743
+DEBUG: Entered read_projects at 2026-04-16 22:10:40.899192
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:40.917224
+DEBUG: Entered read_projects at 2026-04-16 22:10:40.922819
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:41.758777
+DEBUG: Entering get_current_user at 2026-04-16 22:10:42.009321
+DEBUG: Entering get_current_user at 2026-04-16 22:10:42.058592
+DEBUG: Entering get_current_user at 2026-04-16 22:10:43.629417
+DEBUG: Entered read_projects at 2026-04-16 22:10:43.648775
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:43.667332
+DEBUG: Entered read_projects at 2026-04-16 22:10:43.672357
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:10:44.383399
+DEBUG: Entering get_current_user at 2026-04-16 22:10:44.420068
+DEBUG: Entering get_current_user at 2026-04-16 22:10:54.264994
+DEBUG: Entering get_current_user at 2026-04-16 22:10:54.288359
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.719901
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.729660
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.741608
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.793650
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.832102
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.842386
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.859314
+DEBUG: Entering get_current_user at 2026-04-16 22:10:56.883173
+DEBUG: Entering get_current_user at 2026-04-16 22:11:02.460742
+DEBUG: Entering get_current_user at 2026-04-16 22:11:02.480424
+DEBUG: Entering get_current_user at 2026-04-16 22:11:02.894358
+DEBUG: Entering get_current_user at 2026-04-16 22:11:02.915520
+DEBUG: Entering get_current_user at 2026-04-16 22:15:21.305990
+DEBUG: Entering get_current_user at 2026-04-16 22:15:21.367159
+DEBUG: Entering get_current_user at 2026-04-16 22:16:45.374656
+DEBUG: Entering get_current_user at 2026-04-16 22:16:45.471870
+DEBUG: Entering get_current_user at 2026-04-16 22:16:45.897150
+DEBUG: Entering get_current_user at 2026-04-16 22:16:45.935771
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.053261
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.342178
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.384428
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.466207
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.584528
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.656085
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.691515
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.732726
+DEBUG: Entering get_current_user at 2026-04-16 22:16:46.964505
+DEBUG: Entering get_current_user at 2026-04-16 22:16:47.115824
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.493597
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.561268
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.646649
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.762084
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.848453
+DEBUG: Entering get_current_user at 2026-04-16 22:16:48.906974
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.004888
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.094289
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.348730
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.431761
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.461599
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.495619
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.641999
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.694784
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.742774
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.812321
+DEBUG: Entering get_current_user at 2026-04-16 22:16:49.893604
+DEBUG: Entering get_current_user at 2026-04-16 22:16:50.003796
+DEBUG: Entering get_current_user at 2026-04-16 22:16:52.542271
+DEBUG: Entering get_current_user at 2026-04-16 22:16:52.638156
+DEBUG: Entering get_current_user at 2026-04-16 22:16:53.066112
+DEBUG: Entered read_projects at 2026-04-16 22:16:53.116636
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:16:53.181156
+DEBUG: Entered read_projects at 2026-04-16 22:16:53.227018
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:16:54.596133
+DEBUG: Entering get_current_user at 2026-04-16 22:16:54.690436
+DEBUG: Entering get_current_user at 2026-04-16 22:21:55.950471
+DEBUG: Entering get_current_user at 2026-04-16 22:21:55.976763
+DEBUG: Entering get_current_user at 2026-04-16 22:21:56.375575
+DEBUG: Entering get_current_user at 2026-04-16 22:21:56.403505
+DEBUG: Entering get_current_user at 2026-04-16 22:22:01.234420
+DEBUG: Entering get_current_user at 2026-04-16 22:22:01.244646
+DEBUG: Entering get_current_user at 2026-04-16 22:22:59.349921
+DEBUG: Entering get_current_user at 2026-04-16 22:22:59.360839
+DEBUG: Entering get_current_user at 2026-04-16 22:22:59.469276
+DEBUG: Entered read_projects at 2026-04-16 22:22:59.709024
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:22:59.738576
+DEBUG: Entered read_projects at 2026-04-16 22:22:59.754956
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:23:00.610058
+DEBUG: Entering get_current_user at 2026-04-16 22:23:00.745821
+DEBUG: Entering get_current_user at 2026-04-16 22:23:00.860343
+DEBUG: Entering get_current_user at 2026-04-16 22:23:02.838742
+DEBUG: Entering get_current_user at 2026-04-16 22:23:02.856302
+DEBUG: Entering get_current_user at 2026-04-16 22:23:07.856453
+DEBUG: Entering get_current_user at 2026-04-16 22:23:07.876922
+DEBUG: Entering get_current_user at 2026-04-16 22:23:08.693900
+DEBUG: Entering get_current_user at 2026-04-16 22:23:08.717534
+DEBUG: Entering get_current_user at 2026-04-16 22:23:22.736166
+DEBUG: Entering get_current_user at 2026-04-16 22:23:23.839037
+DEBUG: Entering get_current_user at 2026-04-16 22:32:15.878609
+DEBUG: Entering get_current_user at 2026-04-16 22:32:15.893904
+DEBUG: Entering get_current_user at 2026-04-16 22:32:16.036614
+DEBUG: Entered read_projects at 2026-04-16 22:32:16.265439
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:32:16.288245
+DEBUG: Entered read_projects at 2026-04-16 22:32:16.297355
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:32:17.255389
+DEBUG: Entering get_current_user at 2026-04-16 22:32:17.308237
+DEBUG: Entering get_current_user at 2026-04-16 22:32:17.388274
+DEBUG: Entering get_current_user at 2026-04-16 22:32:19.132783
+DEBUG: Entering get_current_user at 2026-04-16 22:32:19.145460
+DEBUG: Entering get_current_user at 2026-04-16 22:32:19.689283
+DEBUG: Entering get_current_user at 2026-04-16 22:32:19.712920
+DEBUG: Entering get_current_user at 2026-04-16 22:32:30.872995
+DEBUG: Entering get_current_user at 2026-04-16 22:32:31.755847
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.069949
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.078482
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.086511
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.117021
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.125701
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.139317
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.198702
+DEBUG: Entering get_current_user at 2026-04-16 22:32:39.258847
+DEBUG: Entering get_current_user at 2026-04-16 22:32:42.956158
+DEBUG: Entering get_current_user at 2026-04-16 22:32:42.972254
+DEBUG: Entering get_current_user at 2026-04-16 22:32:44.191955
+DEBUG: Entering get_current_user at 2026-04-16 22:32:44.212494
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.071046
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.079548
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.092181
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.111341
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.192854
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.209574
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.216523
+DEBUG: Entering get_current_user at 2026-04-16 22:32:48.237388
+DEBUG: Entering get_current_user at 2026-04-16 22:32:58.314619
+DEBUG: Entering get_current_user at 2026-04-16 22:32:58.329013
+DEBUG: Entering get_current_user at 2026-04-16 22:33:13.325862
+DEBUG: Entering get_current_user at 2026-04-16 22:33:13.786157
+DEBUG: Entering get_current_user at 2026-04-16 22:33:20.621670
+DEBUG: Entering get_current_user at 2026-04-16 22:33:20.822298
+DEBUG: Entering get_current_user at 2026-04-16 22:33:30.295859
+DEBUG: Entering get_current_user at 2026-04-16 22:33:30.777854
+DEBUG: Entering get_current_user at 2026-04-16 22:33:42.755330
+DEBUG: Entering get_current_user at 2026-04-16 22:33:43.218908
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.647896
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.666601
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.676988
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.697593
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.715834
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.731456
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.748047
+DEBUG: Entering get_current_user at 2026-04-16 22:33:44.766659
+DEBUG: Entering get_current_user at 2026-04-16 22:33:48.776897
+DEBUG: Entering get_current_user at 2026-04-16 22:33:49.003720
+DEBUG: Entering get_current_user at 2026-04-16 22:33:49.024223
+DEBUG: Entering get_current_user at 2026-04-16 22:34:09.655684
+DEBUG: Entering get_current_user at 2026-04-16 22:34:10.184707
+DEBUG: Entering get_current_user at 2026-04-16 22:34:10.201903
+DEBUG: Entering get_current_user at 2026-04-16 22:34:21.662756
+DEBUG: Entering get_current_user at 2026-04-16 22:34:22.237361
+DEBUG: Entering get_current_user at 2026-04-16 22:34:22.259544
+DEBUG: Entering get_current_user at 2026-04-16 22:34:31.510660
+DEBUG: Entering get_current_user at 2026-04-16 22:34:31.799311
+DEBUG: Entering get_current_user at 2026-04-16 22:34:31.827320
+DEBUG: Entering get_current_user at 2026-04-16 22:34:40.503322
+DEBUG: Entering get_current_user at 2026-04-16 22:34:40.838114
+DEBUG: Entering get_current_user at 2026-04-16 22:34:40.855934
+DEBUG: Entering get_current_user at 2026-04-16 22:34:44.469434
+DEBUG: Entering get_current_user at 2026-04-16 22:34:44.488131
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.559926
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.573048
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.581131
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.591051
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.693712
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.712983
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.723266
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.737530
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.749781
+DEBUG: Entering get_current_user at 2026-04-16 22:34:51.771696
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.338902
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.346132
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.354229
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.375059
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.391987
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.472767
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.495759
+DEBUG: Entering get_current_user at 2026-04-16 22:34:53.515045
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.220666
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.227818
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.240405
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.248399
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.272536
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.347005
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.359686
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.371052
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.385886
+DEBUG: Entering get_current_user at 2026-04-16 22:35:01.420846
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.606678
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.616899
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.626788
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.644946
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.657692
+DEBUG: Entering get_current_user at 2026-04-16 22:35:11.989846
+DEBUG: Entering get_current_user at 2026-04-16 22:35:12.004133
+DEBUG: Entering get_current_user at 2026-04-16 22:35:12.018465
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.543836
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.554022
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.567191
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.577593
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.597992
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.910598
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.922103
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.932320
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.941139
+DEBUG: Entering get_current_user at 2026-04-16 22:35:37.971715
+DEBUG: Entering get_current_user at 2026-04-16 22:35:51.689743
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.148127
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.161240
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.170410
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.186000
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.265758
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.278896
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.287068
+DEBUG: Entering get_current_user at 2026-04-16 22:35:55.308712
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.290300
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.298338
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.306915
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.313474
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.338928
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.346772
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.358889
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.366551
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.373775
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.415716
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.707237
+DEBUG: Entering get_current_user at 2026-04-16 22:35:56.720378
+DEBUG: Entering get_current_user at 2026-04-16 22:35:57.081976
+DEBUG: Entering get_current_user at 2026-04-16 22:35:57.098895
+DEBUG: Entering get_current_user at 2026-04-16 22:35:57.600109
+DEBUG: Entered read_projects at 2026-04-16 22:35:57.607728
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:35:57.621462
+DEBUG: Entered read_projects at 2026-04-16 22:35:57.628126
+DEBUG: ProjectModel module: app.models_fixed
+DEBUG: ProjectModel.project_type type: VARCHAR(50)
+DEBUG: Fetched 1 projects
+DEBUG: Project 1 type raw: 'structure' (type: <class 'str'>)
+DEBUG: Entering get_current_user at 2026-04-16 22:35:58.741151
+DEBUG: Entering get_current_user at 2026-04-16 22:35:58.794647
+DEBUG: Entering get_current_user at 2026-04-16 22:35:58.841601
+DEBUG: Entering get_current_user at 2026-04-16 22:36:00.887392
+DEBUG: Entering get_current_user at 2026-04-16 22:36:00.910100
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.071311
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.081080
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.094644
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.117032
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.146863
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.155438
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.170180
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.182441
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.197264
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.221368
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.410034
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.417188
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.424328
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.451810
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.461141
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.471696
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.479507
+DEBUG: Entering get_current_user at 2026-04-16 22:36:02.506875
+DEBUG: Entering get_current_user at 2026-04-16 22:36:14.872339
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.224148
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.240544
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.272057
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.320442
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.336471
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.353505
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.369331
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.802600
+DEBUG: Entering get_current_user at 2026-04-16 22:36:15.826612
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.586657
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.602360
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.612473
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.646317
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.697207
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.723425
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.761750
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.775720
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.979098
+DEBUG: Entering get_current_user at 2026-04-16 22:36:17.986335
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.126678
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.155625
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.169262
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.204233
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.560339
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.566817
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.571729
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.578320
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.605098
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.612461
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.626727
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.635361
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.642905
+DEBUG: Entering get_current_user at 2026-04-16 22:36:18.677653
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.617292
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.625062
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.631598
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.650511
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.665199
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.690964
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.738266
+DEBUG: Entering get_current_user at 2026-04-16 22:36:19.778596
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.342407
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.350486
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.358581
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.376535
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.395391
+DEBUG: Entering get_current_user at 2026-04-16 22:36:21.476141
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.404338
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.427051
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.441855
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.486752
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.498389
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.547230
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.557582
+DEBUG: Entering get_current_user at 2026-04-16 22:36:22.593004
+DEBUG: Entering get_current_user at 2026-04-16 22:36:26.976525
+DEBUG: Entering get_current_user at 2026-04-16 22:36:26.995874
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.009100
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.028903
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.113009
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.135938
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.173161
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.194053
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.560289
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.567249
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.574802
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.616400
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.672800
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.737980
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.767182
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.785154
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.807920
+DEBUG: Entering get_current_user at 2026-04-16 22:36:27.866443
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.045791
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.055695
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.065843
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.087069
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.404261
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.427052
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.455667
+DEBUG: Entering get_current_user at 2026-04-16 22:36:48.538058
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.456553
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.467289
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.483013
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.498424
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.842942
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.869029
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.882360
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.895102
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.920786
+DEBUG: Entering get_current_user at 2026-04-16 22:37:02.956087
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.389292
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.398833
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.405739
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.430937
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.439492
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.502122
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.519816
+DEBUG: Entering get_current_user at 2026-04-16 22:37:05.593571
+DEBUG: Entering get_current_user at 2026-04-16 22:37:10.952508
+DEBUG: Entering get_current_user at 2026-04-16 22:37:10.966243
+DEBUG: Entering get_current_user at 2026-04-16 22:37:11.729879
+DEBUG: Entering get_current_user at 2026-04-16 22:37:11.745944
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.347921
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.360951
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.845868
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.853438
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.863537
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.888777
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.902312
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.909531
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.921026
+DEBUG: Entering get_current_user at 2026-04-16 22:37:15.970656
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.331045
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.342507
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.345349
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.360788
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.378420
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.390646
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.399302
+DEBUG: Entering get_current_user at 2026-04-16 22:40:31.411263
+DEBUG: Entering get_current_user at 2026-04-16 22:44:02.588561
+DEBUG: Entering get_current_user at 2026-04-16 22:44:02.596033
+DEBUG: Entering get_current_user at 2026-04-16 22:44:02.601223
+DEBUG: Entering get_current_user at 2026-04-16 22:44:02.621234
