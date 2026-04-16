@@ -31,7 +31,7 @@ import {
   Checkbox,
   Tooltip
 } from '@mui/material';
-import { Assignment, Refresh, Add, Edit, Delete, Warning, Info, Save, Cancel, Sync } from '@mui/icons-material';
+import { Assignment, Refresh, Add, Edit, Delete, Warning, Info, Save, Cancel, Sync, Download } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { FitUpInspection as FitUpInspectionType, MaterialRegister as MaterialRegisterType, MasterJointList as MasterJointListType } from '../../types';
@@ -644,6 +644,63 @@ const StructureFitUpInspection: React.FC = () => {
     }
   };
 
+  const handleDownloadCsv = () => {
+    const headers = [
+      'Block No',
+      'Drawing No',
+      'Joint No',
+      'Weld Type',
+      'Thickness',
+      'Part 1 Piece Mark',
+      'Part 2 Piece Mark',
+      'Weld Length',
+      'Fit Up Date',
+      'Fit-up Report No',
+      'Inspection Category',
+      'Fit Up Result',
+      'Remarks'
+    ];
+
+    const rows = filteredRecords.map((record) => {
+      const resolvedThickness =
+        record.dia ||
+        masterJoints.find(
+          (m) =>
+            (m.block_no || '').trim() === (record.block_no || '').trim() &&
+            (m.joint_no || '').trim() === (record.joint_no || '').trim()
+        )?.thickness ||
+        '';
+
+      return [
+        record.block_no || '',
+        record.draw_no || '',
+        record.joint_no || '',
+        record.weld_type || '',
+        resolvedThickness,
+        record.part1_piece_mark_no || '',
+        record.part2_piece_mark_no || '',
+        record.weld_length ?? '',
+        formatDate(record.fit_up_date),
+        record.fit_up_report_no || '',
+        record.inspection_category || '',
+        record.fit_up_result || '',
+        record.remarks || ''
+      ];
+    });
+
+    const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(escape).join(','), ...rows.map((row) => row.map(escape).join(','))].join('\r\n');
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `structure_fitup_records_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const filteredRecords = records.filter(r => {
     const drawNo = (r.draw_no || '').trim().toLowerCase();
     const jointNo = (r.joint_no || '').trim().toLowerCase();
@@ -698,6 +755,15 @@ const StructureFitUpInspection: React.FC = () => {
             sx={{ mr: 2 }}
           >
             Refresh
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download />}
+            onClick={handleDownloadCsv}
+            disabled={loading || filteredRecords.length === 0}
+            sx={{ mr: 2 }}
+          >
+            Download CSV
           </Button>
           {canEdit() && (
             <Button
