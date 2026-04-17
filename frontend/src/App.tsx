@@ -17,6 +17,7 @@ import WelderRegister from './components/Inspection/WelderRegister';
 import UserManagement from './components/Management/UserManagement';
 import ProjectManagement from './components/Management/ProjectManagement';
 import AuditLogs from './components/Management/AuditLogs';
+import BackendStrategy from './components/Management/BackendStrategy';
 import LoadingScreen from './components/Common/LoadingScreen';
 
 // Create Material-UI theme
@@ -70,6 +71,24 @@ const ProjectRequiredRoute: React.FC<{ children: React.ReactNode }> = ({ childre
   }
 
   if (!selectedProject) {
+    return <Navigate to="/projects" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== 'admin') {
     return <Navigate to="/projects" replace />;
   }
 
@@ -234,6 +253,16 @@ const AppContent: React.FC = () => {
             <Layout>
               <AuditLogs />
             </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/backend-strategy" element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <BackendStrategy />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         } />
         

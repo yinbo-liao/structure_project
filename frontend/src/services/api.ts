@@ -9,6 +9,9 @@ import {
   NDTRequest,
   MaterialInspection,
   AISummaryResponse,
+  AIStrategyCapability,
+  AIImplementationStrategyRequest,
+  AIImplementationStrategyResponse,
   LoginRequest,
   PasswordChange,
   MasterJointList,
@@ -149,6 +152,16 @@ export class ApiService {
 
   static async getProjectSummary(projectId: number): Promise<ProjectSummary> {
     const response = await axios.get(`/projects/${projectId}/summary`);
+    return response.data;
+  }
+
+  static async getAIStrategyCapabilities(): Promise<AIStrategyCapability[]> {
+    const response = await axios.get('/ai/strategy/capabilities');
+    return response.data.capabilities;
+  }
+
+  static async getAIImplementationPlan(payload: AIImplementationStrategyRequest): Promise<AIImplementationStrategyResponse> {
+    const response = await axios.post('/ai/strategy/implementation-plan', payload);
     return response.data;
   }
 

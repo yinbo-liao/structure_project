@@ -278,6 +278,42 @@ export interface AISummaryResponse {
   recommendations: string[];
 }
 
+export interface AIStrategyCapability {
+  key: string;
+  title: string;
+  summary: string;
+  backend_support: string;
+  suggested_files: string[];
+  deliverables: string[];
+}
+
+export interface AIStrategyCapabilitiesResponse {
+  capabilities: AIStrategyCapability[];
+}
+
+export interface AIImplementationFilePlanItem {
+  file: string;
+  purpose: string;
+}
+
+export interface AIImplementationStrategyRequest {
+  focus_area: string;
+  desired_outputs: string[];
+  target_files: string[];
+  constraints: string[];
+}
+
+export interface AIImplementationStrategyResponse {
+  title: string;
+  overview: string;
+  focus_area: string;
+  desired_outputs: string[];
+  constraints: string[];
+  implementation_steps: string[];
+  backend_file_plan: AIImplementationFilePlanItem[];
+  target_files: string[];
+}
+
 export interface NDTRequirement {
   id: number;
   project_id: number;
