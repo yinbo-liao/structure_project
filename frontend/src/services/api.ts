@@ -699,7 +699,7 @@ export class ApiService {
     return response.data;
   }
 
-  // AI Services
+ // AI Services
   static async generateAISummary(prompt: string, contextData: any): Promise<AISummaryResponse> {
     const response = await axios.post('/ai/summary', {
       prompt,
@@ -720,6 +720,17 @@ export class ApiService {
     return response.data;
   }
 
+  // ---- ADD THE NEW CHAT FUNCTION HERE ----
+  static async sendChatMessage(projectId: number, message: string, history: any[] = [], contextData: any = null): Promise<any> {
+    const response = await axios.post('/ai/chat', {
+      project_id: projectId,
+      message: message,
+      messages: history,
+      context_data: contextData
+    });
+    return response.data;
+  }
+  // ----------------------------------------
   // NDT Sync Services
   static async syncNDTStatus(projectId: number): Promise<{
     synced_count: number;

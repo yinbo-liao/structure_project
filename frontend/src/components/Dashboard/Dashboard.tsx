@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ProjectChatAgent from './ProjectChatAgent';
 import {
   Box,
   Grid,
@@ -32,10 +33,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ProjectSummary } from '../../types';
 import ApiService from '../../services/api';
 
+
 // Utility function to format percentages with 2 decimal places
 const formatPercentage = (value: number, decimals: number = 2): string => {
   return value.toFixed(decimals);
 };
+
 
 interface KPICardProps {
   title: string;
@@ -731,6 +734,14 @@ const Dashboard: React.FC = () => {
           </Typography>
         </Paper>
       </Box>
+      {/* ---- ADD THE CHAT AGENT RIGHT HERE ---- */}
+      {selectedProject && summary && (
+        <ProjectChatAgent 
+          projectId={selectedProject.id} 
+          projectSummaryData={summary} 
+        />
+      )}
+      {/* -------------------------------------- */}
     </Container>
   );
 };
