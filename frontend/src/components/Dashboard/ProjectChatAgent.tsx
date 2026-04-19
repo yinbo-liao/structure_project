@@ -52,7 +52,11 @@ export default function ProjectChatAgent({
       setMessages(prev => [...prev, { role: 'assistant', content: aiText }]);
     } catch (error) {
       console.error("Chat API Error:", error);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error connecting to the server.' }]);
+      const errorMessage =
+        (error as any)?.response?.data?.detail ||
+        (error as any)?.message ||
+        'Sorry, I encountered an error connecting to the server.';
+      setMessages(prev => [...prev, { role: 'assistant', content: String(errorMessage) }]);
     } finally {
       setLoading(false);
     }
