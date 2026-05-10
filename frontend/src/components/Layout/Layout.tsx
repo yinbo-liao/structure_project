@@ -31,8 +31,7 @@ import {
   Person,
   ExitToApp,
   VpnKey,
-  AccountTree,
-  AutoAwesome
+  AccountTree
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -165,12 +164,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       path: '/audit-logs',
       roles: ['admin']
     },
-    {
-      text: 'Backend Strategy',
-      icon: <AutoAwesome />,
-      path: '/backend-strategy',
-      roles: ['admin']
-    }
   ];
 
   const filteredNavigationItems = navigationItems.filter(item => 

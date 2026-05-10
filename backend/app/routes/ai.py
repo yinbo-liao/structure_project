@@ -11,10 +11,21 @@ from app.models import (
     StructureFinalInspection,
     StructureMaterialRegister
 )
-from app.schemas import AISummaryRequest, AISummaryResponse
-from app.auth import get_current_user
+from app.schemas import (
+    AISummaryRequest,
+    AISummaryResponse,
+    AIChatRequest,
+    AIChatResponse,
+    AIChatMessage,
+    AIStrategyCapabilitiesResponse,
+    AIImplementationStrategyRequest,
+    AIImplementationStrategyResponse,
+)
+from app.auth import get_current_user, require_admin
+from app.services.backend_strategy_service import BackendStrategyService
 
 router = APIRouter()
+strategy_service = BackendStrategyService()
 
 # DeepSeek chat integration
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("AI_API_KEY")
@@ -137,6 +148,80 @@ def generate_mock_summary(context_data: dict) -> str:
         summary_parts.append(f"- Material Management: {used} pieces used, {pending} pending inspection")
     
     return "\n".join(summary_parts)
+
+@router.post("/ai/chat", response_model=AIChatResponse)
+async def chat_with_ai(
+    request: AIChatRequest,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Interactive AI chat endpoint with project context injection"""
+
+    if request.project_id is not None:
+        project = db.query(ProjectModel).filter(ProjectModel.id == request.project_id).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+        if current_user.role != 'admin' and project not in current_user.assigned_projects:
+            raise HTTPException(status_code=403, detail="Not authorized to access this project")
+
+    messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+    if request.message:
+        messages.append({"role": "user", "content": request.message})
+
+    if not messages:
+        raise HTTPException(status_code=400, detail="No chat message provided")
+
+    if request.context_data:
+        context_str = format_context_data(request.context_data)
+        system_prompt = f"You are a helpful QA Data Assistant. Use the following live project data to answer the user's questions accurately:\n\n{context_str}"
+        messages.insert(0, {"role": "system", "content": system_prompt})
+
+    if not DEEPSEEK_API_KEY:
+        return AIChatResponse(
+            message=AIChatMessage(
+                role="assistant", 
+                content="Mock Response: I see your message, but the DeepSeek API key is not configured yet!"
+            )
+        )
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": DEEPSEEK_MODEL,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 2000
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                DEEPSEEK_API_URL,
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_reply = result["choices"][0]["message"]
+                
+                return AIChatResponse(
+                    message=AIChatMessage(
+                        role=ai_reply["role"], 
+                        content=ai_reply["content"]
+                    )
+                )
+            else:
+                raise HTTPException(status_code=response.status_code, detail="AI API Error")
+                
+    except Exception as e:
+        print(f"AI Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/ai/summary", response_model=AISummaryResponse)
 async def generate_project_summary(
@@ -319,6 +404,32 @@ async def get_ai_inspection_summary(
             status_code=500,
             detail=f"Failed to generate inspection summary: {str(e)}"
         )
+
+
+@router.get("/ai/strategy/capabilities", response_model=AIStrategyCapabilitiesResponse)
+async def get_ai_strategy_capabilities(
+    current_user: UserModel = Depends(require_admin)
+):
+    """Return the backend capability strategy inspired by the linked implementation approach."""
+    return AIStrategyCapabilitiesResponse(
+        capabilities=strategy_service.get_capabilities()
+    )
+
+
+@router.post("/ai/strategy/implementation-plan", response_model=AIImplementationStrategyResponse)
+async def get_ai_implementation_plan(
+    request: AIImplementationStrategyRequest,
+    current_user: UserModel = Depends(require_admin)
+):
+    """Build a backend-oriented implementation plan for the local codebase."""
+    return AIImplementationStrategyResponse(
+        **strategy_service.build_local_backend_strategy(
+            focus_area=request.focus_area,
+            desired_outputs=request.desired_outputs,
+            target_files=request.target_files or None,
+            constraints=request.constraints or None,
+        )
+    )
 
 def extract_insights(summary_text: str) -> list:
     """Extract insights from AI summary text"""

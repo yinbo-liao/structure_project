@@ -56,7 +56,7 @@ const WPSRegister: React.FC = () => {
 
   const load = async () => {
     if (!selectedProject) return;
-    const data = await ApiService.getWPSRegister(selectedProject.id);
+    const data = await ApiService.getWPSRegister(selectedProject!.id);
     setItems(data);
   };
 
@@ -69,7 +69,7 @@ const WPSRegister: React.FC = () => {
       project_id: selectedProject.id,
       process: Array.isArray(form.process) ? (form.process as string[]).join(',') : form.process
     };
-    await ApiService.createWPSRegister(payload);
+    await ApiService.createWPSRegister(selectedProject!.id, payload);
     setForm({ 
       wps_no: '', 
       job_trade: 'structure', 
@@ -102,7 +102,7 @@ const WPSRegister: React.FC = () => {
       ...editForm,
       process: Array.isArray(editForm.process) ? (editForm.process as string[]).join(',') : editForm.process
     };
-    await ApiService.updateWPSRegister(editItem.id, payload);
+    await ApiService.updateWPSRegister(selectedProject!.id, editItem.id, payload);
     setEditOpen(false);
     load();
   };

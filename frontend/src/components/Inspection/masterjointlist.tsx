@@ -66,7 +66,7 @@ const MasterJointList: React.FC = () => {
     
     try {
       setLoading(true);
-      const structureData = await ApiService.getStructureMasterJointList(selectedProject.id);
+      const structureData = await ApiService.getStructureMasterJointList(selectedProject!.id);
       const data = structureData.map((item: any) => ({
         id: item.id,
         project_id: item.project_id,
@@ -144,7 +144,7 @@ const MasterJointList: React.FC = () => {
         final_status: formData.final_status,
         inspection_category: formData.inspection_category
       };
-      await ApiService.createStructureMasterJointList(structureData);
+      await ApiService.createStructureMasterJointList(selectedProject!.id, structureData);
       setOpen(false);
       setFormData({
         draw_no: '',
@@ -203,7 +203,7 @@ const MasterJointList: React.FC = () => {
         ndt_paut_result: data.ndt_paut_result,
         ndt_comprehensive_status: data.ndt_comprehensive_status
       };
-      await ApiService.updateStructureMasterJointList(id, structureData);
+      await ApiService.updateStructureMasterJointList(selectedProject!.id, id, structureData);
       fetchJoints();
       setMessage('Joint record updated successfully');
     } catch (error: any) {
@@ -213,7 +213,7 @@ const MasterJointList: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await ApiService.deleteStructureMasterJointList(id);
+      await ApiService.deleteStructureMasterJointList(selectedProject!.id, id);
       fetchJoints();
       setMessage('Joint record deleted successfully');
     } catch (error: any) {
@@ -226,7 +226,7 @@ const MasterJointList: React.FC = () => {
 
     try {
       setUploading(true);
-      const result = await ApiService.uploadStructureMasterJointList(selectedProject.id, uploadFile);
+      const result = await ApiService.uploadStructureMasterJointList(selectedProject!.id, uploadFile);
       setUploadOpen(false);
       setUploadFile(null);
       fetchJoints();
@@ -247,7 +247,7 @@ const MasterJointList: React.FC = () => {
     try {
       setSyncing(true);
       setSyncStatus(null);
-      const result = await ApiService.autoSyncNDTStatus(selectedProject.id);
+      const result = await ApiService.autoSyncNDTStatus(selectedProject!.id);
       setSyncStatus(result);
       fetchJoints();
       // Use defensive coding to handle undefined values
@@ -271,7 +271,7 @@ const MasterJointList: React.FC = () => {
 
     try {
       setLoading(true);
-      const result = await ApiService.bulkCreateOrUpdateStructureFitUpFromMasterJoints(selectedJointIds);
+      const result = await ApiService.bulkCreateOrUpdateStructureFitUpFromMasterJoints(selectedProject!.id, selectedJointIds);
       await fetchJoints();
       setSelectedJointIds([]);
 

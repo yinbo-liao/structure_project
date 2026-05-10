@@ -66,7 +66,7 @@ const MaterialRegister: React.FC = () => {
     
     try {
       setLoading(true);
-      const data = await ApiService.getMaterialRegister(selectedProject.id);
+      const data = await ApiService.getMaterialRegister(selectedProject!.id);
       setMaterials(data);
     } catch (error) {
       console.error('Error fetching materials:', error);
@@ -140,7 +140,7 @@ const MaterialRegister: React.FC = () => {
     if (!selectedProject) return;
 
     try {
-      await ApiService.createMaterialRegister({
+      await ApiService.createMaterialRegister(selectedProject!.id, {
         ...formData,
         project_id: selectedProject.id
       });
@@ -169,12 +169,12 @@ const MaterialRegister: React.FC = () => {
   };
 
   const handleUpdate = async (id: number, data: any) => {
-    await ApiService.updateMaterialRegister(id, data);
+    await ApiService.updateMaterialRegister(selectedProject!.id, id, data);
     fetchMaterials();
   };
 
   const handleDelete = async (id: number) => {
-    await ApiService.deleteMaterialRegister(id);
+    await ApiService.deleteMaterialRegister(selectedProject!.id, id);
     fetchMaterials();
   };
 
@@ -305,7 +305,7 @@ const MaterialRegister: React.FC = () => {
                   if (!file) return;
                   try {
                     setUploading(true);
-                    const res = await ApiService.uploadMaterialRegister(selectedProject.id, file);
+                    const res = await ApiService.uploadMaterialRegister(selectedProject!.id, file);
                     const created = res.created || 0;
                     const updated = res.updated || 0;
                     const errors = Array.isArray(res.errors) ? res.errors : [];

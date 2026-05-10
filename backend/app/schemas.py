@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from enum import Enum
 
+
 # ============ Enums ============
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -443,3 +444,55 @@ class AISummaryResponse(BaseSchema):
     summary: str
     insights: List[str]
     recommendations: List[str]
+
+
+class AIChatMessage(BaseSchema):
+    role: str
+    content: str
+
+
+class AIChatRequest(BaseSchema):
+    project_id: Optional[int] = None
+    message: Optional[str] = None
+    messages: List[AIChatMessage] = []
+    context_data: Optional[Dict[str, Any]] = None
+
+
+class AIChatResponse(BaseSchema):
+    message: AIChatMessage
+
+
+class AIStrategyCapability(BaseSchema):
+    key: str
+    title: str
+    summary: str
+    backend_support: str
+    suggested_files: List[str]
+    deliverables: List[str]
+
+
+class AIStrategyCapabilitiesResponse(BaseSchema):
+    capabilities: List[AIStrategyCapability]
+
+
+class AIImplementationStrategyRequest(BaseSchema):
+    focus_area: str = "Backend Capability Strategy"
+    desired_outputs: List[str] = []
+    target_files: List[str] = []
+    constraints: List[str] = []
+
+
+class AIImplementationFilePlanItem(BaseSchema):
+    file: str
+    purpose: str
+
+
+class AIImplementationStrategyResponse(BaseSchema):
+    title: str
+    overview: str
+    focus_area: str
+    desired_outputs: List[str]
+    constraints: List[str]
+    implementation_steps: List[str]
+    backend_file_plan: List[AIImplementationFilePlanItem]
+    target_files: List[str]

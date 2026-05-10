@@ -19,8 +19,6 @@ const WelderRegister = lazy(() => import('./components/Inspection/WelderRegister
 const UserManagement = lazy(() => import('./components/Management/UserManagement'));
 const ProjectManagement = lazy(() => import('./components/Management/ProjectManagement'));
 const AuditLogs = lazy(() => import('./components/Management/AuditLogs'));
-const BackendStrategy = lazy(() => import('./components/Management/BackendStrategy'));
-
 // Create Material-UI theme
 const theme = createTheme({
   palette: {
@@ -258,16 +256,6 @@ const AppContent: React.FC = () => {
             </ProtectedRoute>
           } />
 
-          <Route path="/backend-strategy" element={
-            <ProtectedRoute>
-              <AdminRoute>
-                <Layout>
-                  <BackendStrategy />
-                </Layout>
-              </AdminRoute>
-            </ProtectedRoute>
-          } />
-          
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

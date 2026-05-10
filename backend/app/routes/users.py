@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models_fixed import User as UserModel, Project as ProjectModel
+from app.models import User as UserModel, Project as ProjectModel
 from app.schemas import User as UserSchema, UserCreate, UserUpdate, UserWithProjects, PasswordChange, PasswordReset, Project as ProjectSchema
 from app.auth import get_current_user, get_password_hash, verify_password, require_admin
 

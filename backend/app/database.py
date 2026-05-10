@@ -8,14 +8,15 @@ from app.models import Base
 
 logger = logging.getLogger(__name__)
 
-# Database URL configuration - Use PostgreSQL by default in production
+# Database URL configuration
 database_url = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:password123@localhost:5432/project_management"
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/project_management"
 )
 
 # Check environment for database selection
-use_sqlite = True # Force SQLite for debugging
+_db_type = os.getenv("DB_TYPE", "sqlite").lower()
+use_sqlite = _db_type == "sqlite"
 is_testing = os.getenv("TESTING", "false").lower() == "true"
 
 if use_sqlite or is_testing:

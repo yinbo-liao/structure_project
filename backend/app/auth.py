@@ -2,36 +2,73 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import os
+import logging
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
-# Use fixed models now that relationships are fixed
-from app.models_fixed import User, UserRole
-import os
+from app.models import User, UserRole
 from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
+logger = logging.getLogger(__name__)
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+_ENV = os.getenv("ENVIRONMENT", "development")
+_is_dev = _ENV != "production"
+
+if not SECRET_KEY:
+    if _is_dev:
+        SECRET_KEY = "dev-secret-key-change-in-production"
+        logger.warning("SECRET_KEY not set, using insecure dev default")
+    else:
+        raise RuntimeError("SECRET_KEY environment variable is required in production")
+
+_allow_test_bypass = (
+    os.getenv("TEST_LOGIN_BYPASS", "false").lower() == "true"
+    and _is_dev
+)
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+
+def _get_or_create_bypass_user(db: Session) -> User:
+    """Return existing bypass admin user or create one."""
+    user = db.query(User).filter(User.email == "admin@mpdms.com").first()
+    if user is None:
+        user = User(
+            email="admin@mpdms.com",
+            full_name="Admin",
+            role=UserRole.ADMIN,
+            hashed_password=get_password_hash("admin"),
+            is_active=True,
+            password_change_required=False,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        if os.getenv("TEST_LOGIN_BYPASS", "false").lower() == "true":
+        if _allow_test_bypass:
             allowed = {
                 "admin@mpdms.com": ["admin", "admin123"],
                 "inspector@mpdms.com": ["inspect"],
@@ -63,42 +100,21 @@ def authenticate_user(db: Session, email: str, password: str):
         return False
     return user
 
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
-    try:
-        with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG: Entering get_current_user at {datetime.now()}\n")
-    except:
-        pass
-
     if credentials is None:
-        if os.getenv("TEST_LOGIN_BYPASS", "false").lower() == "true":
-            user = db.query(User).filter(User.email == "admin@mpdms.com").first()
-            if user is None:
-                user = User(
-                    email="admin@mpdms.com",
-                    full_name="Admin",
-                    role=UserRole.ADMIN,
-                    hashed_password=get_password_hash("admin"),
-                    is_active=True,
-                    password_change_required=False,
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-            return user
+        if _allow_test_bypass:
+            return _get_or_create_bypass_user(db)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -108,52 +124,22 @@ async def get_current_user(
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
-            if os.getenv("TEST_LOGIN_BYPASS", "false").lower() == "true":
-                user = db.query(User).filter(User.email == "admin@mpdms.com").first()
-                if user is None:
-                    user = User(
-                        email="admin@mpdms.com",
-                        full_name="Admin",
-                        role=UserRole.ADMIN,
-                        hashed_password=get_password_hash("admin"),
-                        is_active=True,
-                        password_change_required=False,
-                    )
-                    db.add(user)
-                    db.commit()
-                    db.refresh(user)
-                return user
+            if _allow_test_bypass:
+                return _get_or_create_bypass_user(db)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
     except JWTError:
-        if os.getenv("TEST_LOGIN_BYPASS", "false").lower() == "true":
-            user = db.query(User).filter(User.email == "admin@mpdms.com").first()
-            if user is None:
-                user = User(
-                    email="admin@mpdms.com",
-                    full_name="Admin",
-                    role=UserRole.ADMIN,
-                    hashed_password=get_password_hash("admin"),
-                    is_active=True,
-                    password_change_required=False,
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-            return user
+        if _allow_test_bypass:
+            return _get_or_create_bypass_user(db)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    with open("debug_log.txt", "a") as f:
-        f.write(f"DEBUG: Querying user {email}\n")
     user = db.query(User).filter(User.email == email).first()
-    with open("debug_log.txt", "a") as f:
-        f.write(f"DEBUG: User query result: {user}\n")
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -162,7 +148,7 @@ async def get_current_user(
         )
     return user
 
-# Role-based access control
+
 def require_role(required_role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
         if current_user.role != required_role and current_user.role != 'admin':
@@ -173,6 +159,7 @@ def require_role(required_role: str):
         return current_user
     return role_checker
 
+
 def require_admin(current_user: User = Depends(get_current_user)):
     if current_user.role != 'admin':
         raise HTTPException(
@@ -181,8 +168,8 @@ def require_admin(current_user: User = Depends(get_current_user)):
         )
     return current_user
 
+
 def require_editor(current_user: User = Depends(get_current_user)):
-    """Allow admin and inspector roles to edit"""
     if current_user.role not in ['admin', 'inspector']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

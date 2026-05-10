@@ -102,10 +102,10 @@ const StructureFitUpInspection: React.FC = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const data = await ApiService.getStructureFitUpInspections(selectedProject.id);
+      const data = await ApiService.getStructureFitUpInspections(selectedProject!.id);
       setRecords(data);
       try {
-        const opts = await ApiService.getStructureFitUpFilters(selectedProject.id);
+        const opts = await ApiService.getStructureFitUpFilters(selectedProject!.id);
         setFilterOptions({
           fit_up_result: opts?.fit_up_result || []
         });
@@ -125,7 +125,7 @@ const StructureFitUpInspection: React.FC = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const result = await ApiService.syncStructureFitUpMaterials(selectedProject.id);
+      const result = await ApiService.syncStructureFitUpMaterials(selectedProject!.id);
       setSuccessMessage(`Successfully synced materials. Updated ${result.updated_count} records.`);
       fetchFitUpRecords();
     } catch (err: any) {
@@ -139,7 +139,7 @@ const StructureFitUpInspection: React.FC = () => {
     if (!selectedProject) return;
     try {
       // Use structure-specific API with excludeWithFitup=true
-      const joints = await ApiService.getStructureMasterJointList(selectedProject.id, undefined, undefined, true);
+      const joints = await ApiService.getStructureMasterJointList(selectedProject!.id, undefined, undefined, true);
       
       // Sort by drawing_no then joint_no
       const sortedJoints = (joints || []).sort((a: MasterJointListType, b: MasterJointListType) => {
@@ -165,7 +165,7 @@ const StructureFitUpInspection: React.FC = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const result = await ApiService.bulkCreateFinalInspectionsFromFitup(selectedRows);
+      const result = await ApiService.bulkCreateStructureFinalInspectionsFromFitup(selectedProject!.id, selectedRows);
       
       let msg = result.message;
       if (result.errors && result.errors.length > 0) {
@@ -218,7 +218,7 @@ const StructureFitUpInspection: React.FC = () => {
     const loadMaterials = async () => {
       if (!selectedProject) return;
       try {
-        const data = await ApiService.getMaterialRegister(selectedProject.id);
+        const data = await ApiService.getMaterialRegister(selectedProject!.id);
         setMaterials(data || []);
       } catch {}
     };
@@ -228,8 +228,8 @@ const StructureFitUpInspection: React.FC = () => {
       try {
         // Use structure-specific API for structure projects
         const joints = selectedProject.project_type === 'structure' 
-          ? await ApiService.getStructureMasterJointList(selectedProject.id)
-          : await ApiService.getMasterJointList(selectedProject.id);
+          ? await ApiService.getStructureMasterJointList(selectedProject!.id)
+          : await ApiService.getMasterJointList(selectedProject!.id);
         setMasterJoints(joints || []);
       } catch {}
     };
@@ -295,7 +295,7 @@ const StructureFitUpInspection: React.FC = () => {
         } catch {}
       }
       
-      await ApiService.updateStructureFitUpInspection(editingId, payload);
+      await ApiService.updateStructureFitUpInspection(selectedProject!.id, editingId, payload);
       setEditingId(null);
       setEditRowData({});
       fetchFitUpRecords();
@@ -547,7 +547,7 @@ const StructureFitUpInspection: React.FC = () => {
         }
       }
       
-      await ApiService.createStructureFitUpInspection(payload);
+      await ApiService.createStructureFitUpInspection(selectedProject!.id, payload);
       setAddDialogOpen(false);
       fetchFitUpRecords();
     } catch (err: any) {
@@ -598,7 +598,7 @@ const StructureFitUpInspection: React.FC = () => {
         }
       }
       
-      await ApiService.updateStructureFitUpInspection(selectedRecord.id, payload);
+      await ApiService.updateStructureFitUpInspection(selectedProject!.id, selectedRecord.id, payload);
       setEditDialogOpen(false);
       setSelectedRecord(null);
       fetchFitUpRecords();
@@ -612,7 +612,7 @@ const StructureFitUpInspection: React.FC = () => {
     if (!selectedRecord) return;
     
     try {
-      await ApiService.deleteFitUpInspection(selectedRecord.id);
+      await ApiService.deleteFitUpInspection(selectedProject!.id, selectedRecord.id);
       setDeleteDialogOpen(false);
       setSelectedRecord(null);
       fetchFitUpRecords();

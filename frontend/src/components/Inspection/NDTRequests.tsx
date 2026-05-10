@@ -45,9 +45,9 @@ const NDTRequests: React.FC = () => {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        ApiService.getStructureNDTRequests(selectedProject.id),
-        ApiService.getFinalInspections(selectedProject.id),
-        ApiService.getNDTRequirements(selectedProject.id)
+        ApiService.getStructureNDTRequests(selectedProject!.id),
+        ApiService.getFinalInspections(selectedProject!.id),
+        ApiService.getNDTRequirements(selectedProject!.id)
       ]);
       if (results[0].status === 'fulfilled') {
         const fetched: any[] = Array.isArray(results[0].value) ? results[0].value as any[] : [];
@@ -289,7 +289,7 @@ const NDTRequests: React.FC = () => {
       final_id: fi.id
     } as any;
     try {
-      const created = await ApiService.createStructureNDTRequest(payload);
+      const created = await ApiService.createStructureNDTRequest(selectedProject!.id, payload);
       const createdRow = { ...created, ...payload } as any;
       setSnackMsg('NDT request created');
       setSnackSeverity('success');
@@ -408,12 +408,12 @@ const NDTRequests: React.FC = () => {
             ndt_report_no: draft.rfi_no,
             final_id: fi.id
           } as any;
-          const created = await ApiService.createStructureNDTRequest(payload);
+          const created = await ApiService.createStructureNDTRequest(selectedProject!.id, payload);
           const createdRow = { ...created, ...payload } as any;
           createdList.push(createdRow);
           // Ensure NDT status record exists for this final inspection
           try {
-            await ApiService.ensureNDTStatusRecord(fi.id);
+            await ApiService.ensureNDTStatusRecord(selectedProject!.id, fi.id);
           } catch (err) {
             // Silently ignore; status record may already exist
           }
@@ -466,7 +466,7 @@ const NDTRequests: React.FC = () => {
   };
 
   const updateStatus = async (id: number, status: string) => {
-    await ApiService.updateStructureNDTStatus(id, status);
+    await ApiService.updateStructureNDTStatus(selectedProject!.id, id, status);
     load();
   };
 
@@ -497,10 +497,10 @@ const NDTRequests: React.FC = () => {
         final_id: form.final_id as number
       } as any;
       if (editingId) {
-        await ApiService.updateStructureNDTRequest(editingId, payload);
+        await ApiService.updateStructureNDTRequest(selectedProject!.id, editingId, payload);
       } else {
         try {
-          const created = await ApiService.createStructureNDTRequest(payload);
+          const created = await ApiService.createStructureNDTRequest(selectedProject!.id, payload);
         } catch (err: any) {
           const detail = err?.response?.data?.detail;
           let msg = '';
@@ -538,7 +538,7 @@ const NDTRequests: React.FC = () => {
     if (!extras.length) return;
     try {
       for (const id of extras) {
-        try { await ApiService.deleteStructureNDTRequest(id); } catch {}
+        try { await ApiService.deleteStructureNDTRequest(selectedProject!.id, id); } catch {}
       }
       setSnackMsg(`Deleted ${extras.length} duplicate request${extras.length > 1 ? 's' : ''}`);
       setSnackSeverity('success');
@@ -580,7 +580,7 @@ const NDTRequests: React.FC = () => {
 
   const onDelete = async (id: number) => {
     try {
-      await ApiService.deleteStructureNDTRequest(id);
+      await ApiService.deleteStructureNDTRequest(selectedProject!.id, id);
       setSnackMsg('NDT request deleted');
       setSnackSeverity('success');
       setSnackOpen(true);

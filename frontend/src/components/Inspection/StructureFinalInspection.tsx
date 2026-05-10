@@ -182,7 +182,7 @@ const StructureFinalInspection: React.FC = () => {
             return;
         }
 
-        await ApiService.bulkUpdateFinalInspections(selectedRows, updates);
+        await ApiService.bulkUpdateStructureFinalInspections(selectedProject!.id, selectedRows, updates);
         setBulkUpdateDialogOpen(false);
         setSelectedRows([]);
         fetchFinalRecords();
@@ -231,10 +231,10 @@ const StructureFinalInspection: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await ApiService.getStructureFinalInspections(selectedProject.id);
+      const data = await ApiService.getStructureFinalInspections(selectedProject!.id);
       setRecords(data);
       try {
-        const opts = await ApiService.getStructureFinalFilters(selectedProject.id);
+        const opts = await ApiService.getStructureFinalFilters(selectedProject!.id);
         // Backend correctly returns structure fields
         setFilterOptions({
           structure_category: opts.structure_category || [],
@@ -255,7 +255,7 @@ const StructureFinalInspection: React.FC = () => {
   const loadPendingFitups = async () => {
     if (!selectedProject) return;
     try {
-      const data = await ApiService.getStructureFitUpPendingFinal(selectedProject.id);
+      const data = await ApiService.getStructureFitUpPendingFinal(selectedProject!.id);
       const uniqueMap = new Map();
       if (Array.isArray(data)) {
         data.forEach(f => {
@@ -284,7 +284,7 @@ const StructureFinalInspection: React.FC = () => {
     const loadFitups = async () => {
       if (!selectedProject) return;
       try {
-        const data = await ApiService.getStructureFitUpInspections(selectedProject.id);
+        const data = await ApiService.getStructureFitUpInspections(selectedProject!.id);
         setFitupRecords(data || []);
       } catch {}
     };
@@ -292,7 +292,7 @@ const StructureFinalInspection: React.FC = () => {
     const loadWps = async () => {
       if (!selectedProject) return;
       try {
-        const data = await ApiService.getWPSRegister(selectedProject.id);
+        const data = await ApiService.getWPSRegister(selectedProject!.id);
         setWpsList(data || []);
       } catch {}
     };
@@ -300,7 +300,7 @@ const StructureFinalInspection: React.FC = () => {
     const loadWelders = async () => {
       if (!selectedProject) return;
       try {
-        const data = await ApiService.getWelderRegister(selectedProject.id);
+        const data = await ApiService.getWelderRegister(selectedProject!.id);
         setWelderList(data || []);
       } catch {}
     };
@@ -442,7 +442,7 @@ const StructureFinalInspection: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!selectedRecord) return;
     try {
-      await ApiService.deleteStructureFinalInspection(selectedRecord.id);
+      await ApiService.deleteStructureFinalInspection(selectedProject!.id, selectedRecord.id);
       setDeleteDialogOpen(false);
       setSelectedRecord(null);
       fetchFinalRecords();
@@ -471,7 +471,7 @@ const StructureFinalInspection: React.FC = () => {
           delete payload.final_date;
         }
       }
-      await ApiService.createStructureFinalInspection(payload);
+      await ApiService.createStructureFinalInspection(selectedProject!.id, payload);
       setAddDialogOpen(false);
       fetchFinalRecords();
     } catch (err: any) {
@@ -506,7 +506,7 @@ const StructureFinalInspection: React.FC = () => {
           delete payload.final_date;
         }
       }
-      await ApiService.updateStructureFinalInspection(selectedRecord.id, payload);
+      await ApiService.updateStructureFinalInspection(selectedProject!.id, selectedRecord.id, payload);
       const groupSize = editGroupIds.length;
       const currentIndex = editGroupIndex;
       const hasNext = groupSize > 0 && currentIndex < groupSize - 1;

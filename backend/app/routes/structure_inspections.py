@@ -178,7 +178,7 @@ def get_audit_log_by_date(
 @router.get("/structure/master-joint-list", response_model=List[StructureMasterJointSchema])
 def get_structure_master_joint_list(
     skip: int = 0,
-    limit: int = 20000,
+    limit: int = Query(100, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     structure_category: Optional[str] = Query(None),
     page_no: Optional[str] = Query(None),
@@ -769,7 +769,7 @@ def delete_structure_material_register(
 @router.get("/structure/fitup-inspection", response_model=List[StructureFitUpInspectionSchema])
 def get_structure_fitup_inspections(
     skip: int = 0,
-    limit: int = 20000,
+    limit: int = Query(100, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
@@ -1213,7 +1213,7 @@ def sync_structure_fitup_materials(
 @router.get("/structure/final-inspection", response_model=List[StructureFinalInspectionSchema])
 def get_structure_final_inspections(
     skip: int = 0,
-    limit: int = 20000,
+    limit: int = Query(100, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
@@ -2384,7 +2384,7 @@ def create_structure_ndt_requirement(
 @router.get("/wps-register")
 def get_wps_register(
     skip: int = 0,
-    limit: int = 20000,
+    limit: int = Query(100, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
@@ -2456,7 +2456,7 @@ def delete_wps_register(
 @router.get("/welder-register")
 def get_welder_register(
     skip: int = 0,
-    limit: int = 20000,
+    limit: int = Query(100, ge=1, le=1000),
     project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)

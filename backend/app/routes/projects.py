@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 from typing import List
 
 from app.database import get_db
-from app.models_fixed import (
+from app.models import (
     Project as ProjectModel,
     User as UserModel,
     StructureFitUpInspection,
@@ -43,32 +43,17 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db), curren
 
 @router.get("/projects", response_model=list[_ProjectBasic])
 def read_projects(db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
-    try:
-        with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG: Entered read_projects at {datetime.now()}\n")
-            f.write(f"DEBUG: ProjectModel module: {ProjectModel.__module__}\n")
-            f.write(f"DEBUG: ProjectModel.project_type type: {ProjectModel.project_type.type}\n")
+    if current_user.role == 'admin':
+        projects = db.query(ProjectModel).all()
+    else:
+        projects = current_user.assigned_projects
 
-        if current_user.role == 'admin':
-            projects = db.query(ProjectModel).all()
-        else:
-            projects = current_user.assigned_projects
-        
-        with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG: Fetched {len(projects)} projects\n")
-            for p in projects:
-                val = getattr(p, "project_type", None)
-                f.write(f"DEBUG: Project {p.id} type raw: '{val}' (type: {type(val)})\n")
-                if not val or str(val).strip() == "":
-                    setattr(p, "project_type", "structure")
+    for p in projects:
+        val = getattr(p, "project_type", None)
+        if not val or str(val).strip() == "":
+            setattr(p, "project_type", "structure")
 
-        return projects
-    except Exception as e:
-        with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG ERROR in read_projects: {e}\n")
-            import traceback
-            traceback.print_exc(file=f)
-        raise e
+    return projects
 
 @router.get("/projects/my-projects", response_model=list[ProjectWithUsers])
 def read_my_projects(db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):

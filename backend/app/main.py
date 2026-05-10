@@ -47,18 +47,8 @@ def initialize_database():
             Base.metadata.create_all(bind=engine)
             logger.info(f"Created missing tables: {missing_tables}")
         
-        _ensure_user_columns()
+        _ensure_all_table_columns()
         _ensure_default_users()
-
-        _ensure_structure_master_joint_columns()
-   
-        _ensure_structure_material_register_columns()
-        _ensure_fitup_inspection_columns()
-        _ensure_final_inspection_columns()
-        _ensure_wps_register_columns()
-        _ensure_welder_register_columns()
-        _ensure_material_register_columns()
-        _ensure_ndt_tables_columns()
         _ensure_unique_joint_indexes()
         _backfill_timestamps()
         
@@ -67,136 +57,155 @@ def initialize_database():
         raise
 
 def create_performance_indexes():
+    """Create performance indexes for both SQLite and PostgreSQL"""
     try:
         with engine.connect() as conn:
-            if engine.dialect.name == 'postgresql':
-                indexes = [
-
+            is_pg = engine.dialect.name == 'postgresql'
+            if_not_exists = "IF NOT EXISTS" if is_pg else "IF NOT EXISTS"
+            indexes = [
+                f"CREATE INDEX {if_not_exists} idx_master_joint_project ON structure_master_joint_list(project_id)",
+                f"CREATE INDEX {if_not_exists} idx_master_joint_draw ON structure_master_joint_list(draw_no)",
+                f"CREATE INDEX {if_not_exists} idx_master_joint_category ON structure_master_joint_list(inspection_category)",
+                f"CREATE INDEX {if_not_exists} idx_final_project ON structure_final_inspection(project_id)",
+                f"CREATE INDEX {if_not_exists} idx_final_date ON structure_final_inspection(final_date)",
+                f"CREATE INDEX {if_not_exists} idx_fitup_project ON structure_fitup_inspection(project_id)",
+                f"CREATE INDEX {if_not_exists} idx_material_project ON structure_material_register(project_id)",
+                f"CREATE INDEX {if_not_exists} idx_ndt_status_project ON structure_ndt_status_records(project_id)",
+                f"CREATE INDEX {if_not_exists} idx_ndt_requests_project ON structure_ndt_requests(project_id)",
+            ]
+            if is_pg:
+                indexes.extend([
                     "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_project_draw ON structure_master_joint_list(project_id, draw_no)",
-                    "CREATE INDEX IF NOT EXISTS idx_structure_master_joint_category ON structure_master_joint_list(inspection_category)",
                     "CREATE INDEX IF NOT EXISTS idx_structure_final_project_date ON structure_final_inspection(project_id, final_date)",
                     "CREATE INDEX IF NOT EXISTS idx_structure_final_result ON structure_final_inspection(final_result)",
-                    "CREATE INDEX IF NOT EXISTS idx_pipe_ndt_status_project_method ON pipe_ndt_status_records(project_id, ndt_type)",
                     "CREATE INDEX IF NOT EXISTS idx_structure_ndt_status_project_method ON structure_ndt_status_records(project_id, ndt_type)",
-
-                    "CREATE INDEX IF NOT EXISTS idx_structure_material_project_piece ON structure_material_register(project_id, piece_mark_no)",
-                ]
-                for index_sql in indexes:
-                    try:
-                        conn.execute(text(index_sql))
-                        conn.commit()
-                    except Exception as e:
-                        logger.warning(f"Could not create index: {e}")
+                ])
+            for index_sql in indexes:
+                try:
+                    conn.execute(text(index_sql))
+                    conn.commit()
+                except Exception as e:
+                    logger.warning(f"Could not create index: {e}")
+                    if is_pg:
                         conn.rollback()
-            else:
-                logger.info(f"Using {engine.dialect.name} database, skipping PostgreSQL-specific indexes")
     except Exception as e:
         logger.error(f"Failed to create performance indexes: {e}")
 
 
 
-def _ensure_structure_master_joint_columns():
-    """Ensure required columns exist on structure_master_joint_list for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        with engine.connect() as conn:
-            cols = conn.exec_driver_sql("PRAGMA table_info(structure_master_joint_list)").fetchall()
-            names = [r[1] for r in cols]
-            if "created_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN created_at DATETIME")
-                    logger.info("Added column created_at to structure_master_joint_list")
-                except Exception as e:
-                    logger.warning(f"Could not add created_at column: {e}")
-            if "updated_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN updated_at DATETIME")
-                    logger.info("Added column updated_at to structure_master_joint_list")
-                except Exception as e:
-                    logger.warning(f"Could not add updated_at column: {e}")
-            if "fit_up_report_no" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN fit_up_report_no VARCHAR(50)")
-                    logger.info("Added column fit_up_report_no to structure_master_joint_list")
-                except Exception as e:
-                    logger.warning(f"Could not add fit_up_report_no column: {e}")
-            if "final_report_no" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN final_report_no VARCHAR(50)")
-                    logger.info("Added column final_report_no to structure_master_joint_list")
-                except Exception as e:
-                    logger.warning(f"Could not add final_report_no column: {e}")
-            if "thickness" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_master_joint_list ADD COLUMN thickness VARCHAR(20)")
-                    logger.info("Added column thickness to structure_master_joint_list")
-                except Exception as e:
-                    logger.warning(f"Could not add thickness column: {e}")
-    except Exception as e:
-        logger.error(f"Structure column migration failed: {e}")
+# Column migration registry: table_name -> [(column_name, column_type), ...]
+COLUMN_MIGRATIONS = {
+    "users": [
+        ("last_login", "DATETIME"),
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+    ],
+    "structure_master_joint_list": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("fit_up_report_no", "VARCHAR(50)"),
+        ("final_report_no", "VARCHAR(50)"),
+        ("thickness", "VARCHAR(20)"),
+    ],
+    "structure_material_register": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+        ("block_no", "VARCHAR(50)"),
+        ("structure_spec", "VARCHAR(50)"),
+        ("structure_category", "VARCHAR(50)"),
+        ("drawing_no", "VARCHAR(50)"),
+        ("drawing_rev", "VARCHAR(20)"),
+        ("width", "VARCHAR(20)"),
+        ("length", "VARCHAR(20)"),
+    ],
+    "structure_fitup_inspection": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+        ("updated_by", "VARCHAR(100)"),
+    ],
+    "pipe_final_inspection": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "structure_final_inspection": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "wps_register": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+    ],
+    "welder_register": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "pipe_material_register": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "pipe_ndt_requests": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "structure_ndt_requests": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+    "pipe_ndt_status_records": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+        ("joint_no", "VARCHAR(50)"),
+    ],
+    "structure_ndt_status_records": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+        ("joint_no", "VARCHAR(50)"),
+    ],
+    "ndt_requirements": [
+        ("created_at", "DATETIME"),
+        ("updated_at", "DATETIME"),
+        ("project_id", "INTEGER"),
+    ],
+}
 
-def _ensure_structure_material_register_columns():
-    """Ensure required columns exist on structure_material_register for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        with engine.connect() as conn:
-            cols = conn.exec_driver_sql("PRAGMA table_info(structure_material_register)").fetchall()
-            names = [r[1] for r in cols]
-            if "block_no" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN block_no VARCHAR(50)")
-                    logger.info("Added column block_no to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add block_no column: {e}")
-            if "structure_spec" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN structure_spec VARCHAR(50)")
-                    logger.info("Added column structure_spec to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add structure_spec column: {e}")
-            if "structure_category" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN structure_category VARCHAR(50)")
-                    logger.info("Added column structure_category to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add structure_category column: {e}")
-            if "drawing_no" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN drawing_no VARCHAR(50)")
-                    logger.info("Added column drawing_no to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add drawing_no column: {e}")
-            if "drawing_rev" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN drawing_rev VARCHAR(20)")
-                    logger.info("Added column drawing_rev to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add drawing_rev column: {e}")
-            if "width" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN width VARCHAR(20)")
-                    logger.info("Added column width to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add width column: {e}")
-            if "length" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE structure_material_register ADD COLUMN length VARCHAR(20)")
-                    logger.info("Added column length to structure_material_register")
-                except Exception as e:
-                    logger.warning(f"Could not add length column: {e}")
-    except Exception as e:
-        logger.error(f"Structure material column migration failed: {e}")
+def _ensure_all_table_columns():
+    """Ensure required columns exist on all tables for SQLite"""
+    if engine.dialect.name != 'sqlite':
+        return
+    for table_name, columns in COLUMN_MIGRATIONS.items():
+        try:
+            with engine.connect() as conn:
+                existing = {r[1] for r in conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()}
+                for col_name, col_type in columns:
+                    if col_name not in existing:
+                        try:
+                            conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}")
+                            logger.info(f"Added column {col_name} to {table_name}")
+                        except Exception as e:
+                            logger.warning(f"Could not add {col_name} to {table_name}: {e}")
+        except Exception as e:
+            logger.error(f"Column migration failed for {table_name}: {e}")
 
 def _ensure_default_users():
-    """Ensure default users exist so TEST_LOGIN_BYPASS can work and admin can log in"""
+    """Ensure default users exist for development login"""
     try:
+        default_password = os.getenv("DEFAULT_ADMIN_PASSWORD", "")
+        if not default_password:
+            logger.warning("DEFAULT_ADMIN_PASSWORD not set, skipping default user creation")
+            return
         with SessionLocal() as db:
             users = {
-                "admin@mpdms.com": {"role": "admin", "password": "admin"},
-                "inspector@mpdms.com": {"role": "inspector", "password": "inspect"},
-                "visitor@mpdms.com": {"role": "visitor", "password": "visit"},
+                "admin@mpdms.com": {"role": "admin", "password": default_password},
             }
             for email, info in users.items():
                 u = db.query(User).filter(User.email == email).first()
@@ -213,237 +222,6 @@ def _ensure_default_users():
             db.commit()
     except Exception as e:
         logger.warning(f"Could not ensure default users: {e}")
-
-def _ensure_user_columns():
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        with engine.connect() as conn:
-            cols = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
-            names = [r[1] for r in cols]
-            if "last_login" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN last_login DATETIME")
-                    logger.info("Added column last_login to users")
-                except Exception as e:
-                    logger.warning(f"Could not add last_login column: {e}")
-            if "created_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN created_at DATETIME")
-                    logger.info("Added column created_at to users")
-                except Exception as e:
-                    logger.warning(f"Could not add created_at column: {e}")
-            if "updated_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN updated_at DATETIME")
-                    logger.info("Added column updated_at to users")
-                except Exception as e:
-                    logger.warning(f"Could not add updated_at column: {e}")
-    except Exception as e:
-        logger.error(f"User column migration failed: {e}")
-
-
-def _ensure_fitup_inspection_columns():
-    """Ensure required columns exist on fitup inspection tables for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        
-        tables = [ 'structure_fitup_inspection']
-        
-        for table_name in tables:
-            with engine.connect() as conn:
-                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
-                names = [r[1] for r in cols]
-                
-                if "created_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
-                        logger.info(f"Added column created_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
-                
-                if "updated_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
-                        logger.info(f"Added column updated_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
-                
-                if "project_id" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
-                        logger.info(f"Added column project_id to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
-                
-                if "updated_by" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_by VARCHAR(100)")
-                        logger.info(f"Added column updated_by to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add updated_by column to {table_name}: {e}")
-                        
-    except Exception as e:
-        logger.error(f"Fitup inspection column migration failed: {e}")
-
-def _ensure_final_inspection_columns():
-    """Ensure required columns exist on final inspection tables for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        tables = ['pipe_final_inspection', 'structure_final_inspection']
-        for table_name in tables:
-            with engine.connect() as conn:
-                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
-                names = [r[1] for r in cols]
-                if "created_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
-                        logger.info(f"Added column created_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
-                if "updated_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
-                        logger.info(f"Added column updated_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
-                if "project_id" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
-                        logger.info(f"Added column project_id to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
-    except Exception as e:
-        logger.error(f"Final inspection column migration failed: {e}")
-
-def _ensure_wps_register_columns():
-    """Ensure required columns exist on wps_register for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        with engine.connect() as conn:
-            cols = conn.exec_driver_sql("PRAGMA table_info(wps_register)").fetchall()
-            names = [r[1] for r in cols]
-            
-            if "created_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN created_at DATETIME")
-                    logger.info("Added column created_at to wps_register")
-                except Exception as e:
-                    logger.warning(f"Could not add created_at column to wps_register: {e}")
-            
-            if "updated_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE wps_register ADD COLUMN updated_at DATETIME")
-                    logger.info("Added column updated_at to wps_register")
-                except Exception as e:
-                    logger.warning(f"Could not add updated_at column to wps_register: {e}")
-                    
-    except Exception as e:
-        logger.error(f"WPS register column migration failed: {e}")
-
-def _ensure_welder_register_columns():
-    """Ensure required columns exist on welder_register for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        with engine.connect() as conn:
-            cols = conn.exec_driver_sql("PRAGMA table_info(welder_register)").fetchall()
-            names = [r[1] for r in cols]
-            if "created_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN created_at DATETIME")
-                    logger.info("Added column created_at to welder_register")
-                except Exception as e:
-                    logger.warning(f"Could not add created_at column to welder_register: {e}")
-            if "updated_at" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN updated_at DATETIME")
-                    logger.info("Added column updated_at to welder_register")
-                except Exception as e:
-                    logger.warning(f"Could not add updated_at column to welder_register: {e}")
-            if "project_id" not in names:
-                try:
-                    conn.exec_driver_sql("ALTER TABLE welder_register ADD COLUMN project_id INTEGER")
-                    logger.info("Added column project_id to welder_register")
-                except Exception as e:
-                    logger.warning(f"Could not add project_id column to welder_register: {e}")
-    except Exception as e:
-        logger.error(f"Welder register column migration failed: {e}")
-def _ensure_material_register_columns():
-    """Ensure required columns exist on material register tables for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        
-        tables = ['pipe_material_register', 'structure_material_register']
-        
-        for table_name in tables:
-            with engine.connect() as conn:
-                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
-                names = [r[1] for r in cols]
-                
-                if "created_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
-                        logger.info(f"Added column created_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
-                
-                if "updated_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
-                        logger.info(f"Added column updated_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
-                if "project_id" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
-                        logger.info(f"Added column project_id to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
-                        
-    except Exception as e:
-        logger.error(f"Material register column migration failed: {e}")
-
-def _ensure_ndt_tables_columns():
-    """Ensure required columns exist on ndt request/status tables for SQLite"""
-    try:
-        if engine.dialect.name != 'sqlite':
-            return
-        tables = ['pipe_ndt_requests', 'structure_ndt_requests', 'pipe_ndt_status_records', 'structure_ndt_status_records', 'ndt_requirements']
-        for table_name in tables:
-            with engine.connect() as conn:
-                cols = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
-                names = [r[1] for r in cols]
-                if "created_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN created_at DATETIME")
-                        logger.info(f"Added column created_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add created_at column to {table_name}: {e}")
-                if "updated_at" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN updated_at DATETIME")
-                        logger.info(f"Added column updated_at to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add updated_at column to {table_name}: {e}")
-                if "project_id" not in names:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN project_id INTEGER")
-                        logger.info(f"Added column project_id to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add project_id column to {table_name}: {e}")
-                if "joint_no" not in names and table_name in ['pipe_ndt_status_records', 'structure_ndt_status_records']:
-                    try:
-                        conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN joint_no VARCHAR(50)")
-                        logger.info(f"Added column joint_no to {table_name}")
-                    except Exception as e:
-                        logger.warning(f"Could not add joint_no column to {table_name}: {e}")
-    except Exception as e:
-        logger.error(f"NDT tables column migration failed: {e}")
 
 def _ensure_unique_joint_indexes():
     """Ensure unique joint composite indexes exist for SQLite"""
@@ -493,23 +271,17 @@ async def startup_event():
     """Initialize application on startup"""
     logger.info("Starting Multi-Project Data Management System...")
     initialize_database()
+    create_performance_indexes()
     logger.info("Application startup completed successfully")
 
-# CORS middleware
+# CORS middleware - restrict origins in production
 origins_env = os.getenv("ALLOW_ORIGINS")
+_environment = os.getenv("ENVIRONMENT", "development")
 allow_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
-    "http://localhost:3002",
-    "http://localhost:3003",
-    "http://localhost:3004",
-    "http://localhost:3005",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    "http://127.0.0.1:3002",
-    "http://127.0.0.1:3003",
-    "http://127.0.0.1:3004",
-    "http://127.0.0.1:3005"
 ]
 if origins_env:
     try:
@@ -521,18 +293,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Trusted host middleware for security
 hosts_env = os.getenv("ALLOWED_HOSTS")
-allowed_hosts = ["*"]
-if hosts_env:
-    try:
-        allowed_hosts = [h.strip() for h in hosts_env.split(",") if h.strip()]
-    except Exception:
-        pass
+allowed_hosts = hosts_env.split(",") if hosts_env else ["localhost", "127.0.0.1"]
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=allowed_hosts

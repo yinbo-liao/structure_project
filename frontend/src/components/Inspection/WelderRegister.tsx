@@ -73,7 +73,7 @@ const WelderRegister: React.FC = () => {
 
   const load = async () => {
     if (!selectedProject) return;
-    const data = await ApiService.getWelderRegister(selectedProject.id);
+    const data = await ApiService.getWelderRegister(selectedProject!.id);
     setItems(data);
   };
 
@@ -87,7 +87,7 @@ const WelderRegister: React.FC = () => {
       validity: computeValidityFrom(form.production_test_date),
       weld_process: Array.isArray(form.weld_process) ? (form.weld_process as string[]).join(',') : form.weld_process
     };
-    await ApiService.createWelderRegister(payload);
+    await ApiService.createWelderRegister(selectedProject!.id, payload);
     setForm({ 
       welder_no: '', 
       welder_name: '', 
@@ -126,7 +126,7 @@ const WelderRegister: React.FC = () => {
       ...editForm,
       weld_process: Array.isArray(editForm.weld_process) ? (editForm.weld_process as string[]).join(',') : editForm.weld_process
     };
-    await ApiService.updateWelderRegister(editItem.id, payload);
+    await ApiService.updateWelderRegister(selectedProject!.id, editItem.id, payload);
     setEditOpen(false);
     load();
   };

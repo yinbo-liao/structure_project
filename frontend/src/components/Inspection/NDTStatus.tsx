@@ -52,10 +52,10 @@ const NDTStatus: React.FC = () => {
       setError(null);
       let statusData: any[] | null = null;
       try {
-        statusData = await ApiService.getNDTStatus(selectedProject.id);
+        statusData = await ApiService.getNDTStatus(selectedProject!.id);
       } catch (e) {
         try {
-          statusData = await ApiService.getNDTStatusRecords(selectedProject.id);
+          statusData = await ApiService.getNDTStatusRecords(selectedProject!.id);
         } catch (e2) {
           statusData = null;
         }
@@ -66,15 +66,15 @@ const NDTStatus: React.FC = () => {
         setError('Failed to load status');
       }
       try {
-        const reqs = await ApiService.getNDTRequests(selectedProject.id);
+        const reqs = await ApiService.getNDTRequests(selectedProject!.id);
         setRequests(reqs as any);
       } catch {}
       try {
-        const t = await ApiService.getNDTTests(selectedProject.id);
+        const t = await ApiService.getNDTTests(selectedProject!.id);
         setTests(t as any);
       } catch {}
       try {
-        const fins = await ApiService.getFinalInspections(selectedProject.id);
+        const fins = await ApiService.getFinalInspections(selectedProject!.id);
         setFinals(fins as any);
       } catch {}
     } catch (e: any) {
@@ -144,8 +144,8 @@ const NDTStatus: React.FC = () => {
         // If we have an NDT request, try to edit it directly
         // First check if we can create/edit an NDT status record
         try {
-          await ApiService.ensureNDTStatusRecord(finalId);
-          const updated = await ApiService.getNDTStatus(selectedProject.id);
+          await ApiService.ensureNDTStatusRecord(selectedProject!.id, finalId);
+          const updated = await ApiService.getNDTStatus(selectedProject!.id);
           setRows(updated);
           const next = updated.find((r: any) => r.final_id === finalId);
           if (next) {
@@ -202,8 +202,8 @@ const NDTStatus: React.FC = () => {
       
       // If no NDT request found, try to ensure NDT status record
       try {
-        await ApiService.ensureNDTStatusRecord(finalId);
-        const updated = await ApiService.getNDTStatus(selectedProject.id);
+        await ApiService.ensureNDTStatusRecord(selectedProject!.id, finalId);
+        const updated = await ApiService.getNDTStatus(selectedProject!.id);
         setRows(updated);
         const next = updated.find((r: any) => r.final_id === finalId);
         if (next) {
@@ -239,7 +239,7 @@ const NDTStatus: React.FC = () => {
       // Check if we're editing an NDT request (has isFromRequest flag)
       if ((editRow as any).isFromRequest) {
         // Update NDT request instead of NDT status record
-        await ApiService.updateNDTRequest(editId, {
+        await ApiService.updateNDTRequest(selectedProject!.id, editId, {
           ndt_report_no: editForm.ndt_report_no,
           ndt_result: result,
           weld_size: editForm.weld_size,
@@ -248,7 +248,7 @@ const NDTStatus: React.FC = () => {
         showSnackbar('NDT request updated successfully', 'success');
       } else {
         // Update NDT status record
-        await ApiService.updateNDTStatusRecord(editId, {
+        await ApiService.updateNDTStatusRecord(selectedProject!.id, editId, {
           welder_no: editForm.welder_no,
           weld_size: editForm.weld_size,
           weld_site: editForm.weld_site,
@@ -595,7 +595,7 @@ const NDTStatus: React.FC = () => {
     if (!selectedProject) return;
     setCleanupLoading(true);
     try {
-      const result = await ApiService.cleanupOrphanedNDTStatusRecords(selectedProject.id, !execute);
+      const result = await ApiService.cleanupOrphanedNDTStatusRecords(selectedProject!.id, !execute);
       setCleanupResult(result);
       if (execute) {
         // Reload data after cleanup
@@ -1247,13 +1247,13 @@ const NDTStatus: React.FC = () => {
             try {
               const rec = statusByFinal[deleteRow.final_id];
               if (rec) {
-                await ApiService.deleteNDTStatusRecord(rec.id);
+                await ApiService.deleteNDTStatusRecord(selectedProject!.id, rec.id);
               } else if (deleteRow.ndt_request_id) {
-                await ApiService.deleteNDTRequest(deleteRow.ndt_request_id);
+                await ApiService.deleteNDTRequest(selectedProject!.id, deleteRow.ndt_request_id);
               } else {
                 const tk = testsByKey.get(`${deleteRow.final_id}_${deleteRow.method || ''}`);
                 if (tk) {
-                  await ApiService.deleteNDTTest(tk.id);
+                  await ApiService.deleteNDTTest(selectedProject!.id, tk.id);
                 }
               }
             } finally {
