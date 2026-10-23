@@ -1,3 +1,4 @@
+
 version: '3.8'
 
 services:
@@ -26,7 +27,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password123}@db:5432/${DB_NAME:-project_management}
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-in-production}
-      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_API_URL: ${DEEPSEEK_API_URL:-https://api.deepseek.com/v1/chat/completions}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       DEBUG: ${DEBUG:-true}
     depends_on:
       db:
@@ -40,7 +43,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5000:5000"
     depends_on:
       - backend
     environment:

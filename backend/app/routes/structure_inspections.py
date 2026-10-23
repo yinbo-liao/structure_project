@@ -30,7 +30,7 @@ from app.schemas import (
     StructureNDTRequest as StructureNDTRequestSchema, StructureNDTRequestCreate,
     NDTTest as NDTTestSchema, NDTTestCreate, StructureNDTStatusRecord as StructureNDTStatusRecordSchema
 )
-from app.auth import get_current_user, require_editor, require_admin
+from app.auth import ensure_project_access, get_current_user, require_editor, require_admin
 from sqlalchemy.orm import joinedload
 from app.services.ndt_sync_service import NDTSyncService
 
@@ -269,7 +269,8 @@ def create_structure_master_joint(
     project = db.query(ProjectModel).filter(ProjectModel.id == master_joint.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, master_joint.project_id)
+
     data = master_joint.model_dump()
     # Remove fields that are in schema but not in model
     if 'weld_site' in data:
@@ -332,7 +333,8 @@ def upload_structure_master_joint_list(
     project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, project_id)
+
     allowed_types = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     if (file.content_type not in allowed_types) and (not file.filename.endswith(('.csv', '.xlsx', '.xls'))):
         raise HTTPException(status_code=400, detail="File must be CSV or Excel format")
@@ -479,7 +481,8 @@ def create_structure_material_register(
     project = db.query(ProjectModel).filter(ProjectModel.id == material.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, material.project_id)
+
     # Validate structure category if provided
     allowed_structure_categories = ['type-i', 'type-ii', 'type-iii', 'Special']
     if material.structure_category and material.structure_category not in allowed_structure_categories:
@@ -859,7 +862,8 @@ def create_structure_fitup_inspection(
         project = db.query(ProjectModel).filter(ProjectModel.id == fitup.project_id).first()
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
-        
+        ensure_project_access(db, current_user, fitup.project_id)
+
         # Check if joint already has fit-up record
         if fitup.draw_no and fitup.structure_category and fitup.page_no and fitup.drawing_rev and fitup.joint_no:
             existing_fitup = db.query(StructureFitUpInspection).filter(
@@ -1322,7 +1326,8 @@ def create_structure_final_inspection(
     project = db.query(ProjectModel).filter(ProjectModel.id == final.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, final.project_id)
+
     # Verify fitup exists if fitup_id is provided
     if final.fitup_id:
         fitup = db.query(StructureFitUpInspection).filter(StructureFitUpInspection.id == final.fitup_id).first()
@@ -1690,7 +1695,8 @@ def create_structure_ndt_request(
     project = db.query(ProjectModel).filter(ProjectModel.id == ndt.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, ndt.project_id)
+
     # Validate that final_id is provided and the final inspection exists and is accepted
     if not ndt.final_id:
         raise HTTPException(status_code=400, detail="final_id is required to link NDT request to a final inspection")
@@ -1698,7 +1704,9 @@ def create_structure_ndt_request(
     final = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == ndt.final_id).first()
     if not final:
         raise HTTPException(status_code=404, detail="Structure final inspection not found")
-    
+    if final.project_id != ndt.project_id:
+        raise HTTPException(status_code=400, detail="Final inspection and NDT request must belong to the same project")
+
     # Check if final inspection is accepted (case-insensitive)
     if (final.final_result or "").lower() != "accepted":
         raise HTTPException(status_code=400, detail="Only joints with accepted final inspection can be requested for NDT")
@@ -2169,6 +2177,7 @@ def create_structure_ndt_test(
     project = db.query(ProjectModel).filter(ProjectModel.id == payload.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    ensure_project_access(db, current_user, payload.project_id)
     final = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == payload.final_id).first()
     if not final:
         raise HTTPException(status_code=404, detail="Structure final inspection not found")
@@ -2370,10 +2379,12 @@ def create_structure_ndt_requirement(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(require_editor)
 ):
-    project = db.query(ProjectModel).filter(ProjectModel.id == payload.get('project_id')).first()
+    project_id = payload.get('project_id')
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+    ensure_project_access(db, current_user, project_id)
+
     requirement = NDTRequirement(**payload)
     db.add(requirement)
     db.commit()
@@ -2412,6 +2423,7 @@ def create_wps_register(
     project = db.query(ProjectModel).filter(ProjectModel.id == payload.get('project_id')).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    ensure_project_access(db, current_user, project.id)
     wps = WPSRegister(**payload)
     db.add(wps)
     db.commit()
@@ -2620,12 +2632,14 @@ def ensure_structure_ndt_status_record(
         # Check if exists
         rec = db.query(StructureNDTStatusRecord).filter(StructureNDTStatusRecord.final_id == final_id).first()
         if rec:
+            ensure_project_access(db, current_user, rec.project_id)
             return rec
 
         # Fetch Final Inspection
         final = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == final_id).first()
         if not final:
             raise HTTPException(status_code=404, detail="Structure Final Inspection not found")
+        ensure_project_access(db, current_user, final.project_id)
 
         # Try to get fitup details for additional information
         fitup = None
@@ -2882,87 +2896,5 @@ def bulk_create_final_inspections_from_fitup(
         "created_count": created_count,
         "skipped_count": skipped_count,
         "created_finals": created_finals,
-        "errors": errors if errors else None
-    }
-
-
-@router.put("/structure/final-inspection/bulk-update")
-def bulk_update_final_inspections(
-    final_ids: List[int] = Body(..., description="List of final inspection IDs to update"),
-    update_data: dict = Body(..., description="Fields to update for all selected finals"),
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(require_editor)
-):
-    """
-    Bulk update multiple final inspections with the same field values.
-    Only updates specified fields: welder_no, wps_no, final_report_no, final_date, ndt_type, final_result
-    """
-    if not final_ids:
-        raise HTTPException(status_code=400, detail="No final inspection IDs provided")
-    
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No update data provided")
-    
-    # Only allow specific fields to be updated in bulk
-    allowed_fields = {'welder_no', 'wps_no', 'final_report_no', 'final_date', 'ndt_type', 'final_result'}
-    update_fields = {k: v for k, v in update_data.items() if k in allowed_fields}
-    
-    if not update_fields:
-        raise HTTPException(status_code=400, detail="No valid fields to update. Allowed fields: welder_no, wps_no, final_report_no, final_date, ndt_type, final_result")
-    
-    updated_count = 0
-    errors = []
-    
-    for final_id in final_ids:
-        try:
-            # Get final inspection
-            final = db.query(StructureFinalInspection).filter(StructureFinalInspection.id == final_id).first()
-            if not final:
-                errors.append(f"Final ID {final_id}: Not found")
-                continue
-            
-            # Check project access
-            project = db.query(ProjectModel).filter(ProjectModel.id == final.project_id).first()
-            if current_user.role != 'admin' and project not in current_user.assigned_projects:
-                errors.append(f"Final ID {final_id}: Not authorized to access this project")
-                continue
-            
-            # Check if inspector is trying to edit accepted final
-            if (current_user.role or '').lower() == 'inspector':
-                s = (final.final_result or '').lower()
-                if s == 'accepted':
-                    errors.append(f"Final ID {final_id}: Not authorized to edit accepted final as inspector")
-                    continue
-            
-            # Apply updates
-            for field, value in update_fields.items():
-                if field == 'final_date' and value:
-                    try:
-                        if isinstance(value, str):
-                            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
-                    except Exception:
-                        value = None
-                
-                setattr(final, field, value)
-            
-            # Auto-fill welder_validity if welder_no changed
-            if 'welder_no' in update_fields and update_fields['welder_no'] and not final.welder_validity:
-                w = db.query(WelderRegister).filter(
-                    WelderRegister.project_id == final.project_id,
-                    WelderRegister.welder_no == update_fields['welder_no']
-                ).first()
-                if w and getattr(w, 'validity', None):
-                    final.welder_validity = w.validity
-            
-            db.commit()
-            updated_count += 1
-            
-        except Exception as e:
-            db.rollback()
-            errors.append(f"Final ID {final_id}: {str(e)}")
-    
-    return {
-        "message": f"Updated {updated_count} final inspections",
-        "updated_count": updated_count,
         "errors": errors if errors else None
     }

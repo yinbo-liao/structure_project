@@ -1,7 +1,7 @@
 param(
   [string]$ApiHost = "http://localhost",
   [int]$ApiPort = 8000,
-  [int]$FrontendPort = 3001,
+  [int]$FrontendPort = 5000,
   [switch]$Install
 )
 $projectRoot = Split-Path $PSScriptRoot -Parent

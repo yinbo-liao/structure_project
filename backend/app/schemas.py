@@ -1,5 +1,5 @@
 # schemas.py
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from enum import Enum
@@ -317,7 +317,10 @@ class NDTStatusRecordBase(BaseSchema):
     weld_type: Optional[str] = None
     welder_no: Optional[str] = None
     test_length: Optional[float]=None
-    wele_length: Optional[float] = None
+    weld_length: Optional[float] = Field(
+        default=None,
+        validation_alias=AliasChoices("weld_length", "wele_length"),
+    )
     weld_site: Optional[str] = None
     ndt_type: Optional[str] = None  # Changed from NDTTypes to str to handle comma-separated values
     ndt_report_no: Optional[str] = None
@@ -496,3 +499,65 @@ class AIImplementationStrategyResponse(BaseSchema):
     implementation_steps: List[str]
     backend_file_plan: List[AIImplementationFilePlanItem]
     target_files: List[str]
+
+
+# ============ AI Assistant ============
+class AIAssistantRequest(BaseSchema):
+    project_id: int
+    message: str = Field(min_length=1, max_length=4000)
+    conversation_id: Optional[int] = None
+
+
+class AICitation(BaseSchema):
+    citation_id: str
+    entity: str
+    record_id: int
+    label: str
+    score: Optional[float] = None
+    excerpt: Optional[str] = None
+
+
+class AIToolRun(BaseSchema):
+    name: str
+    ok: bool
+    duration_ms: float
+    arguments: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class AIAssistantMetrics(BaseSchema):
+    model: str
+    iterations: int = 0
+    tokens: int = 0
+    cost_usd: Optional[float] = None
+    fallback: bool = False
+    degraded: bool = False
+
+
+class AIAssistantResponse(BaseSchema):
+    conversation_id: int
+    message: AIChatMessage
+    citations: List[AICitation] = []
+    findings: List[Dict[str, Any]] = []
+    tool_runs: List[AIToolRun] = []
+    metrics: AIAssistantMetrics
+    verified: bool = True
+    warnings: List[str] = []
+
+
+class AIConversationSummary(BaseSchema):
+    id: int
+    project_id: int
+    title: Optional[str] = None
+    summary: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class AIConversationDetail(AIConversationSummary):
+    messages: List[Dict[str, Any]] = []
+
+
+class AIConversationListResponse(BaseSchema):
+    conversations: List[AIConversationSummary]
+    total: int

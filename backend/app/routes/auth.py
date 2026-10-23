@@ -5,7 +5,12 @@ from datetime import timedelta
 import time
 import logging
 from app.database import get_db
-from app.auth import authenticate_user, create_access_token, get_current_user
+from app.auth import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+)
 from app.schemas import Token, LoginRequest, User
 
 logger = logging.getLogger(__name__)
@@ -64,7 +69,7 @@ def login_for_access_token(
             detail="Inactive user"
         )
 
-    access_token_expires = timedelta(minutes=30)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
@@ -93,7 +98,7 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
             detail="Inactive user"
         )
 
-    access_token_expires = timedelta(minutes=30)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )

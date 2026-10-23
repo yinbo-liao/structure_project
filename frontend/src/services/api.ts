@@ -19,7 +19,11 @@ import {
   NDTTest,
   NDTRequirement,
   NDTStatusRecord,
-  WeeklyNDTSummary
+  WeeklyNDTSummary,
+  AIAssistantResponse,
+  AIQualityScan,
+  AIConversationDetail,
+  AIConversationSummary
 } from '../types';
 
 // Configure axios defaults
@@ -560,6 +564,55 @@ export class ApiService {
       messages: history,
       context_data: contextData
     });
+    return response.data;
+  }
+
+  static async sendAssistantMessage(
+    projectId: number,
+    message: string,
+    conversationId?: number | null
+  ): Promise<AIAssistantResponse> {
+    const response = await axios.post('/ai/assistant/chat', {
+      project_id: projectId,
+      message,
+      conversation_id: conversationId ?? null,
+    });
+    return response.data;
+  }
+
+  static async getConversations(
+    projectId: number,
+    limit = 20,
+    offset = 0
+  ): Promise<{ conversations: AIConversationSummary[]; total: number }> {
+    const response = await axios.get('/ai/conversations', {
+      params: { project_id: projectId, limit, offset },
+    });
+    return response.data;
+  }
+
+  static async getConversation(
+    projectId: number,
+    conversationId: number
+  ): Promise<AIConversationDetail> {
+    const response = await axios.get(`/ai/conversations/${conversationId}`, {
+      params: { project_id: projectId },
+    });
+    return response.data;
+  }
+
+  static async deleteConversation(projectId: number, conversationId: number): Promise<{ deleted: boolean }> {
+    const response = await axios.delete(`/ai/conversations/${conversationId}`, {
+      params: { project_id: projectId },
+    });
+    return response.data;
+  }
+
+  static async scanDataQuality(
+    projectId: number,
+    params: { severity?: string; entity?: string; limit?: number; offset?: number } = {}
+  ): Promise<AIQualityScan> {
+    const response = await axios.get(`/ai/data-quality/${projectId}`, { params });
     return response.data;
   }
 

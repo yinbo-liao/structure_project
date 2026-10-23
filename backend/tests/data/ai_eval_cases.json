@@ -1,0 +1,45 @@
+[
+  {
+    "id": "typo-scan-with-tool",
+    "query": "Check welder and WPS numbers for typos",
+    "mode": "scripted",
+    "expect_tool": "scan_data_quality",
+    "expect_findings": true,
+    "expect_severities": ["high", "medium"],
+    "expect_citation_entities": ["final_inspection"],
+    "expect_fallback": false
+  },
+  {
+    "id": "joint-lookup-with-citation",
+    "query": "What is the status of joint J-101?",
+    "mode": "scripted",
+    "expect_findings": false,
+    "expect_citation_entities": ["final_inspection"],
+    "expect_fallback": false
+  },
+  {
+    "id": "wps-register-lookup",
+    "query": "Show me WPS-100",
+    "mode": "scripted",
+    "expect_findings": false,
+    "expect_citation_entities": ["wps_register"],
+    "expect_fallback": false
+  },
+  {
+    "id": "project-progress-tool",
+    "query": "What is the project progress?",
+    "mode": "scripted",
+    "expect_tool": "get_project_summary",
+    "expect_findings": false,
+    "expect_tools": ["get_project_summary"],
+    "expect_fallback": false
+  },
+  {
+    "id": "deterministic-no-key",
+    "query": "Check this project for typos",
+    "mode": "deterministic",
+    "expect_findings": true,
+    "expect_citation_entities": ["final_inspection"],
+    "expect_fallback": true
+  }
+]

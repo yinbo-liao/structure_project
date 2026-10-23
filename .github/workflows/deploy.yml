@@ -39,13 +39,15 @@ jobs:
         run: |
           python -m py_compile backend/app/*.py backend/app/routes/*.py backend/app/models.py
       
-      - name: Run key backend tests
-        run: |
-          cd backend
-          # Run a few key test files to verify basic functionality
-          python test_api.py || echo "test_api.py failed or not found"
-          python test_projects.py || echo "test_projects.py failed or not found"
-          python test_upload.py || echo "test_upload.py failed or not found"
+      - name: Backend tests
+        working-directory: backend
+        env:
+          DB_TYPE: sqlite
+          ENVIRONMENT: development
+          SECRET_KEY: ci-test-secret-key
+          DEFAULT_ADMIN_PASSWORD: admin123
+          ALLOWED_HOSTS: testserver,localhost,127.0.0.1
+        run: python -m pytest tests -q
       
       # Setup Node.js for frontend
       - uses: actions/setup-node@v4
@@ -72,9 +74,15 @@ jobs:
         working-directory: frontend
         run: npm run build
       
+      - name: Frontend type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
       - name: Frontend tests
         working-directory: frontend
-        run: npm test -- --passWithNoTests || echo "No tests found or tests failed"
+        env:
+          CI: "true"
+        run: npm test -- --watchAll=false
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

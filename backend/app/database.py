@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool, StaticPool
 import os
@@ -20,7 +20,9 @@ use_sqlite = _db_type == "sqlite"
 is_testing = os.getenv("TESTING", "false").lower() == "true"
 
 if use_sqlite or is_testing:
-    DATABASE_URL = "sqlite:///./project_management.db"
+    # SQLITE_PATH makes the location configurable for tests and deployments.
+    sqlite_path = os.getenv("SQLITE_PATH", "./project_management.db").replace("\\", "/")
+    DATABASE_URL = f"sqlite:///{sqlite_path}"
     logger.info("Using SQLite database for development/testing")
 else:
     DATABASE_URL = database_url
@@ -93,7 +95,7 @@ def check_database_health():
     """Check if database connection is healthy"""
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             return result.scalar() == 1
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
@@ -101,12 +103,20 @@ def check_database_health():
 
 # Get database statistics
 def get_database_stats():
-    """Get database connection pool statistics"""
-    if hasattr(engine.pool, 'status'):
+    """Get database connection pool statistics.
+
+    StaticPool (used for SQLite) exposes none of the pool counters, and
+    ``Pool.status`` exists on every pool even when the counters do not, so
+    probe for the callables themselves instead of the ``status`` attribute.
+    """
+    pool = engine.pool
+    required = ("checkedout", "checkedin", "size")
+    if all(callable(getattr(pool, attr, None)) for attr in required):
+        overflow = getattr(pool, "overflow", None)
         return {
-            'checked_out': engine.pool.checkedout(),
-            'checked_in': engine.pool.checkedin(),
-            'overflow': engine.pool.overflow(),
-            'size': engine.pool.size()
+            'checked_out': pool.checkedout(),
+            'checked_in': pool.checkedin(),
+            'overflow': overflow() if callable(overflow) else 0,
+            'size': pool.size(),
         }
-    return {'status': 'pool_stats_not_available'}
+    return {'status': 'pool_stats_not_available', 'pool': type(pool).__name__}

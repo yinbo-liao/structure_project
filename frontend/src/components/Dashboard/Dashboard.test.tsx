@@ -131,8 +131,8 @@ describe('Dashboard Component', () => {
 
     // Check KPI cards - use more specific queries
     expect(screen.getByText('Total Joints')).toBeInTheDocument();
-    expect(screen.getByText('Fit-up Completed')).toBeInTheDocument();
-    expect(screen.getByText('Final Inspection')).toBeInTheDocument();
+    expect(screen.getByText('Fit-up Done')).toBeInTheDocument();
+    expect(screen.getByText('Final Done')).toBeInTheDocument();
     // KPI cards rendered
 
     // Check progress cards

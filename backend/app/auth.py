@@ -1,6 +1,6 @@
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 from typing import Optional
@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, UserRole
+from app.models import User, UserRole, user_projects
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -103,9 +103,43 @@ def authenticate_user(db: Session, email: str, password: str):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def user_role_value(user: User) -> str:
+    """Return the role as a plain string for enum/string tolerant comparisons."""
+    return getattr(user.role, "value", user.role)
+
+
+def user_can_access_project(db: Session, user: User, project_id: Optional[int]) -> bool:
+    """True when the user is an admin or is explicitly assigned to the project.
+
+    Uses a direct query on the association table instead of the dynamic
+    ``assigned_projects`` relationship so authorization is a single, cheap query.
+    """
+    if user_role_value(user) == "admin":
+        return True
+    if project_id is None:
+        return False
+    return db.query(user_projects.c.user_id).filter(
+        user_projects.c.user_id == user.id,
+        user_projects.c.project_id == project_id,
+    ).first() is not None
+
+
+def ensure_project_access(
+    db: Session,
+    user: User,
+    project_id: Optional[int],
+    detail: str = "Not authorized to access this project",
+) -> None:
+    """Raise 403 unless the user may read/write data for ``project_id``."""
+    if not user_can_access_project(db, user, project_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 
 async def get_current_user(
@@ -144,6 +178,12 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Inactive user",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -10,8 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import engine, SessionLocal, check_database_health, get_database_stats
 from app.models import Base, User
-from app.auth import get_password_hash
-from app.routes import auth, users, projects, ai, structure_inspections, templates, ndt_sync
+from app.auth import get_password_hash, require_admin
+from app.routes import auth, users, projects, ai, ai_assistant, structure_inspections, templates, ndt_sync
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -280,8 +280,10 @@ _environment = os.getenv("ENVIRONMENT", "development")
 allow_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:5000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:5000",
 ]
 if origins_env:
     try:
@@ -305,6 +307,23 @@ app.add_middleware(
     allowed_hosts=allowed_hosts
 )
 
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Apply baseline browser security headers to every response."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy", "geolocation=(), microphone=(), camera=()"
+    )
+    if request.url.scheme == "https" or os.getenv("ENABLE_HSTS", "false").lower() == "true":
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    return response
+
 # Include routers
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1", tags=["Users"])
@@ -312,6 +331,7 @@ app.include_router(projects.router, prefix="/api/v1", tags=["Projects"])
 app.include_router(structure_inspections.router, prefix="/api/v1", tags=["Structure Inspections"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["Templates"])
 app.include_router(ai.router, prefix="/api/v1", tags=["AI Services"])
+app.include_router(ai_assistant.router, prefix="/api/v1", tags=["AI Assistant"])
 app.include_router(ndt_sync.router, prefix="/api/v1", tags=["NDT Sync"])
 
 # Health check and monitoring endpoints
@@ -394,8 +414,8 @@ async def metrics():
         raise HTTPException(status_code=500, detail=f"Metrics collection failed: {str(e)}")
 
 @app.get("/database/info")
-async def database_info():
-    """Get database information and schema details"""
+async def database_info(current_user: User = Depends(require_admin)):
+    """Get database information and schema details (admin only)."""
     try:
         with engine.connect() as conn:
             # Get database version

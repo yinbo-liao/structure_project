@@ -9,7 +9,8 @@ from typing import Dict, Any
 
 from ..database import get_db
 from ..services.ndt_sync_service import NDTSyncService
-from ..auth import get_current_user, UserRole
+from ..auth import ensure_project_access, get_current_user, user_role_value, UserRole
+from ..models import StructureMasterJointList
 
 router = APIRouter(prefix="/ndt-sync", tags=["ndt-sync"])
 
@@ -22,10 +23,9 @@ async def get_sync_status(
     """
     Get NDT sync status for a project
     """
-    # Admin, Inspector and Visitor can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR, UserRole.VISITOR]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+    # Admin, Inspector and Visitor can access assigned projects only
+    ensure_project_access(db, current_user, project_id)
+
     sync_service = NDTSyncService(db)
     return sync_service.get_sync_status_report(project_id)
 
@@ -37,10 +37,10 @@ async def get_all_sync_status(
     """
     Get NDT sync status for all projects
     """
-    # Admin, Inspector and Visitor can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR, UserRole.VISITOR]:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+    # Cross-project view is admin-only; scoped views must use /status/{project_id}
+    if user_role_value(current_user) != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
     sync_service = NDTSyncService(db)
     return sync_service.get_sync_status_report()
 
@@ -54,9 +54,16 @@ async def sync_joint_ndt(
     Sync NDT data for a specific joint
     """
     # Only admin and inspector can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR]:
+    if user_role_value(current_user) not in ["admin", "inspector"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+
+    joint = db.query(StructureMasterJointList).filter(
+        StructureMasterJointList.id == joint_id
+    ).first()
+    if not joint:
+        raise HTTPException(status_code=404, detail="Joint not found")
+    ensure_project_access(db, current_user, joint.project_id)
+
     sync_service = NDTSyncService(db)
     result = sync_service.sync_joint_ndt_data(joint_id)
     
@@ -77,11 +84,12 @@ async def sync_project_ndt(
     Can run in background for large projects
     """
     # Only admin and inspector can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR]:
+    if user_role_value(current_user) not in ["admin", "inspector"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+    ensure_project_access(db, current_user, project_id)
+
     sync_service = NDTSyncService(db)
-    
+
     # For small projects, run synchronously
     # For large projects, could run in background
     result = sync_service.sync_project_ndt_data(project_id)
@@ -126,7 +134,7 @@ async def sync_all_projects_ndt(
     Runs in background due to potentially large volume
     """
     # Only admin can access
-    if current_user.role != UserRole.ADMIN:
+    if user_role_value(current_user) != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     sync_service = NDTSyncService(db)
@@ -145,11 +153,11 @@ async def get_sync_config(
     Get NDT sync configuration and mapping
     """
     # Admin, Inspector and Visitor can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR, UserRole.VISITOR]:
+    if user_role_value(current_user) not in ["admin", "inspector", "visitor"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+
     sync_service = NDTSyncService(db)
-    
+
     return {
         "method_mapping": sync_service.get_ndt_method_mapping(),
         "completion_statuses": ["completed", "accepted"],
@@ -168,10 +176,11 @@ async def get_completed_joints(
     """
     Get list of joints that have completed fit-up and final inspection
     """
-    # Admin, Inspector and Visitor can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR, UserRole.VISITOR]:
+    # Admin, Inspector and Visitor can access assigned projects only
+    if user_role_value(current_user) not in ["admin", "inspector", "visitor"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+    ensure_project_access(db, current_user, project_id)
+
     sync_service = NDTSyncService(db)
     joints = sync_service.get_completed_joints(project_id)
     
@@ -190,19 +199,18 @@ async def get_joint_ndt_records(
     """
     Get NDT records for a specific joint
     """
-    # Admin, Inspector and Visitor can access
-    if current_user.role not in [UserRole.ADMIN, UserRole.INSPECTOR, UserRole.VISITOR]:
+    # Admin, Inspector and Visitor can access assigned projects only
+    if user_role_value(current_user) not in ["admin", "inspector", "visitor"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    from ..models import StructureMasterJointList
-    
+
     joint = db.query(StructureMasterJointList).filter(
         StructureMasterJointList.id == joint_id
     ).first()
-    
+
     if not joint:
         raise HTTPException(status_code=404, detail="Joint not found")
-    
+    ensure_project_access(db, current_user, joint.project_id)
+
     sync_service = NDTSyncService(db)
     ndt_records = sync_service.get_ndt_status_for_joint(
         joint.project_id, joint.draw_no, joint.structure_category,

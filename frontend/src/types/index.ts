@@ -392,3 +392,98 @@ export interface WeeklyNDTSummary {
   rt_joints_rejected: number;
   ut_joints_rejected: number;
 }
+
+// ============ AI Assistant ============
+export type AISeverity = 'high' | 'medium' | 'low';
+
+export interface AIFinding {
+  id: string;
+  check: string;
+  severity: AISeverity;
+  entity: string;
+  record_id: number;
+  field: string;
+  value?: string | null;
+  expected?: string | null;
+  confidence: number;
+  message: string;
+  suggestion?: string | null;
+}
+
+export interface AICitation {
+  citation_id: string;
+  entity: string;
+  record_id: number;
+  label: string;
+  score?: number | null;
+  excerpt?: string | null;
+}
+
+export interface AIToolRun {
+  name: string;
+  ok: boolean;
+  duration_ms: number;
+  arguments?: Record<string, unknown> | null;
+  error?: string | null;
+}
+
+export interface AIAssistantMetrics {
+  model: string;
+  iterations: number;
+  tokens: number;
+  cost_usd?: number | null;
+  fallback: boolean;
+  degraded: boolean;
+}
+
+export interface AIAssistantResponse {
+  conversation_id: number;
+  message: { role: 'assistant'; content: string };
+  citations: AICitation[];
+  findings: AIFinding[];
+  tool_runs: AIToolRun[];
+  metrics: AIAssistantMetrics;
+  verified: boolean;
+  warnings: string[];
+}
+
+export interface AIQualityScan {
+  project_id: number;
+  generated_at: string;
+  read_only: boolean;
+  records_scanned: number;
+  scanned: Record<string, number>;
+  truncated: boolean;
+  duration_ms: number;
+  total_findings: number;
+  by_severity: Record<AISeverity, number>;
+  by_check: Record<string, number>;
+  findings: AIFinding[];
+  returned?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AIConversationMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  citations: AICitation[];
+  findings: AIFinding[];
+  tool_runs: AIToolRun[];
+  tokens: number;
+  created_at: string | null;
+}
+
+export interface AIConversationSummary {
+  id: number;
+  project_id: number;
+  title?: string | null;
+  summary: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface AIConversationDetail extends AIConversationSummary {
+  messages: AIConversationMessage[];
+}

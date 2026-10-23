@@ -735,10 +735,10 @@ const Dashboard: React.FC = () => {
         </Paper>
       </Box>
       {/* ---- ADD THE CHAT AGENT RIGHT HERE ---- */}
-      {selectedProject && summary && (
-        <ProjectChatAgent 
-          projectId={selectedProject.id} 
-          projectSummaryData={summary} 
+      {selectedProject && (
+        <ProjectChatAgent
+          projectId={selectedProject.id}
+          projectSummaryData={summary}
         />
       )}
       {/* -------------------------------------- */}

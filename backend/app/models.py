@@ -1,6 +1,6 @@
 # models.py
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Text, Boolean, 
+    Column, Integer, String, DateTime, Text, Boolean, JSON,
     ForeignKey, Float, Table, UniqueConstraint, Index, Enum,
     event
 )
@@ -616,6 +616,57 @@ class NDTTest(Base, TimestampMixin, ProjectRelationMixin):
         Index(create_unique_index_name(__tablename__, 'method'), 'method'),
         Index(create_unique_index_name(__tablename__, 'test_date'), 'test_date'),
         Index(create_unique_index_name(__tablename__, 'result'), 'result'),
+    )
+
+
+# ============ AI ASSISTANT MODELS ============
+class AIConversation(Base, TimestampMixin):
+    """A user's assistant conversation scoped to one project."""
+    __tablename__ = "ai_conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(200))
+    summary = Column(Text)
+    summary_updated_at = Column(DateTime(timezone=True))
+    summarized_through_id = Column(Integer, default=0, nullable=False)
+
+    messages = relationship(
+        "AIMessage",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="AIMessage.id",
+    )
+
+    __table_args__ = (
+        Index("idx_ai_conversations_user_project_updated", "user_id", "project_id", "updated_at"),
+        Index("idx_ai_conversations_project_updated", "project_id", "updated_at"),
+    )
+
+
+class AIMessage(Base, TimestampMixin):
+    """One persisted turn (user, assistant, or tool result) in a conversation."""
+    __tablename__ = "ai_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(
+        Integer,
+        ForeignKey("ai_conversations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role = Column(String(16), nullable=False)
+    content = Column(Text, nullable=False)
+    citations = Column(JSON)
+    findings = Column(JSON)
+    tool_runs = Column(JSON)
+    tokens = Column(Integer, default=0, nullable=False)
+
+    conversation = relationship("AIConversation", back_populates="messages")
+
+    __table_args__ = (
+        Index("idx_ai_messages_conversation_created", "conversation_id", "created_at"),
     )
 
 
