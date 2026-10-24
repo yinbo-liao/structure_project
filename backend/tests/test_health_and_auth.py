@@ -34,9 +34,10 @@ def test_login_success_returns_token(client):
     assert body["user"]["email"] == "admin@mpdms.com"
 
 
-def test_login_wrong_password_rejected(client):
+def test_login_wrong_password_rejected(client, make_user):
+    user, _ = make_user(role="inspector")
     response = client.post(
-        "/api/v1/login", json={"username": "admin@mpdms.com", "password": "wrong"}
+        "/api/v1/login", json={"username": user["email"], "password": "wrong"}
     )
     assert response.status_code == 401
 
@@ -49,10 +50,12 @@ def test_login_unknown_user_rejected(client):
 
 
 def test_login_rate_limited_after_repeated_failures(client):
+    # Failures against an unknown account still count toward the per-IP limit
+    # without suspending a shared test user.
     for _ in range(5):
         client.post(
             "/api/v1/login",
-            json={"username": "admin@mpdms.com", "password": "wrong"},
+            json={"username": "rate-limit@example.test", "password": "wrong"},
         )
     response = client.post(
         "/api/v1/login", json={"username": "admin@mpdms.com", "password": "admin123"}

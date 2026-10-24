@@ -119,6 +119,10 @@ export class ApiService {
     await axios.post(`/users/${userId}/reset-password`, { new_password: newPassword });
   }
 
+  static async unlockUser(userId: number): Promise<void> {
+    await axios.post(`/users/${userId}/unlock`);
+  }
+
   static async assignProjectsToUser(userId: number, projectIds: number[]): Promise<void> {
     await axios.post(`/users/${userId}/assign-projects`, { project_ids: projectIds });
   }
@@ -211,8 +215,13 @@ export class ApiService {
   // =========================================================================
   // Material Register
   // =========================================================================
-  static async getMaterialRegister(projectId: number): Promise<MaterialRegister[]> {
-    const response = await axios.get('/structure/material-register', { params: { project_id: projectId } });
+  static async getMaterialRegister(
+    projectId: number,
+    options?: { skip?: number; limit?: number }
+  ): Promise<MaterialRegister[]> {
+    const response = await axios.get('/structure/material-register', {
+      params: { project_id: projectId, ...(options || {}) },
+    });
     return response.data;
   }
 

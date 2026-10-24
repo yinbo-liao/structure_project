@@ -5,6 +5,9 @@ export interface User {
   role: 'admin' | 'inspector' | 'visitor';
   is_active: boolean;
   password_change_required: boolean;
+  failed_login_attempts?: number;
+  locked_until?: string | null;
+  is_locked?: boolean;
   created_at: string;
   assigned_projects: Project[];
   owned_projects: Project[];

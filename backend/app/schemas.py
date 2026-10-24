@@ -1,9 +1,9 @@
 # schemas.py
 import re
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, computed_field, field_validator
 from typing import Optional, List, Dict, Any, Union
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from enum import Enum
 
 
@@ -125,6 +125,19 @@ class User(UserFields, TimestampSchema):
     id: int
     is_active: bool
     password_change_required: bool
+    failed_login_attempts: int = 0
+    locked_until: Optional[datetime] = None
+
+    @computed_field
+    @property
+    def is_locked(self) -> bool:
+        """True while the 3-strikes login suspension is still in force."""
+        value = self.locked_until
+        if value is None:
+            return False
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value > datetime.now(timezone.utc)
 
 # ============ Project Schemas ============
 class ProjectCreate(ProjectFields):

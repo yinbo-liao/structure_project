@@ -2,6 +2,45 @@
 from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
+
+def _method_code(value):
+    """Normalize an ``NDTTypes`` enum (or plain string) to its stored code."""
+    return getattr(value, 'value', value)
+
+
+def _recorded_rejected_lengths(db: Session, project_id: int) -> dict:
+    """Map ``(final_id, method)`` to the rejected length recorded on the NDT status row.
+
+    ``NDTTest.test_length`` is the length examined, not the length rejected: a
+    1100 mm test can reject a 200 mm repair.  The actual rejected length lives
+    on the matching ``StructureNDTStatusRecord.rejected_length``.  Mirrors the
+    NDT status screen so the dashboard and the record page agree.
+    """
+    rows = db.query(
+        StructureNDTStatusRecord.final_id,
+        StructureNDTStatusRecord.ndt_type,
+        StructureNDTStatusRecord.rejected_length,
+    ).filter(
+        StructureNDTStatusRecord.project_id == project_id,
+        func.lower(StructureNDTStatusRecord.ndt_result) == 'rejected',
+    ).all()
+
+    recorded = {}
+    for final_id, ndt_type, rejected_length in rows:
+        key = (final_id, _method_code(ndt_type))
+        length = float(rejected_length or 0.0)
+        if key not in recorded or length > recorded[key]:
+            recorded[key] = length
+    return recorded
+
+
+def _capped_rejected_length(recorded: float, test_length: float) -> float:
+    """Rejected length for one test row, never negative or above the test length."""
+    test_length = float(test_length or 0.0)
+    if test_length <= 0.0:
+        return 0.0
+    return min(max(float(recorded or 0.0), 0.0), test_length)
+
 from app.models import (
     Project as ProjectModel,
     StructureFitUpInspection,
@@ -66,10 +105,18 @@ def build_project_summary(db: Session, project_id: int) -> ProjectSummary:
         .filter(NDTTest.project_id == project_id)\
         .scalar() or 0.0
 
-    weld_reject_length = db.query(func.sum(NDTTest.test_length))\
+    recorded_rejected = _recorded_rejected_lengths(db, project_id)
+    rejected_tests = db.query(NDTTest.final_id, NDTTest.method, NDTTest.test_length)\
         .filter(NDTTest.project_id == project_id)\
         .filter(NDTTest.result == 'rejected')\
-        .scalar() or 0.0
+        .all()
+    weld_reject_length = sum(
+        _capped_rejected_length(
+            recorded_rejected.get((row.final_id, _method_code(row.method)), 0.0),
+            row.test_length,
+        )
+        for row in rejected_tests
+    )
 
     if test_length_total <= 0.0:
         test_length_total = db.query(func.sum(StructureNDTStatusRecord.weld_length))\
@@ -103,18 +150,25 @@ def build_project_summary(db: Session, project_id: int) -> ProjectSummary:
             # First try to get data from NDTTest table with proper validation
             agg = db.query(
                 func.sum(NDTTest.test_length).label('tested'),
-                func.sum(case((NDTTest.result == 'rejected', NDTTest.test_length), else_=0)).label('rejected'),
                 func.count(func.distinct(case((NDTTest.result == 'accepted', NDTTest.final_id), else_=None))).label('acc_joints'),
                 func.count(func.distinct(case((NDTTest.result == 'rejected', NDTTest.final_id), else_=None))).label('rej_joints'),
             ).filter(NDTTest.project_id == project_id)\
              .filter(NDTTest.method == ndt_type)\
              .filter(NDTTest.result.in_(['accepted', 'rejected', 'pending']))\
              .one()
-            
+
             tested_len = float(agg.tested or 0.0)
-            rejected_len = float(agg.rejected or 0.0)
             acc_joints = int(agg.acc_joints or 0)
             rej_joints = int(agg.rej_joints or 0)
+
+            rejected_len = sum(
+                _capped_rejected_length(
+                    recorded_rejected.get((row.final_id, _method_code(row.method)), 0.0),
+                    row.test_length,
+                )
+                for row in rejected_tests
+                if _method_code(row.method) == ndt_type
+            )
 
             # If no valid test data found in NDTTest, try NDTStatusRecord
             if tested_len <= 0.0 and acc_joints == 0 and rej_joints == 0:
@@ -197,25 +251,37 @@ def build_project_summary(db: Session, project_id: int) -> ProjectSummary:
                     "tested_mm": total_joints    # Storing total joints in tested_mm field
                 }
 
-    welder_rows = []
-    welder_rows = db.query(
+    welder_tests = db.query(
         StructureFinalInspection.welder_no.label('welder_no'),
-        func.sum(NDTTest.test_length).label('tested'),
-        func.sum(case((NDTTest.result == 'rejected', NDTTest.test_length), else_=0)).label('rejected')
+        NDTTest.final_id.label('final_id'),
+        NDTTest.method.label('method'),
+        NDTTest.test_length.label('test_length'),
+        NDTTest.result.label('result'),
     ).join(NDTTest, NDTTest.final_id == StructureFinalInspection.id)\
         .filter(NDTTest.project_id == project_id)\
         .filter(NDTTest.method.in_(['RT','UT']))\
         .filter(StructureFinalInspection.welder_no.isnot(None))\
-        .group_by(StructureFinalInspection.welder_no).all()
-    
+        .all()
+
+    welder_stats = {}
+    for row in welder_tests:
+        stats = welder_stats.setdefault(row.welder_no, {"tested": 0.0, "rejected": 0.0})
+        test_len = float(row.test_length or 0.0)
+        stats["tested"] += test_len
+        if row.result == 'rejected':
+            stats["rejected"] += _capped_rejected_length(
+                recorded_rejected.get((row.final_id, _method_code(row.method)), 0.0),
+                test_len,
+            )
+
     welder_performance = []
-    for wr in welder_rows:
-        test_len = float(wr.tested or 0.0)
-        rejected_len_w = float(wr.rejected or 0.0)
+    for welder_no, stats in welder_stats.items():
+        test_len = stats["tested"]
+        rejected_len_w = stats["rejected"]
         rate_w = (rejected_len_w / test_len * 100) if test_len > 0 else 0.0
         retrain = (test_len >= 100000.0) and (rate_w > 2.0)
         welder_performance.append({
-            "welder_no": wr.welder_no,
+            "welder_no": welder_no,
             "total_mm": round(test_len, 3),
             "rejected_mm": round(rejected_len_w, 3),
             "reject_rate": round(rate_w, 2),

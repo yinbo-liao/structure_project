@@ -112,6 +112,10 @@ class User(Base, TimestampMixin):
     is_active = Column(Boolean, default=True, nullable=False)
     password_change_required = Column(Boolean, default=True, nullable=False)
     last_login = Column(DateTime(timezone=True))
+    # Login lockout: after MAX_FAILED_LOGIN_ATTEMPTS wrong passwords the
+    # account is suspended until locked_until (one day).
+    failed_login_attempts = Column(Integer, default=0, nullable=False, server_default="0")
+    locked_until = Column(DateTime(timezone=True))
     
     # Relationships
     assigned_projects = relationship(

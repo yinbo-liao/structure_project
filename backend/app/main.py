@@ -100,6 +100,8 @@ COLUMN_MIGRATIONS = {
         ("last_login", "DATETIME"),
         ("created_at", "DATETIME"),
         ("updated_at", "DATETIME"),
+        ("failed_login_attempts", "INTEGER DEFAULT 0"),
+        ("locked_until", "DATETIME"),
     ],
     "structure_master_joint_list": [
         ("created_at", "DATETIME"),

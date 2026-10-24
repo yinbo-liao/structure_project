@@ -38,6 +38,62 @@ _allow_test_bypass = (
 pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
+# Account lockout policy: three wrong passwords suspend the account for a day.
+MAX_FAILED_LOGIN_ATTEMPTS = 3
+ACCOUNT_SUSPENSION = timedelta(days=1)
+
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    """SQLite returns naive datetimes; treat stored values as UTC."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def is_account_suspended(user: User) -> bool:
+    locked_until = _as_utc(user.locked_until)
+    return locked_until is not None and locked_until > datetime.now(timezone.utc)
+
+
+def account_suspension_detail(user: User) -> str:
+    locked_until = _as_utc(user.locked_until)
+    until = locked_until.strftime("%Y-%m-%d %H:%M UTC") if locked_until else "later"
+    return (
+        f"Account suspended after {MAX_FAILED_LOGIN_ATTEMPTS} failed login attempts. "
+        f"Try again after {until}."
+    )
+
+
+def register_failed_login(db: Session, user: User) -> bool:
+    """Count a wrong password; suspend the account once the limit is reached.
+
+    Returns True when this attempt triggered (or re-triggered) a suspension.
+    """
+    user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+    if user.failed_login_attempts >= MAX_FAILED_LOGIN_ATTEMPTS:
+        user.locked_until = datetime.now(timezone.utc) + ACCOUNT_SUSPENSION
+        # The counter restarts once the suspension expires.
+        user.failed_login_attempts = 0
+    db.commit()
+    db.refresh(user)
+    return is_account_suspended(user)
+
+
+def clear_login_failures(db: Session, user: User) -> None:
+    user.failed_login_attempts = 0
+    if user.locked_until is not None:
+        user.locked_until = None
+    db.commit()
+
+
+def mark_login_success(db: Session, user: User) -> None:
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -185,6 +241,11 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Inactive user",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    if is_account_suspended(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=account_suspension_detail(user),
         )
     return user
 

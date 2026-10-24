@@ -51,6 +51,19 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
     db.refresh(user)
     return user
 
+@router.post("/users/{user_id}/unlock", response_model=UserSchema)
+def unlock_user(user_id: int, db: Session = Depends(get_db), current_user: UserModel = Depends(require_admin)):
+    """Clear a three-strikes login suspension (admin only)."""
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
+    db.refresh(user)
+    return user
+
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), current_user: UserModel = Depends(require_admin)):
     user = db.query(UserModel).filter(UserModel.id == user_id).first()

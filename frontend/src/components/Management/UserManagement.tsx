@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Typography, Box, Paper, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Chip, Checkbox, FormControlLabel, IconButton, Alert } from '@mui/material';
-import { Person, Engineering, Add, Assignment, Refresh, LockReset } from '@mui/icons-material';
+import { Person, Engineering, Add, Assignment, Refresh, LockReset, LockOpen } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 
@@ -11,6 +11,9 @@ type User = {
   role: string;
   is_active: boolean;
   created_at: string;
+  is_locked?: boolean;
+  locked_until?: string | null;
+  failed_login_attempts?: number;
   assigned_projects?: { id: number; name: string; code: string }[];
 };
 
@@ -29,6 +32,8 @@ const UserManagement: React.FC = () => {
   const [resetPassword, setResetPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
   const [resetError, setResetError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<{ email: string; full_name: string; password: string; role: string; is_active: boolean }>({
     email: '',
@@ -70,6 +75,18 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleUnlock = async (u: User) => {
+    setActionMessage(null);
+    setActionError(null);
+    try {
+      await ApiService.unlockUser(u.id);
+      setActionMessage(`${u.email} unlocked. The account can log in immediately.`);
+      await load();
+    } catch (err: any) {
+      setActionError(err.response?.data?.detail || 'Failed to unlock user');
+    }
+  };
+
   useEffect(() => {
     load();
   }, [user]);
@@ -108,6 +125,17 @@ const UserManagement: React.FC = () => {
         </Box>
       </Paper>
 
+      {actionMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setActionMessage(null)}>
+          {actionMessage}
+        </Alert>
+      )}
+      {actionError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
+          {actionError}
+        </Alert>
+      )}
+
       <Paper sx={{ p: 0 }}>
         <Table>
           <TableHead>
@@ -127,7 +155,18 @@ const UserManagement: React.FC = () => {
                 <TableCell>{u.email}</TableCell>
                 <TableCell>{u.full_name || '-'}</TableCell>
                 <TableCell>{u.role}</TableCell>
-                <TableCell>{u.is_active ? 'Yes' : 'No'}</TableCell>
+                <TableCell>
+                  {u.is_active ? 'Yes' : 'No'}
+                  {u.is_locked && (
+                    <Chip
+                      label="Suspended"
+                      color="error"
+                      size="small"
+                      sx={{ ml: 1 }}
+                      title={u.locked_until ? `Until ${new Date(u.locked_until).toLocaleString()}` : undefined}
+                    />
+                  )}
+                </TableCell>
                 <TableCell>{expiresOn(u)}</TableCell>
                 <TableCell>
                   {(u.assigned_projects || []).length === 0 ? '-' : (u.assigned_projects || []).map(p => p.code).join(', ')}
@@ -136,6 +175,18 @@ const UserManagement: React.FC = () => {
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button size="small" variant="outlined" onClick={() => { setSelectedUser(u); setAssignProjectIds((u.assigned_projects || []).map(p => p.id)); setOpenAssign(true); }}>Assign Projects</Button>
                     <Button size="small" variant="outlined" color="warning" startIcon={<LockReset />} onClick={() => { setSelectedUser(u); setResetPassword(''); setResetConfirmPassword(''); setResetError(null); setOpenResetPassword(true); }}>Reset Password</Button>
+                    {u.is_locked && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        startIcon={<LockOpen />}
+                        aria-label={`Unlock ${u.email}`}
+                        onClick={() => handleUnlock(u)}
+                      >
+                        Unlock
+                      </Button>
+                    )}
                   </Box>
                 </TableCell>
               </TableRow>

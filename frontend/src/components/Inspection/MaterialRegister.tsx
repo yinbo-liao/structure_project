@@ -24,11 +24,44 @@ import EditableTable, { Column } from '../Common/EditableTable';
 import ApiService from '../../services/api';
 import { MaterialRegister as MaterialRegisterType } from '../../types';
 
+type ExportColumn = { key: keyof MaterialRegisterType; label: string; format?: (value: any) => string };
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { key: 'block_no', label: 'Block no' },
+  { key: 'drawing_no', label: 'Drawing No' },
+  { key: 'piece_mark_no', label: 'Piece Mark No' },
+  { key: 'material_type', label: 'Material Type' },
+  { key: 'grade', label: 'Grade' },
+  { key: 'thickness', label: 'Thickness' },
+  { key: 'structure_spec', label: 'Spec' },
+  { key: 'heat_no', label: 'Heat No' },
+  { key: 'material_report_no', label: 'Material Report No' },
+  { key: 'structure_category', label: 'Structure Category' },
+  {
+    key: 'inspection_status',
+    label: 'Status',
+    format: (value: any) => {
+      if (value === 'pending') return 'Pending';
+      if (value === 'accepted' || value === 'inspected') return 'Accepted';
+      if (value === 'rejected') return 'Rejected';
+      return value || '';
+    },
+  },
+  {
+    key: 'created_at',
+    label: 'Created',
+    format: (value: any) => (value ? String(value).slice(0, 10) : ''),
+  },
+];
+
+const csvCell = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
 const MaterialRegister: React.FC = () => {
   const { selectedProject, canEdit, canDelete } = useAuth();
   // Always structure project
   const [materials, setMaterials] = useState<MaterialRegisterType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messageSeverity, setMessageSeverity] = useState<'success' | 'warning' | 'error'>('success');
@@ -72,6 +105,60 @@ const MaterialRegister: React.FC = () => {
       console.error('Error fetching materials:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Download every material record for the project (the list endpoint caps at
+  // 100 per call, so page through until a short page comes back).
+  const handleExportRecords = async () => {
+    if (!selectedProject) return;
+
+    try {
+      setExporting(true);
+      const pageSize = 1000;
+      const allRecords: MaterialRegisterType[] = [];
+      let skip = 0;
+
+      while (true) {
+        const page = await ApiService.getMaterialRegister(selectedProject.id, { skip, limit: pageSize });
+        allRecords.push(...page);
+        if (page.length < pageSize) break;
+        skip += pageSize;
+      }
+
+      if (allRecords.length === 0) {
+        setMessage('No material records to export');
+        setMessageSeverity('warning');
+        return;
+      }
+
+      const header = EXPORT_COLUMNS.map((column) => csvCell(column.label)).join(',');
+      const rows = allRecords.map((record) =>
+        EXPORT_COLUMNS.map((column) => {
+          const raw = record[column.key];
+          return csvCell(column.format ? column.format(raw) : raw);
+        }).join(',')
+      );
+      // BOM keeps Excel from mangling non-ASCII characters.
+      const csvContent = '\uFEFF' + [header, ...rows].join('\r\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedProject.code || 'structure'}_material_register.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setMessage(`Downloaded ${allRecords.length} material records`);
+      setMessageSeverity('success');
+    } catch (error: any) {
+      setMessage(getErrorMessage(error, 'Failed to download material records'));
+      setMessageSeverity('error');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -235,58 +322,11 @@ const MaterialRegister: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<Download />}
-              onClick={() => {
-                // Create CSV template with ALL columns that match the table display
-                // Using the same headers as the Excel template for consistency
-                const headers = [
-                  'Block no', 
-                  'Drawing No', 
-                  'Piece Mark No', 
-                  'Material Type', 
-                  'Grade', 
-                  'Thickness', 
-                  'Spec',           // Maps to structure_spec
-                  'Heat No', 
-                  'Material Report No', 
-                  'Structure Category',  // Correct spelling - backend handles both
-                  'Status',         // Maps to inspection_status
-                  'drawing_rev'     // Additional column for drawing revision
-                ];
-                
-                const sampleData = [
-                  'BLK001', 'DRW-001', 'PM-001', 'Plate', 'A36', '10MM', 'ASTM A36', 
-                  'HT-001', 'MR-001', 'type-i', 'pending', 'Rev A'
-                ];
-                
-                const csvContent = [
-                  headers.join(','),
-                  sampleData.join(','),
-                  'BLK002,DRW-002,PM-002,Plate,A36,12MM,ASTM A36,HT-002,MR-002,type-ii,accepted,Rev B',
-                  'BLK003,DRW-003,PM-003,Plate,A36,15MM,ASTM A572,HT-003,MR-003,Special,pending,Rev C'
-                ].join('\n');
-                
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'structure_material_template_complete.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-              }}
+            disabled={exporting}
+            onClick={handleExportRecords}
+            aria-label="Download all material records"
           >
-            Download CSV Template
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Download />}
-            sx={{ ml: 1 }}
-            onClick={() => {
-              window.location.href = '/api/v1/templates/structure-material-v2.xlsx';
-            }}
-          >
-            Download Excel Template
+            {exporting ? 'Downloading...' : 'Download All Records (CSV)'}
           </Button>
           {canEdit() && (
             <Button

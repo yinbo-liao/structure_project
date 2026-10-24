@@ -43,6 +43,7 @@ type NewFitUpInspection = Omit<FitUpInspectionType, 'id' | 'project_id' | 'creat
 const StructureFitUpInspection: React.FC = () => {
   const { selectedProject, user, canEdit, canDelete, isAdmin } = useAuth();
   const [records, setRecords] = useState<FitUpInspectionType[]>([]);
+  const [finalFitupIds, setFinalFitupIds] = useState<Set<number>>(new Set());
   const [materials, setMaterials] = useState<MaterialRegisterType[]>([]);
   const [masterJoints, setMasterJoints] = useState<MasterJointListType[]>([]);
   const [availableMasterJoints, setAvailableMasterJoints] = useState<MasterJointListType[]>([]);
@@ -102,8 +103,19 @@ const StructureFitUpInspection: React.FC = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const data = await ApiService.getStructureFitUpInspections(selectedProject!.id);
+      const [data, finals] = await Promise.all([
+        ApiService.getStructureFitUpInspections(selectedProject!.id),
+        ApiService.getStructureFinalInspections(selectedProject!.id).catch(() => []),
+      ]);
       setRecords(data);
+      // Joints that already have a final inspection are highlighted in the table.
+      const finalsSet = new Set<number>();
+      (finals || []).forEach((finalRecord: any) => {
+        if (finalRecord?.fitup_id !== null && finalRecord?.fitup_id !== undefined) {
+          finalsSet.add(Number(finalRecord.fitup_id));
+        }
+      });
+      setFinalFitupIds(finalsSet);
       try {
         const opts = await ApiService.getStructureFitUpFilters(selectedProject!.id);
         setFilterOptions({
@@ -175,7 +187,8 @@ const StructureFitUpInspection: React.FC = () => {
       
       setSuccessMessage(msg);
       setSelectedRows([]);
-      // Ideally navigate to final inspection or refresh
+      await fetchFitUpRecords();
+      setSuccessMessage(msg);
     } catch (err: any) {
       setError(getErrorMessage(err, 'Failed to create final inspections'));
       console.error('Error creating final inspections:', err);
@@ -760,6 +773,21 @@ const StructureFitUpInspection: React.FC = () => {
             <Typography variant="subtitle1" color="textSecondary">
               {selectedProject.name} ({selectedProject.code})
             </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <Box
+                aria-hidden
+                sx={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 0.5,
+                  backgroundColor: 'rgba(76, 175, 80, 0.18)',
+                  border: '1px solid rgba(76, 175, 80, 0.6)'
+                }}
+              />
+              <Typography variant="body2" color="textSecondary">
+                Final inspection completed
+              </Typography>
+            </Box>
           </Box>
         </Box>
         <Box>
@@ -957,12 +985,19 @@ const StructureFitUpInspection: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => (
-                  <TableRow 
-                    key={record.id} 
+                  <TableRow
+                    key={record.id}
                     hover
                     role="checkbox"
                     aria-checked={selectedRows.includes(record.id)}
                     selected={selectedRows.includes(record.id)}
+                    data-has-final-inspection={finalFitupIds.has(record.id) ? 'true' : undefined}
+                    sx={finalFitupIds.has(record.id) ? {
+                      backgroundColor: 'rgba(76, 175, 80, 0.14)',
+                      '&:hover': { backgroundColor: 'rgba(76, 175, 80, 0.24)' },
+                      '&.Mui-selected': { backgroundColor: 'rgba(76, 175, 80, 0.3)' },
+                      '&.Mui-selected:hover': { backgroundColor: 'rgba(76, 175, 80, 0.38)' }
+                    } : undefined}
                   >
                     <TableCell padding="checkbox">
                       <Checkbox
