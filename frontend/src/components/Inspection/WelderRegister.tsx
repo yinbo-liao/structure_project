@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Container, Typography, Box, Paper, Grid, TextField, Button, 
-  FormControl, InputLabel, Select, MenuItem, Chip, 
+import {
+  Container, Typography, Box, Paper, Grid, TextField, Button,
+  FormControl, InputLabel, Select, MenuItem, Chip, Alert,
   Table, TableHead, TableRow, TableCell, TableBody,
   Tabs, Tab, Stack, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
+import Upload from '@mui/icons-material/Upload';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 
@@ -49,6 +50,9 @@ const WelderRegister: React.FC = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageSeverity, setMessageSeverity] = useState<'success' | 'warning' | 'error'>('success');
 
   const processOptions = ['GTAW', 'FCAW', 'SAW', 'SMAW', 'FCAW-Oribit.'];
   const positionOptions = ['2G', '3G', '4G', '2F', '3F', '6GR', '6G', '5F'];
@@ -78,6 +82,37 @@ const WelderRegister: React.FC = () => {
   };
 
   useEffect(() => { load(); }, [selectedProject]);
+
+  const getErrorMessage = (error: any, fallback: string) => {
+    const detail = error?.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) return detail.map((d: any) => d?.msg || JSON.stringify(d)).join('; ');
+    return error?.message || fallback;
+  };
+
+  const handleUpload = async (file: File) => {
+    if (!selectedProject) return;
+    try {
+      setUploading(true);
+      const res = await ApiService.uploadWelderRegister(selectedProject.id, file);
+      const created = res?.created || 0;
+      const updated = res?.updated || 0;
+      const errors = Array.isArray(res?.errors) ? res.errors : [];
+      if (errors.length > 0) {
+        setMessage(`Processed: created ${created}, updated ${updated} • errors ${errors.length} (e.g., ${errors.slice(0, 3).join(' | ')})`);
+        setMessageSeverity('warning');
+      } else {
+        setMessage(`Processed: created ${created}, updated ${updated}`);
+        setMessageSeverity('success');
+      }
+      await load();
+    } catch (err: any) {
+      setMessage(getErrorMessage(err, 'Upload failed'));
+      setMessageSeverity('error');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const submit = async () => {
     if (!selectedProject) return;
@@ -157,10 +192,39 @@ const WelderRegister: React.FC = () => {
     <Container maxWidth="xl" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">{isStructureProject ? 'Structure Welder Register' : 'Pipe Welder Register'}</Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Total: {items.length} Welders
-        </Typography>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="subtitle1" color="text.secondary">
+            Total: {items.length} Welders
+          </Typography>
+          {isAdmin() && (
+            <Button
+              variant="outlined"
+              startIcon={<Upload />}
+              component="label"
+              disabled={uploading || !selectedProject}
+              aria-label="Upload welder CSV or Excel"
+            >
+              {uploading ? 'Uploading…' : 'Upload CSV/XLSX'}
+              <input
+                hidden
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) await handleUpload(file);
+                  e.target.value = '';
+                }}
+              />
+            </Button>
+          )}
+        </Stack>
       </Box>
+
+      {message && (
+        <Alert severity={messageSeverity} sx={{ mb: 2 }} onClose={() => setMessage('')}>
+          {message}
+        </Alert>
+      )}
 
       {isAdmin() && (
         <Paper sx={{ p: 3, mb: 4, bgcolor: 'background.default' }}>

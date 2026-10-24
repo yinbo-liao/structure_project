@@ -2094,8 +2094,9 @@ def update_structure_ndt_request(
         if k in immutable:
             update_data.pop(k, None)
     
-    # Validate NDT report number if provided
-    if 'ndt_report_no' in update_data and update_data['ndt_report_no']:
+    # Validate the report number only when it is actually being changed, so editing
+    # other fields does not fail on a legacy free-text value already stored.
+    if update_data.get('ndt_report_no') and update_data['ndt_report_no'] != ndt.ndt_report_no:
         report_no = update_data['ndt_report_no']
         if report_no.lower() != 'pending':
             is_valid, error_msg = validate_ndt_report_number(report_no)
@@ -2749,6 +2750,157 @@ def create_welder_register(
     db.refresh(welder)
     return welder
 
+@router.post("/welder-register/upload")
+def upload_welder_register(
+    project_id: int = Query(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_admin)
+):
+    """Import welder records from CSV/Excel.
+
+    Columns match the welder register table: Welder No, Name, Qualification,
+    Material, Thickness Range, Process, Position, Validity, Status (last two optional).
+    Rows are upserted by (project_id, welder_no).
+    """
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    ensure_project_access(db, current_user, project_id)
+
+    allowed_types = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ]
+    if (file.content_type not in allowed_types) and (not (file.filename or '').endswith(('.csv', '.xlsx', '.xls', '.xlsm'))):
+        raise HTTPException(status_code=400, detail="File must be CSV or Excel format")
+    raw = file.file.read()
+    if len(raw) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    records: List[dict] = []
+    name = (file.filename or '').lower()
+    if name.endswith('.csv'):
+        content = raw.decode('utf-8-sig', errors='ignore')
+        if (not content.strip()) or (raw[:2] in (b'\xff\xfe', b'\xfe\xff')):
+            try:
+                content = raw.decode('utf-16', errors='ignore').lstrip('﻿')
+            except Exception:
+                pass
+        sample = content[:1024]
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+            records = list(csv.DictReader(io.StringIO(content), dialect=dialect))
+        except Exception:
+            try:
+                delim = '\t' if '\t' in sample else ','
+                records = list(csv.DictReader(io.StringIO(content), delimiter=delim))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {str(e)}")
+    elif name.endswith(('.xlsx', '.xlsm')):
+        try:
+            df = pd.read_excel(io.BytesIO(raw), engine='openpyxl')
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Excel parsing requires 'openpyxl' for .xlsx/.xlsm")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse Excel (.xlsx/.xlsm): {str(e)}")
+        records = df.to_dict(orient='records')
+    elif name.endswith('.xls'):
+        try:
+            df = pd.read_excel(io.BytesIO(raw), engine='xlrd')
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Excel parsing requires 'xlrd' for .xls")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse Excel (.xls): {str(e)}")
+        records = df.to_dict(orient='records')
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Use CSV, .xlsx, .xlsm, or .xls")
+
+    def _norm_key(k: str) -> str:
+        s = str(k or '').strip().lower().replace(' ', '_').lstrip('﻿')
+        s = re.sub(r'[^a-z0-9_]', '', s)
+        synonyms = {
+            'welder_no': 'welder_no',
+            'welder_number': 'welder_no',
+            'welder': 'welder_no',
+            'name': 'welder_name',
+            'welder_name': 'welder_name',
+            'qualification': 'qualification',
+            'material': 'qualified_material',
+            'qualified_material': 'qualified_material',
+            'material_group': 'qualified_material',
+            'thickness_range': 'thickness_range',
+            'thickness': 'thickness_range',
+            'process': 'weld_process',
+            'weld_process': 'weld_process',
+            'position': 'qualified_position',
+            'qualified_position': 'qualified_position',
+            'validity': 'validity',
+            'status': 'status',
+            'welder_status': 'status',
+        }
+        return synonyms.get(s, s)
+
+    def _cell_text(value) -> str:
+        if value is None:
+            return ''
+        if isinstance(value, float) and math.isnan(value):
+            return ''
+        text = str(value).strip()
+        return '' if text.lower() in ('nan', 'none') else text
+
+    created_count = 0
+    updated_count = 0
+    errors: List[str] = []
+
+    for idx, row in enumerate(records, start=2):
+        try:
+            nrow = {_norm_key(k): v for k, v in (row or {}).items()}
+            welder_no = _cell_text(nrow.get('welder_no'))
+            if not welder_no:
+                raise ValueError('welder_no required')
+
+            status = (_cell_text(nrow.get('status')) or 'active').lower()
+            if status not in ('active', 'inactive', 'invalid', 'expired'):
+                status = 'active'
+
+            data = {
+                'project_id': project_id,
+                'welder_no': welder_no,
+                'welder_name': _cell_text(nrow.get('welder_name')) or None,
+                'qualification': _cell_text(nrow.get('qualification')) or None,
+                'qualified_material': _cell_text(nrow.get('qualified_material')) or None,
+                'thickness_range': _cell_text(nrow.get('thickness_range')) or None,
+                'weld_process': _cell_text(nrow.get('weld_process')) or None,
+                'qualified_position': _cell_text(nrow.get('qualified_position')) or None,
+                'validity': _cell_text(nrow.get('validity')) or None,
+                'status': status,
+            }
+
+            target = db.query(WelderRegister).filter(
+                WelderRegister.project_id == project_id,
+                WelderRegister.welder_no == welder_no
+            ).first()
+            if target:
+                for k, v in data.items():
+                    if k not in ('project_id', 'welder_no'):
+                        setattr(target, k, v)
+                updated_count += 1
+            else:
+                db.add(WelderRegister(**data))
+                created_count += 1
+        except Exception as e:
+            errors.append(f"Row {idx}: {str(e)}")
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to save welder records: {str(e)}")
+
+    return {"created": created_count, "updated": updated_count, "errors": errors or None}
+
 @router.put("/welder-register/{welder_id}")
 def update_welder_register(
     welder_id: int,
@@ -2949,8 +3101,9 @@ def update_structure_ndt_status_record(
         if current_user.role != 'admin' and project not in current_user.assigned_projects:
             raise HTTPException(status_code=403, detail="Not authorized to access this project")
         
-        # Validate NDT report number if provided
-        if 'ndt_report_no' in payload and payload['ndt_report_no']:
+        # Validate the report number only when it is actually being changed, so editing
+        # other fields does not fail on a legacy free-text value already stored.
+        if payload.get('ndt_report_no') and payload['ndt_report_no'] != rec.ndt_report_no:
             report_no = payload['ndt_report_no']
             if report_no.lower() != 'pending':
                 is_valid, error_msg = validate_ndt_report_number(report_no)

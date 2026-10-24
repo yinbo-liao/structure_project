@@ -889,6 +889,32 @@ const NDTStatus: React.FC = () => {
     const method = (form.ndt_type || '').trim();
     const result = (form.ndt_result || '').toLowerCase();
     const toNumber = (value: string) => (value === '' ? undefined : Number(value));
+    const original = buildInlineForm(d);
+
+    // Only send fields the user actually changed: resubmitting an unchanged legacy
+    // report number would otherwise fail the server-side format validation.
+    const payload: any = {};
+    if (form.weld_site !== original.weld_site) payload.weld_site = form.weld_site;
+    if (form.weld_size !== original.weld_size) payload.weld_size = toNumber(form.weld_size);
+    if (form.test_length !== original.test_length) payload.test_length = toNumber(form.test_length);
+    if (form.ndt_type !== original.ndt_type) payload.ndt_type = method;
+    if (form.ndt_report_no !== original.ndt_report_no) payload.ndt_report_no = form.ndt_report_no.trim();
+    if (form.ndt_result !== original.ndt_result) payload.ndt_result = result;
+    if (payload.ndt_result !== undefined || form.rejected_length !== original.rejected_length) {
+      payload.rejected_length = result === 'rejected' ? Number(form.rejected_length || 0) : 0;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      cancelInlineEdit(rowKey);
+      return;
+    }
+
+    const reportNo = payload.ndt_report_no;
+    if (reportNo && reportNo.toLowerCase() !== 'pending' && !/^[A-Za-z]{2,4}-REPORT-\d{1,4}$/.test(reportNo)) {
+      showSnackbar('Invalid NDT report number. Use the format TYPE-REPORT-0000, e.g. UT-REPORT-0001.', 'error');
+      return;
+    }
+
     try {
       setInlineSaving(rowKey);
       let rec = statusByFinal[d.final_id];
@@ -899,16 +925,7 @@ const NDTStatus: React.FC = () => {
         rec = (updated as any[]).find((x: any) => x.final_id === d.final_id);
       }
       if (!rec) throw new Error('Could not load the NDT status record for this joint');
-      await ApiService.updateNDTStatusRecord(selectedProject.id, rec.id, {
-        welder_no: rec.welder_no,
-        weld_size: toNumber(form.weld_size),
-        weld_site: form.weld_site,
-        ndt_type: method,
-        ndt_report_no: form.ndt_report_no,
-        ndt_result: result,
-        rejected_length: result === 'rejected' ? toNumber(form.rejected_length) ?? 0 : 0,
-        test_length: toNumber(form.test_length),
-      });
+      await ApiService.updateNDTStatusRecord(selectedProject.id, rec.id, payload);
       cancelInlineEdit(rowKey);
       showSnackbar('NDT status updated successfully', 'success');
       await load();
@@ -1268,7 +1285,8 @@ const NDTStatus: React.FC = () => {
                         value={inlineForm!.ndt_report_no}
                         onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], ndt_report_no: e.target.value } }))}
                         inputProps={{ 'aria-label': 'Report number' }}
-                        sx={{ width: 140 }}
+                        placeholder="UT-REPORT-0001"
+                        sx={{ width: 150 }}
                       />
                     ) : (d.report_no || '-')}
                   </TableCell>
@@ -1396,7 +1414,7 @@ const NDTStatus: React.FC = () => {
             <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Weld Length" value={editForm.weld_size as any || ''} onChange={e => setEditForm({ ...editForm, weld_size: Number(e.target.value) })} /></Grid>
             <Grid item xs={12} sm={6}><TextField fullWidth type="number" label="Test Length" value={editForm.test_length as any || ''} onChange={e => setEditForm({ ...editForm, test_length: Number(e.target.value) })} /></Grid>
             <Grid item xs={12} sm={6}><TextField select fullWidth label="Method" value={editForm.ndt_type || ''} onChange={e => setEditForm({ ...editForm, ndt_type: e.target.value })}>{requestedMethods.map((m: string) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}</TextField></Grid>
-            <Grid item xs={12} sm={6}><TextField fullWidth label="Report No" value={editForm.ndt_report_no || ''} onChange={e => setEditForm({ ...editForm, ndt_report_no: e.target.value })} /></Grid>
+            <Grid item xs={12} sm={6}><TextField fullWidth label="Report No" value={editForm.ndt_report_no || ''} onChange={e => setEditForm({ ...editForm, ndt_report_no: e.target.value })} helperText="Format: TYPE-REPORT-0000, e.g. UT-REPORT-0001 (leave blank while pending)" /></Grid>
             <Grid item xs={12} sm={6}><TextField select fullWidth label="Result" value={editForm.ndt_result || ''} onChange={e => setEditForm({ ...editForm, ndt_result: e.target.value })}><MenuItem value="accepted">Accepted</MenuItem><MenuItem value="rejected">Rejected</MenuItem></TextField></Grid>
             <Grid item xs={12} sm={6}>
               <TextField 

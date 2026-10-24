@@ -511,6 +511,15 @@ export class ApiService {
     return response.data;
   }
 
+  static async uploadWelderRegister(projectId: number, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(`/welder-register/upload?project_id=${projectId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
   static async updateWelderRegister(projectId: number, id: number, payload: any): Promise<any> {
     const response = await axios.put(`/welder-register/${id}`, { ...payload, project_id: projectId });
     return response.data;
