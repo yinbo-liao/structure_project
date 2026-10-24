@@ -156,6 +156,13 @@ describe('ProjectChatAgent', () => {
     expect(screen.getByText('WPS-1O0')).toBeInTheDocument();
   });
 
+  test('can be opened by a parent control', () => {
+    render(<ProjectChatAgent projectId={1} open onOpenChange={jest.fn()} />);
+
+    expect(screen.getByLabelText('Message the project assistant')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /close ai assistant/i })).toBeInTheDocument();
+  });
+
   test('runs the deterministic scan from the header action', async () => {
     (ApiService.scanDataQuality as jest.Mock).mockResolvedValue({
       project_id: 1,

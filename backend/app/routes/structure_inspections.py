@@ -343,24 +343,72 @@ def upload_structure_master_joint_list(
         raw = file.file.read()
         if len(raw) > 20 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+        def decode_csv(data: bytes) -> str:
+            for encoding in ('utf-8-sig', 'utf-16', 'cp1252'):
+                try:
+                    return data.decode(encoding)
+                except UnicodeDecodeError:
+                    continue
+            return data.decode('utf-8', errors='replace')
+
+        def norm_key(k: str) -> str:
+            """Normalize a header cell: case, punctuation, units and spacing."""
+            key = str(k or '').strip().lower()
+            key = re.sub(r'\([^)]*\)', '', key)  # drop units such as "(mm)"
+            key = re.sub(r'[^a-z0-9]+', '_', key)
+            return key.strip('_')
+
+        def is_blank(value) -> bool:
+            if value is None:
+                return True
+            if isinstance(value, float) and math.isnan(value):
+                return True
+            try:
+                if pd.isna(value):
+                    return True
+            except (TypeError, ValueError):
+                pass
+            return str(value).strip() == ''
+
+        def cell_text(value):
+            if is_blank(value):
+                return None
+            if isinstance(value, float) and value.is_integer():
+                value = int(value)
+            return str(value).strip() or None
+
+        def cell_float(value):
+            if is_blank(value):
+                return None
+            if isinstance(value, (int, float)):
+                return float(value)
+            text = str(value).strip().replace(',', '.')
+            text = re.sub(r'[^0-9.\-]', '', text)
+            return float(text) if text not in ('', '-', '.') else None
+
         records: List[dict] = []
         name = (file.filename or '').lower()
         if name.endswith('.csv'):
-            content = raw.decode('utf-8', errors='ignore').lstrip('\ufeff')
-            sample = content[:1024]
-            try:
-                dialect = csv.Sniffer().sniff(sample)
-                csv_reader = csv.DictReader(io.StringIO(content), dialect=dialect)
-            except Exception:
-                delim = '\t' if '\t' in sample else ','
-                csv_reader = csv.DictReader(io.StringIO(content), delimiter=delim)
-            records = list(csv_reader)
+            content = decode_csv(raw)
+            sample = content[:2048]
+            first_line = content.splitlines()[0] if content.splitlines() else ''
+            if (
+                not any(sep in first_line for sep in (',', '\t', ';'))
+                and re.search(r'\s{2,}', first_line)
+            ):
+                # Space-aligned columns (e.g. pasted from Excel): split on 2+ spaces.
+                content = re.sub(r'[ \u00a0]{2,}', '\t', content)
+                delimiter = '\t'
+            else:
+                try:
+                    delimiter = csv.Sniffer().sniff(sample).delimiter
+                except Exception:
+                    delimiter = '\t' if '\t' in sample else ','
+            records = list(csv.DictReader(io.StringIO(content), delimiter=delimiter))
         else:
             df = pd.read_excel(io.BytesIO(raw))
             records = df.to_dict(orient='records')
-
-        def norm_key(k: str) -> str:
-            return (str(k or '')).strip().lower().replace(' ', '_').replace('-', '_')
 
         syn = {
             'draw_no': ['draw_no', 'drawing_no'],
@@ -383,7 +431,7 @@ def upload_structure_master_joint_list(
 
         def get_val(nrow: dict, keys: List[str]):
             for k in keys:
-                if k in nrow and nrow[k] is not None:
+                if k in nrow and not is_blank(nrow[k]):
                     return nrow[k]
             return None
 
@@ -391,39 +439,46 @@ def upload_structure_master_joint_list(
         for r in records:
             columns_norm.update(norm_key(k) for k in r.keys())
         required_groups = ['draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no']
-        missing = []
-        for g in required_groups:
-            if not any(k in columns_norm for k in syn[g]):
-                missing.append(g)
+        missing = [g for g in required_groups if not any(k in columns_norm for k in syn[g])]
         if missing:
-            raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(required_groups)}")
+            accepted = '; '.join(f"{g} (e.g. '{syn[g][0]}')" for g in missing)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns: {', '.join(missing)}. Accepted headers: {accepted}",
+            )
 
         created_count = 0
         errors: List[str] = []
         for index, row in enumerate(records, start=2):
             try:
-                nrow = {norm_key(k): v for k, v in row.items()}
+                if all(is_blank(value) for value in row.values()):
+                    continue
+                nrow = {norm_key(k): v for k, v in row.items() if k is not None}
                 master_joint_data = {
                     'project_id': project_id,
-                    'draw_no': str(get_val(nrow, syn['draw_no']) or '').strip(),
-                    'structure_category': str(get_val(nrow, syn['structure_category']) or '').strip(),
-                    'page_no': str(get_val(nrow, syn['page_no']) or '').strip(),
-                    'drawing_rev': str(get_val(nrow, syn['drawing_rev']) or '').strip(),
-                    'joint_no': str(get_val(nrow, syn['joint_no']) or '').strip(),
-                    'block_no': (str(get_val(nrow, syn['block_no']) or '').strip() or None),
-                    'thickness': (str(get_val(nrow, syn['thickness']) or '').strip() or None),
-                    'weld_type': (str(get_val(nrow, syn['weld_type']) or '').strip() or None),
-                    'weld_length': (float(get_val(nrow, syn['weld_length'])) if get_val(nrow, syn['weld_length']) else None),
-                    'part1_piece_mark_no': (str(get_val(nrow, syn['part1_piece_mark_no']) or '').strip() or None),
-                    'part2_piece_mark_no': (str(get_val(nrow, syn['part2_piece_mark_no']) or '').strip() or None),
-                    'fit_up_report_no': (str(get_val(nrow, syn['fit_up_report_no']) or '').strip() or None),
-                    'final_report_no': (str(get_val(nrow, syn['final_report_no']) or '').strip() or None),
-                    'fitup_status': (str(get_val(nrow, syn['fitup_status']) or 'pending').strip() or 'pending'),
-                    'final_status': (str(get_val(nrow, syn['final_status']) or 'pending').strip() or 'pending'),
-                    'inspection_category': (str(get_val(nrow, syn['inspection_category']) or 'type-I').strip() or 'type-I')
+                    'draw_no': cell_text(get_val(nrow, syn['draw_no'])) or '',
+                    'structure_category': cell_text(get_val(nrow, syn['structure_category'])) or '',
+                    'page_no': cell_text(get_val(nrow, syn['page_no'])) or '',
+                    'drawing_rev': cell_text(get_val(nrow, syn['drawing_rev'])) or '',
+                    'joint_no': cell_text(get_val(nrow, syn['joint_no'])) or '',
+                    'block_no': cell_text(get_val(nrow, syn['block_no'])),
+                    'thickness': cell_text(get_val(nrow, syn['thickness'])),
+                    'weld_type': cell_text(get_val(nrow, syn['weld_type'])),
+                    'weld_length': cell_float(get_val(nrow, syn['weld_length'])),
+                    'part1_piece_mark_no': cell_text(get_val(nrow, syn['part1_piece_mark_no'])),
+                    'part2_piece_mark_no': cell_text(get_val(nrow, syn['part2_piece_mark_no'])),
+                    'fit_up_report_no': cell_text(get_val(nrow, syn['fit_up_report_no'])),
+                    'final_report_no': cell_text(get_val(nrow, syn['final_report_no'])),
+                    'fitup_status': cell_text(get_val(nrow, syn['fitup_status'])) or 'pending',
+                    'final_status': cell_text(get_val(nrow, syn['final_status'])) or 'pending',
+                    'inspection_category': cell_text(get_val(nrow, syn['inspection_category'])) or 'type-I'
                 }
-                if not all([master_joint_data['draw_no'], master_joint_data['structure_category'], master_joint_data['page_no'], master_joint_data['drawing_rev'], master_joint_data['joint_no']]):
-                    raise ValueError('Required fields missing')
+                missing_fields = [
+                    field for field in ('draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no')
+                    if not master_joint_data[field]
+                ]
+                if missing_fields:
+                    raise ValueError(f"Required fields missing: {', '.join(missing_fields)}")
                 existing_joint = db.query(StructureMasterJointList).filter(
                     StructureMasterJointList.project_id == project_id,
                     StructureMasterJointList.draw_no == master_joint_data['draw_no'],
@@ -443,9 +498,11 @@ def upload_structure_master_joint_list(
                 errors.append(f"Row {index}: {str(e)}")
         db.commit()
         return {"message": f"Successfully processed {created_count} structure joints", "created_count": created_count, "errors": errors or None}
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error processing file: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error processing file: {str(e) or type(e).__name__}")
 
 # Structure Material Register Routes
 @router.get("/structure/material-register", response_model=List[StructureMaterialRegisterSchema])

@@ -86,11 +86,23 @@ const severityColor = (severity: AISeverity): 'error' | 'warning' | 'default' =>
 
 export default function ProjectChatAgent({
   projectId,
+  open,
+  onOpenChange,
 }: {
   projectId: number;
   projectSummaryData?: unknown;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = (next: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(next);
+    } else {
+      setInternalOpen(next);
+    }
+  };
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,10 +116,16 @@ export default function ProjectChatAgent({
   const [scanError, setScanError] = useState<string | null>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const sendingRef = useRef(false);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
   const storageKey = `ai-conversation-${projectId}`;
 
   useEffect(() => {
-    setIsOpen(false);
+    if (onOpenChangeRef.current) {
+      onOpenChangeRef.current(false);
+    } else {
+      setInternalOpen(false);
+    }
     setConversationId(null);
     setMessages([GREETING]);
     setMetrics(null);
@@ -213,7 +231,7 @@ export default function ProjectChatAgent({
       <Fab
         color="primary"
         aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() => setIsOpen(!isOpen)}
         sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 1000 }}
       >
         {isOpen ? <Close /> : <Chat />}

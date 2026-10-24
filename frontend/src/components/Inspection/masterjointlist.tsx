@@ -33,6 +33,7 @@ const MasterJointList: React.FC = () => {
   const [message, setMessage] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [, setSyncStatus] = useState<any>(null);
   const [selectedJointIds, setSelectedJointIds] = useState<number[]>([]);
@@ -226,13 +227,17 @@ const MasterJointList: React.FC = () => {
 
     try {
       setUploading(true);
+      setUploadErrors([]);
       const result = await ApiService.uploadStructureMasterJointList(selectedProject!.id, uploadFile);
-      setUploadOpen(false);
-      setUploadFile(null);
-      fetchJoints();
-      setMessage(`Successfully uploaded ${result.created_count} joints${result.errors ? ` with ${result.errors.length} errors` : ''}`);
-      if (result.errors && result.errors.length > 0) {
-        console.error('Upload errors:', result.errors);
+      const errors: string[] = result.errors || [];
+      await fetchJoints();
+      if (errors.length > 0) {
+        setUploadErrors(errors);
+        setMessage(`Uploaded ${result.created_count} joints; ${errors.length} row(s) were skipped`);
+      } else {
+        setUploadOpen(false);
+        setUploadFile(null);
+        setMessage(`Successfully uploaded ${result.created_count} joints`);
       }
     } catch (error: any) {
       setMessage(error.response?.data?.detail || 'Error uploading file');
@@ -291,6 +296,7 @@ const MasterJointList: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadFile(e.target.files[0]);
+      setUploadErrors([]);
     }
   };
 
@@ -831,8 +837,24 @@ const MasterJointList: React.FC = () => {
               style={{ display: 'block', width: '100%' }}
             />
             <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-              Supported formats: CSV, Excel (.xlsx, .xls)
+              Supported formats: CSV, Excel (.xlsx, .xls). Required columns: Drawing No,
+              Drawing Rev, Page No, Joint No and Structure Category.
             </Typography>
+            {uploadErrors.length > 0 && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                <Typography variant="subtitle2">{uploadErrors.length} row(s) skipped</Typography>
+                <Box component="ul" sx={{ m: 0, pl: 2, maxHeight: 180, overflowY: 'auto' }}>
+                  {uploadErrors.slice(0, 20).map((uploadError, index) => (
+                    <li key={`${index}-${uploadError}`}>
+                      <Typography variant="caption">{uploadError}</Typography>
+                    </li>
+                  ))}
+                  {uploadErrors.length > 20 && (
+                    <li><Typography variant="caption">…and {uploadErrors.length - 20} more</Typography></li>
+                  )}
+                </Box>
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

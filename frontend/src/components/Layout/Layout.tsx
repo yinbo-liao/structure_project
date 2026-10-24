@@ -31,17 +31,27 @@ import {
   Person,
   ExitToApp,
   VpnKey,
-  AccountTree
+  AccountTree,
+  Chat
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProjectSummary } from '../../types';
 import ApiService from '../../services/api';
+import ProjectChatAgent from '../Dashboard/ProjectChatAgent';
 
 const drawerWidth = 340;
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+interface NavigationItem {
+  text: string;
+  icon: React.ReactNode;
+  path: string;
+  roles: string[];
+  onSelect?: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -51,6 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   React.useEffect(() => {
     if (selectedProject) {
@@ -91,12 +102,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     // TODO: Implement change password dialog
   };
 
-  const navigationItems = [
+  const navigationItems: NavigationItem[] = [
     {
       text: 'Dashboard',
       icon: <Dashboard />,
       path: '/projects',
       roles: ['admin', 'inspector', 'visitor']
+    },
+    {
+      text: 'AI Assistant',
+      icon: <Chat />,
+      path: '/ai-assistant',
+      roles: ['admin', 'inspector', 'visitor'],
+      onSelect: () => {
+        if (selectedProject) {
+          setAssistantOpen(true);
+        } else {
+          navigate('/projects');
+        }
+      }
     },
     {
       text: 'Master Joint List',
@@ -230,9 +254,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {filteredNavigationItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
-              selected={location.pathname === item.path}
+              selected={item.onSelect ? assistantOpen : location.pathname === item.path}
+              aria-label={item.text}
               onClick={() => {
-                navigate(item.path);
+                if (item.onSelect) {
+                  item.onSelect();
+                } else {
+                  navigate(item.path);
+                }
                 if (mobileOpen) {
                   setMobileOpen(false);
                 }
@@ -395,6 +424,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Toolbar />
         {children}
       </Box>
+
+      {selectedProject && (
+        <ProjectChatAgent
+          projectId={selectedProject.id}
+          open={assistantOpen}
+          onOpenChange={setAssistantOpen}
+        />
+      )}
     </Box>
   );
 };

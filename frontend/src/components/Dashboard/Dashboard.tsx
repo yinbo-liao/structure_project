@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ProjectChatAgent from './ProjectChatAgent';
 import {
   Box,
   Grid,
@@ -734,14 +733,6 @@ const Dashboard: React.FC = () => {
           </Typography>
         </Paper>
       </Box>
-      {/* ---- ADD THE CHAT AGENT RIGHT HERE ---- */}
-      {selectedProject && (
-        <ProjectChatAgent
-          projectId={selectedProject.id}
-          projectSummaryData={summary}
-        />
-      )}
-      {/* -------------------------------------- */}
     </Container>
   );
 };
