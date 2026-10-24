@@ -629,10 +629,26 @@ const NDTStatus: React.FC = () => {
     console.log('Tests count:', tests?.length || 0);
     
     const methodStats: Record<string, any> = {};
-    
+
     // Define method categories
     const jointBasedMethods = ['FT', 'PMI'];
     const lengthBasedMethods = ['RT', 'UT', 'MPI', 'PT'];
+
+    // NDT tests only store the tested length; the rejected length lives on the
+    // status record. Index it by final_id + method so the rate uses the recorded
+    // rejected length instead of treating the whole weld as rejected.
+    const rejectedLengthByFinalMethod: Record<string, number> = {};
+    (rows || []).forEach((rec: NDTStatusRecord) => {
+      const rawMethod = (rec.ndt_type || '').trim().toUpperCase();
+      if (!rawMethod) return;
+      rawMethod.split(/[,;\/\s]+/).map(m => m.trim()).filter(m => m).forEach(method => {
+        const key = `${rec.final_id}_${method}`;
+        const value = (rec.ndt_result || '').toLowerCase() === 'rejected'
+          ? Math.max(Number(rec.rejected_length) || 0, 0)
+          : 0;
+        rejectedLengthByFinalMethod[key] = Math.max(rejectedLengthByFinalMethod[key] || 0, value);
+      });
+    });
     
     // First, process NDTTest data (most reliable source)
     (tests || []).forEach((test: NDTTest) => {
@@ -673,8 +689,13 @@ const NDTStatus: React.FC = () => {
         console.log(`Joint test: ${method} - result: ${result}, total: ${methodStats[method].totalJoints}, rejected: ${methodStats[method].rejectedJoints}`);
       } else if (isLengthMethod) {
         // Length-based calculation
-        const testLength = test.test_length || 0;
-        const rejectedLength = result === 'rejected' ? testLength : 0;
+        const testLength = Number(test.test_length) || 0;
+        const recordedRejected = rejectedLengthByFinalMethod[`${test.final_id}_${method}`]
+          ?? (Number((test as any).rejected_length) || 0);
+        // The recorded rejected length is authoritative; clamp it to the tested length.
+        const rejectedLength = result === 'rejected'
+          ? Math.min(Math.max(recordedRejected, 0), testLength)
+          : 0;
         
         if (!methodStats[method]) {
           methodStats[method] = {
@@ -742,8 +763,8 @@ const NDTStatus: React.FC = () => {
           console.log(`Joint status: ${method} - result: ${result}, total: ${methodStats[method].totalJoints}, rejected: ${methodStats[method].rejectedJoints}`);
         } else if (isLengthMethod) {
           // Length-based calculation from status record
-          // For structure projects, prioritize test_length, then weld_size
-          const lengthValue = rec.test_length || rec.weld_size || 0;
+          // For structure projects, prioritize test_length, then weld_length, then weld_size
+          const lengthValue = rec.test_length || rec.weld_length || rec.weld_size || 0;
           const rejectedLength = result === 'rejected' ? (rec.rejected_length || 0) : 0;
           
           if (!methodStats[method]) {

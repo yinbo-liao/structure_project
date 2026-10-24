@@ -565,8 +565,8 @@ class WelderRegister(Base, TimestampMixin, ProjectRelationMixin):
     
     __table_args__ = (
         UniqueConstraint(
-            'project_id', 'welder_no',
-            name=create_unique_constraint_name(__tablename__, 'project', 'welder_no')
+            'project_id', 'welder_no', 'weld_process', 'qualified_position',
+            name=create_unique_constraint_name(__tablename__, 'project', 'welder_no', 'weld_process', 'qualified_position')
         ),
         Index(create_unique_index_name(__tablename__, 'welder_no'), 'welder_no'),
         Index(create_unique_index_name(__tablename__, 'status'), 'status'),

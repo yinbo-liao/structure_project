@@ -48,6 +48,7 @@ def initialize_database():
             logger.info(f"Created missing tables: {missing_tables}")
         
         _ensure_all_table_columns()
+        _migrate_welder_register_unique_key()
         _ensure_default_users()
         _ensure_unique_joint_indexes()
         _backfill_timestamps()
@@ -195,6 +196,80 @@ def _ensure_all_table_columns():
                             logger.warning(f"Could not add {col_name} to {table_name}: {e}")
         except Exception as e:
             logger.error(f"Column migration failed for {table_name}: {e}")
+
+def _migrate_welder_register_unique_key():
+    """Rebuild welder_register with a composite unique key.
+
+    Older databases were created with UNIQUE(project_id, welder_no), which blocks a
+    welder from having rows for different processes/positions. The register is now
+    keyed on (welder_no, weld_process, qualified_position) per project. SQLite cannot
+    drop an inline table constraint, so the table is rebuilt in place.
+    """
+    if engine.dialect.name != 'sqlite':
+        return
+    try:
+        with engine.connect() as conn:
+            has_old_key = False
+            for row in conn.exec_driver_sql("PRAGMA index_list('welder_register')").fetchall():
+                if not row[2]:  # not a unique index
+                    continue
+                cols = [r[2] for r in conn.exec_driver_sql(f"PRAGMA index_info('{row[1]}')").fetchall()]
+                if cols == ['project_id', 'welder_no']:
+                    has_old_key = True
+                    break
+        if not has_old_key:
+            return
+
+        with engine.begin() as conn:
+            conn.exec_driver_sql("ALTER TABLE welder_register RENAME TO welder_register_old")
+            conn.exec_driver_sql("""
+                CREATE TABLE welder_register (
+                    id INTEGER NOT NULL,
+                    welder_no VARCHAR(50) NOT NULL,
+                    welder_name VARCHAR(100),
+                    qualification VARCHAR(100),
+                    qualified_material VARCHAR(50),
+                    thickness_range VARCHAR(50),
+                    weld_process VARCHAR(50) NOT NULL DEFAULT '',
+                    qualified_position VARCHAR(20) NOT NULL DEFAULT '',
+                    validity VARCHAR(100),
+                    status VARCHAR(20),
+                    created_at DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
+                    updated_at DATETIME DEFAULT (CURRENT_TIMESTAMP),
+                    project_id INTEGER NOT NULL,
+                    PRIMARY KEY (id),
+                    CONSTRAINT uq_welder_register_project_welder_no_weld_process_qualified_position
+                        UNIQUE (project_id, welder_no, weld_process, qualified_position),
+                    FOREIGN KEY(project_id) REFERENCES projects (id) ON DELETE CASCADE
+                )
+            """)
+            conn.exec_driver_sql("""
+                INSERT OR IGNORE INTO welder_register
+                    (id, welder_no, welder_name, qualification, qualified_material,
+                     thickness_range, weld_process, qualified_position, validity, status,
+                     created_at, updated_at, project_id)
+                SELECT id, welder_no, welder_name, qualification, qualified_material,
+                       thickness_range, COALESCE(weld_process, ''), COALESCE(qualified_position, ''),
+                       validity, status, created_at, updated_at, project_id
+                FROM welder_register_old
+            """)
+            conn.exec_driver_sql("DROP TABLE welder_register_old")
+            for stmt in (
+                "CREATE INDEX ix_welder_register_id ON welder_register(id)",
+                "CREATE INDEX ix_welder_register_project_id ON welder_register(project_id)",
+                "CREATE INDEX idx_welder_register_welder_no ON welder_register(welder_no)",
+                "CREATE INDEX idx_welder_register_status ON welder_register(status)",
+                "CREATE INDEX idx_welder_register_validity ON welder_register(validity)",
+            ):
+                conn.exec_driver_sql(stmt)
+        logger.info(
+            "Migrated welder_register unique key to "
+            "(project_id, welder_no, weld_process, qualified_position)"
+        )
+    except Exception as e:
+        logger.error(f"welder_register unique-key migration failed: {e}")
+        raise
+
 
 def _ensure_default_users():
     """Ensure default users exist for development login"""

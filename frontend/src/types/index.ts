@@ -346,6 +346,7 @@ export interface NDTStatusRecord {
   updated_at?: string;
   // Additional fields that may exist in the actual data
   test_length?: number;
+  weld_length?: number;
   system_no?: string;
   line_no?: string;
   spool_no?: string;

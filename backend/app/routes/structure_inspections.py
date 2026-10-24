@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 import re
 import math
@@ -717,6 +718,13 @@ def upload_structure_material_register(
     # Define allowed values for structure category (optional)
     allowed_structure_categories = ['type-I', 'type-II', 'type-III', 'Special']
 
+    # autoflush=False means pending inserts are invisible to per-row queries, so a
+    # repeated piece_mark_no in the same file would violate the unique constraint.
+    existing_rows = db.query(StructureMaterialRegister).filter(
+        StructureMaterialRegister.project_id == project_id
+    ).all()
+    by_piece_mark = {r.piece_mark_no: r for r in existing_rows}
+
     for idx, row in enumerate(records, start=2):
         try:
             nrow = { _norm_key(k): v for k, v in (row or {}).items() }
@@ -727,6 +735,9 @@ def upload_structure_material_register(
 
             if not piece:
                 raise ValueError('piece_mark_no required')
+            # Tolerate repeated header rows from paged/filtered exports.
+            if re.sub(r'[^a-z0-9]', '', piece.lower()) in ('piecemarkno', 'piecemarknumber'):
+                continue
 
             # Structure Category is now optional but must be one of allowed values if provided
             if category and category not in allowed_structure_categories:
@@ -759,10 +770,7 @@ def upload_structure_material_register(
             model_columns = {c.name for c in StructureMaterialRegister.__table__.columns}
             final_data = {k: v for k, v in data.items() if k in model_columns}
             # Upsert by piece_mark_no
-            target = db.query(StructureMaterialRegister).filter(
-                StructureMaterialRegister.project_id == project_id,
-                StructureMaterialRegister.piece_mark_no == piece
-            ).first()
+            target = by_piece_mark.get(piece)
             if target:
                 for k, v in final_data.items():
                     if k != 'project_id' and v is not None:
@@ -771,12 +779,17 @@ def upload_structure_material_register(
             else:
                 target = StructureMaterialRegister(**final_data)
                 db.add(target)
+                by_piece_mark[piece] = target
                 created_count += 1
         except Exception as e:
             errors.append(f"Row {idx}: {str(e)}")
-    
+
     try:
+        db.flush()
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Duplicate piece mark in the uploaded file")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to save materials: {str(e)}")
@@ -2611,12 +2624,22 @@ def upload_wps_register(
     updated_count = 0
     errors: List[str] = []
 
+    # autoflush=False means pending inserts are invisible to per-row queries, so a
+    # repeated wps_no in the same file would violate the unique constraint.
+    existing_rows = db.query(WPSRegister).filter(
+        WPSRegister.project_id == project_id
+    ).all()
+    by_wps_no = {r.wps_no: r for r in existing_rows}
+
     for idx, row in enumerate(records, start=2):
         try:
             nrow = {_norm_key(k): v for k, v in (row or {}).items()}
             wps_no = _cell_text(nrow.get('wps_no'))
             if not wps_no:
                 raise ValueError('wps_no required')
+            # Tolerate repeated header rows from paged/filtered exports.
+            if re.sub(r'[^a-z0-9]', '', wps_no.lower()) in ('wpsno', 'wpsnumber'):
+                continue
 
             job_trade = (_cell_text(nrow.get('job_trade')) or 'structure').lower()
             if job_trade not in ('structure', 'pipe'):
@@ -2637,23 +2660,26 @@ def upload_wps_register(
                 'status': status,
             }
 
-            target = db.query(WPSRegister).filter(
-                WPSRegister.project_id == project_id,
-                WPSRegister.wps_no == wps_no
-            ).first()
+            target = by_wps_no.get(wps_no)
             if target:
                 for k, v in data.items():
                     if k not in ('project_id', 'wps_no'):
                         setattr(target, k, v)
                 updated_count += 1
             else:
-                db.add(WPSRegister(**data))
+                record = WPSRegister(**data)
+                db.add(record)
+                by_wps_no[wps_no] = record
                 created_count += 1
         except Exception as e:
             errors.append(f"Row {idx}: {str(e)}")
 
     try:
+        db.flush()
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Duplicate WPS number in the uploaded file")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to save WPS records: {str(e)}")
@@ -2694,6 +2720,34 @@ def delete_wps_register(
     db.delete(wps)
     db.commit()
     return {"message": "WPS deleted successfully"}
+
+def _normalize_weld_part_value(value) -> str:
+    if value is None:
+        return ''
+    if isinstance(value, (list, tuple)):
+        value = ','.join(str(v) for v in value)
+    return str(value).strip()
+
+
+def _normalize_welder_key_part(value) -> str:
+    return re.sub(r'\s+', ' ', _normalize_weld_part_value(value)).casefold()
+
+
+def _welder_composite_key(welder_no, weld_process, qualified_position):
+    """Uniqueness key for a welder register row: welder no + process + position."""
+    return (
+        _normalize_welder_key_part(welder_no),
+        _normalize_welder_key_part(weld_process),
+        _normalize_welder_key_part(qualified_position),
+    )
+
+
+def _welder_duplicate_detail(key) -> str:
+    return (
+        f"Duplicate welder record: Welder No '{key[0]}' with Process '{key[1]}' "
+        f"and Position '{key[2]}' already exists in this project"
+    )
+
 
 @router.get("/welder-register")
 def get_welder_register(
@@ -2744,9 +2798,24 @@ def create_welder_register(
             payload.pop('production_test_date')
     except Exception:
         pass
+
+    payload['weld_process'] = _normalize_weld_part_value(payload.get('weld_process'))
+    payload['qualified_position'] = _normalize_weld_part_value(payload.get('qualified_position'))
+    key = _welder_composite_key(
+        payload.get('welder_no'), payload.get('weld_process'), payload.get('qualified_position')
+    )
+    existing = db.query(WelderRegister).filter(WelderRegister.project_id == project.id).all()
+    for row in existing:
+        if _welder_composite_key(row.welder_no, row.weld_process, row.qualified_position) == key:
+            raise HTTPException(status_code=409, detail=_welder_duplicate_detail(key))
+
     welder = WelderRegister(**payload)
     db.add(welder)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=_welder_duplicate_detail(key))
     db.refresh(welder)
     return welder
 
@@ -2845,8 +2914,11 @@ def upload_welder_register(
     def _cell_text(value) -> str:
         if value is None:
             return ''
-        if isinstance(value, float) and math.isnan(value):
-            return ''
+        if isinstance(value, float):
+            if math.isnan(value):
+                return ''
+            if value.is_integer():
+                return str(int(value))
         text = str(value).strip()
         return '' if text.lower() in ('nan', 'none') else text
 
@@ -2854,12 +2926,26 @@ def upload_welder_register(
     updated_count = 0
     errors: List[str] = []
 
+    # autoflush=False means pending inserts are invisible to per-row queries, so rows
+    # added earlier in this file must be tracked locally. A welder may appear more than
+    # once with different process/position; the composite key is what is unique.
+    existing_rows = db.query(WelderRegister).filter(
+        WelderRegister.project_id == project_id
+    ).all()
+    by_key = {
+        _welder_composite_key(w.welder_no, w.weld_process, w.qualified_position): w
+        for w in existing_rows
+    }
+
     for idx, row in enumerate(records, start=2):
         try:
             nrow = {_norm_key(k): v for k, v in (row or {}).items()}
             welder_no = _cell_text(nrow.get('welder_no'))
             if not welder_no:
                 raise ValueError('welder_no required')
+            # Tolerate repeated header rows from paged/filtered exports.
+            if re.sub(r'[^a-z0-9]', '', welder_no.lower()) in ('welderno', 'weldernumber'):
+                continue
 
             status = (_cell_text(nrow.get('status')) or 'active').lower()
             if status not in ('active', 'inactive', 'invalid', 'expired'):
@@ -2872,29 +2958,35 @@ def upload_welder_register(
                 'qualification': _cell_text(nrow.get('qualification')) or None,
                 'qualified_material': _cell_text(nrow.get('qualified_material')) or None,
                 'thickness_range': _cell_text(nrow.get('thickness_range')) or None,
-                'weld_process': _cell_text(nrow.get('weld_process')) or None,
-                'qualified_position': _cell_text(nrow.get('qualified_position')) or None,
+                'weld_process': _cell_text(nrow.get('weld_process')),
+                'qualified_position': _cell_text(nrow.get('qualified_position')),
                 'validity': _cell_text(nrow.get('validity')) or None,
                 'status': status,
             }
 
-            target = db.query(WelderRegister).filter(
-                WelderRegister.project_id == project_id,
-                WelderRegister.welder_no == welder_no
-            ).first()
+            key = _welder_composite_key(
+                data['welder_no'], data['weld_process'], data['qualified_position']
+            )
+            target = by_key.get(key)
             if target:
                 for k, v in data.items():
                     if k not in ('project_id', 'welder_no'):
                         setattr(target, k, v)
                 updated_count += 1
             else:
-                db.add(WelderRegister(**data))
+                record = WelderRegister(**data)
+                db.add(record)
+                by_key[key] = record
                 created_count += 1
         except Exception as e:
             errors.append(f"Row {idx}: {str(e)}")
 
     try:
+        db.flush()
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Duplicate welder record in the uploaded file")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to save welder records: {str(e)}")
@@ -2933,8 +3025,24 @@ def update_welder_register(
     except Exception:
         pass
     for k, v in payload.items():
-        setattr(welder, k, v)
-    db.commit()
+        if k in ('welder_no', 'weld_process', 'qualified_position'):
+            setattr(welder, k, _normalize_weld_part_value(v))
+        else:
+            setattr(welder, k, v)
+    key = _welder_composite_key(welder.welder_no, welder.weld_process, welder.qualified_position)
+    siblings = db.query(WelderRegister).filter(
+        WelderRegister.project_id == welder.project_id,
+        WelderRegister.id != welder.id
+    ).all()
+    for row in siblings:
+        if _welder_composite_key(row.welder_no, row.weld_process, row.qualified_position) == key:
+            db.rollback()
+            raise HTTPException(status_code=409, detail=_welder_duplicate_detail(key))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=_welder_duplicate_detail(key))
     db.refresh(welder)
     return welder
 

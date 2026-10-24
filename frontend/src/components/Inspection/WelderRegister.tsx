@@ -122,20 +122,27 @@ const WelderRegister: React.FC = () => {
       validity: computeValidityFrom(form.production_test_date),
       weld_process: Array.isArray(form.weld_process) ? (form.weld_process as string[]).join(',') : form.weld_process
     };
-    await ApiService.createWelderRegister(selectedProject!.id, payload);
-    setForm({ 
-      welder_no: '', 
-      welder_name: '', 
-      qualification: '', 
-      qualified_material: '', 
-      thickness_range: '', 
-      weld_process: [], 
-      qualified_position: '', 
-      production_test_date: '', 
-      validity: '', 
-      status: 'active' 
-    });
-    load();
+    try {
+      await ApiService.createWelderRegister(selectedProject!.id, payload);
+      setMessage('Welder registered successfully');
+      setMessageSeverity('success');
+      setForm({
+        welder_no: '',
+        welder_name: '',
+        qualification: '',
+        qualified_material: '',
+        thickness_range: '',
+        weld_process: [],
+        qualified_position: '',
+        production_test_date: '',
+        validity: '',
+        status: 'active'
+      });
+      await load();
+    } catch (err: any) {
+      setMessage(getErrorMessage(err, 'Failed to register welder'));
+      setMessageSeverity('error');
+    }
   };
 
   const openEdit = (item: any) => {
@@ -161,9 +168,16 @@ const WelderRegister: React.FC = () => {
       ...editForm,
       weld_process: Array.isArray(editForm.weld_process) ? (editForm.weld_process as string[]).join(',') : editForm.weld_process
     };
-    await ApiService.updateWelderRegister(selectedProject!.id, editItem.id, payload);
-    setEditOpen(false);
-    load();
+    try {
+      await ApiService.updateWelderRegister(selectedProject!.id, editItem.id, payload);
+      setEditOpen(false);
+      setMessage('Welder updated successfully');
+      setMessageSeverity('success');
+      await load();
+    } catch (err: any) {
+      setMessage(getErrorMessage(err, 'Failed to update welder'));
+      setMessageSeverity('error');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -187,6 +201,20 @@ const WelderRegister: React.FC = () => {
   const invalidWelders = items.filter(item => item.status === 'invalid');
   const pipeWelders = items.filter(item => item.qualification?.toLowerCase() === 'pipe');
   const structureWelders = items.filter(item => item.qualification?.toLowerCase() === 'structure');
+
+  // Duplicate check keyed on welder no + process + position (same rule as the backend).
+  const normalizeKeyPart = (value: any) => {
+    const raw = Array.isArray(value) ? value.join(',') : value;
+    return String(raw ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  };
+  const formProcessKey = Array.isArray(form.weld_process) ? (form.weld_process as string[]).join(',') : form.weld_process;
+  const duplicateItem = form.welder_no.trim()
+    ? items.find(item =>
+        normalizeKeyPart(item.welder_no) === normalizeKeyPart(form.welder_no) &&
+        normalizeKeyPart(item.weld_process) === normalizeKeyPart(formProcessKey) &&
+        normalizeKeyPart(item.qualified_position) === normalizeKeyPart(form.qualified_position)
+      )
+    : undefined;
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
@@ -231,6 +259,14 @@ const WelderRegister: React.FC = () => {
           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
             Register New Welder
           </Typography>
+          {duplicateItem && (
+            <Alert severity="warning" sx={{ mb: 2 }} aria-label="Duplicate welder record">
+              Duplicate record: Welder No &quot;{duplicateItem.welder_no}&quot; with Process
+              &quot;{duplicateItem.weld_process || '-'}&quot; and Position
+              &quot;{duplicateItem.qualified_position || '-'}&quot; already exists. Change the
+              process or position to register another qualification.
+            </Alert>
+          )}
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={3}>
               <TextField 
@@ -361,7 +397,7 @@ const WelderRegister: React.FC = () => {
                 onClick={submit} 
                 fullWidth 
                 sx={{ height: '40px' }}
-                disabled={!form.welder_no.trim() || !form.welder_name.trim()}
+                disabled={!form.welder_no.trim() || !form.welder_name.trim() || !!duplicateItem}
               >
                 Register Welder
               </Button>
