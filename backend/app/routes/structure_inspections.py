@@ -28,7 +28,8 @@ from app.schemas import (
     StructureFitUpInspection as StructureFitUpInspectionSchema, StructureFitUpInspectionCreate,
     StructureFinalInspection as StructureFinalInspectionSchema, StructureFinalInspectionCreate,
     StructureNDTRequest as StructureNDTRequestSchema, StructureNDTRequestCreate,
-    NDTTest as NDTTestSchema, NDTTestCreate, StructureNDTStatusRecord as StructureNDTStatusRecordSchema
+    NDTTest as NDTTestSchema, NDTTestCreate, StructureNDTStatusRecord as StructureNDTStatusRecordSchema,
+    normalize_inspection_category
 )
 from app.auth import ensure_project_access, get_current_user, require_editor, require_admin
 from sqlalchemy.orm import joinedload
@@ -301,6 +302,8 @@ def update_structure_master_joint(
     for k, v in update_data.items():
         if k in immutable:
             continue
+        if k == 'inspection_category':
+            v = normalize_inspection_category(v)
         setattr(joint, k, v)
     db.commit()
     db.refresh(joint)
@@ -471,7 +474,9 @@ def upload_structure_master_joint_list(
                     'final_report_no': cell_text(get_val(nrow, syn['final_report_no'])),
                     'fitup_status': cell_text(get_val(nrow, syn['fitup_status'])) or 'pending',
                     'final_status': cell_text(get_val(nrow, syn['final_status'])) or 'pending',
-                    'inspection_category': cell_text(get_val(nrow, syn['inspection_category'])) or 'type-I'
+                    'inspection_category': normalize_inspection_category(
+                        cell_text(get_val(nrow, syn['inspection_category']))
+                    ) or 'type-I'
                 }
                 missing_fields = [
                     field for field in ('draw_no', 'structure_category', 'page_no', 'drawing_rev', 'joint_no')
@@ -540,9 +545,10 @@ def create_structure_material_register(
         raise HTTPException(status_code=404, detail="Project not found")
     ensure_project_access(db, current_user, material.project_id)
 
-    # Validate structure category if provided
-    allowed_structure_categories = ['type-i', 'type-ii', 'type-iii', 'Special']
-    if material.structure_category and material.structure_category not in allowed_structure_categories:
+    # Validate structure category if provided (accept "Type-I", "TYPE I", "type 1", ...)
+    allowed_structure_categories = ['type-I', 'type-II', 'type-III', 'Special']
+    normalized_category = normalize_inspection_category(material.structure_category)
+    if normalized_category and normalized_category not in allowed_structure_categories:
         raise HTTPException(
             status_code=400,
             detail=f'structure_category must be one of: {", ".join(allowed_structure_categories)}'
@@ -561,7 +567,9 @@ def create_structure_material_register(
         )
     
     try:
-        db_material = StructureMaterialRegister(**material.model_dump())
+        data = material.model_dump()
+        data['structure_category'] = normalized_category
+        db_material = StructureMaterialRegister(**data)
         db.add(db_material)
         db.commit()
         db.refresh(db_material)
@@ -692,24 +700,34 @@ def upload_structure_material_register(
             'status': 'inspection_status',
         }
         return synonyms.get(s, s)
-    
+
+    def _cell_text(value) -> str:
+        """Normalize a CSV/Excel cell to a trimmed string; blanks become ''."""
+        if value is None:
+            return ''
+        if isinstance(value, float) and math.isnan(value):
+            return ''
+        text = str(value).strip()
+        return '' if text.lower() in ('nan', 'none') else text
+
     created_count = 0
     updated_count = 0
     errors: List[str] = []
-    
+
     # Define allowed values for structure category (optional)
-    allowed_structure_categories = ['type-i', 'type-ii', 'type-iii', 'Special']
-    
+    allowed_structure_categories = ['type-I', 'type-II', 'type-III', 'Special']
+
     for idx, row in enumerate(records, start=2):
         try:
             nrow = { _norm_key(k): v for k, v in (row or {}).items() }
-            piece = str(nrow.get('piece_mark_no', '')).strip()
-            category = str(nrow.get('structure_category', '')).strip()
-            spec_val = str(nrow.get('structure_spec', '')).strip()
-            
+            piece = _cell_text(nrow.get('piece_mark_no'))
+            # Accept the same spellings as the master joint list ("Type-I", "TYPE I", "type 1", ...)
+            category = normalize_inspection_category(_cell_text(nrow.get('structure_category'))) or ''
+            spec_val = _cell_text(nrow.get('structure_spec'))
+
             if not piece:
                 raise ValueError('piece_mark_no required')
-            
+
             # Structure Category is now optional but must be one of allowed values if provided
             if category and category not in allowed_structure_categories:
                 raise ValueError(f'structure_category must be one of: {", ".join(allowed_structure_categories)}')
@@ -719,17 +737,17 @@ def upload_structure_material_register(
             data = {
                 'project_id': project_id,
                 'piece_mark_no': piece,
-                'material_type': (str(nrow.get('material_type', '')).strip() or None),
-                'grade': (str(nrow.get('grade', '')).strip() or None),
-                'thickness': (str(nrow.get('thickness', '')).strip() or None),
-                'heat_no': (str(nrow.get('heat_no', '')).strip() or None),
+                'material_type': (_cell_text(nrow.get('material_type')) or None),
+                'grade': (_cell_text(nrow.get('grade')) or None),
+                'thickness': (_cell_text(nrow.get('thickness')) or None),
+                'heat_no': (_cell_text(nrow.get('heat_no')) or None),
                 'structure_spec': (spec_val or None),
                 'structure_category': category,
-                'drawing_no': (str(nrow.get('drawing_no', '')).strip() or None),
-                'drawing_rev': (str(nrow.get('drawing_rev', '')).strip() or None),
-                'block_no': (str(nrow.get('block_no', '')).strip() or None),
-                'material_report_no': (str(nrow.get('material_report_no', '')).strip() or None),
-                'inspection_status': (str(nrow.get('inspection_status', 'pending')).strip() or 'pending')
+                'drawing_no': (_cell_text(nrow.get('drawing_no')) or None),
+                'drawing_rev': (_cell_text(nrow.get('drawing_rev')) or None),
+                'block_no': (_cell_text(nrow.get('block_no')) or None),
+                'material_report_no': (_cell_text(nrow.get('material_report_no')) or None),
+                'inspection_status': (_cell_text(nrow.get('inspection_status')) or 'pending')
             }
             
             s = (data['inspection_status'] or 'pending').lower()
@@ -778,13 +796,16 @@ def update_structure_material_register(
     if current_user.role != 'admin' and project.id not in [p.id for p in current_user.assigned_projects]:
         raise HTTPException(status_code=403, detail="Not authorized to access this project")
     
-    # Validate structure category if provided in payload
-    allowed_structure_categories = ['type-i', 'type-ii', 'type-iii', 'Special']
-    if 'structure_category' in payload and payload['structure_category'] and payload['structure_category'] not in allowed_structure_categories:
-        raise HTTPException(
-            status_code=400,
-            detail=f'structure_category must be one of: {", ".join(allowed_structure_categories)}'
-        )
+    # Validate structure category if provided in payload (accept "Type-I", "TYPE I", "type 1", ...)
+    allowed_structure_categories = ['type-I', 'type-II', 'type-III', 'Special']
+    if 'structure_category' in payload and payload['structure_category']:
+        payload = dict(payload)
+        payload['structure_category'] = normalize_inspection_category(payload['structure_category'])
+        if payload['structure_category'] not in allowed_structure_categories:
+            raise HTTPException(
+                status_code=400,
+                detail=f'structure_category must be one of: {", ".join(allowed_structure_categories)}'
+            )
     
     # Exclude read-only fields
     excluded_fields = {'id', 'project_id', 'created_at', 'updated_at', 'created_by', 'updated_by'}
@@ -2486,6 +2507,157 @@ def create_wps_register(
     db.commit()
     db.refresh(wps)
     return wps
+
+@router.post("/wps-register/upload")
+def upload_wps_register(
+    project_id: int = Query(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_admin)
+):
+    """Import WPS records from CSV/Excel.
+
+    Expected columns match the WPS register table: WPS No, Job Trade, Position,
+    Process, Material Group, Thickness Range, Status (optional, defaults to active).
+    Rows are upserted by (project_id, wps_no).
+    """
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    ensure_project_access(db, current_user, project_id)
+
+    allowed_types = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ]
+    if (file.content_type not in allowed_types) and (not (file.filename or '').endswith(('.csv', '.xlsx', '.xls', '.xlsm'))):
+        raise HTTPException(status_code=400, detail="File must be CSV or Excel format")
+    raw = file.file.read()
+    if len(raw) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    records: List[dict] = []
+    name = (file.filename or '').lower()
+    if name.endswith('.csv'):
+        content = raw.decode('utf-8-sig', errors='ignore')
+        if (not content.strip()) or (raw[:2] in (b'\xff\xfe', b'\xfe\xff')):
+            try:
+                content = raw.decode('utf-16', errors='ignore').lstrip('﻿')
+            except Exception:
+                pass
+        sample = content[:1024]
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+            records = list(csv.DictReader(io.StringIO(content), dialect=dialect))
+        except Exception:
+            try:
+                delim = '\t' if '\t' in sample else ','
+                records = list(csv.DictReader(io.StringIO(content), delimiter=delim))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {str(e)}")
+    elif name.endswith(('.xlsx', '.xlsm')):
+        try:
+            df = pd.read_excel(io.BytesIO(raw), engine='openpyxl')
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Excel parsing requires 'openpyxl' for .xlsx/.xlsm")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse Excel (.xlsx/.xlsm): {str(e)}")
+        records = df.to_dict(orient='records')
+    elif name.endswith('.xls'):
+        try:
+            df = pd.read_excel(io.BytesIO(raw), engine='xlrd')
+        except ImportError:
+            raise HTTPException(status_code=400, detail="Excel parsing requires 'xlrd' for .xls")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse Excel (.xls): {str(e)}")
+        records = df.to_dict(orient='records')
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Use CSV, .xlsx, .xlsm, or .xls")
+
+    def _norm_key(k: str) -> str:
+        s = str(k or '').strip().lower().replace(' ', '_').lstrip('﻿')
+        s = re.sub(r'[^a-z0-9_]', '', s)
+        synonyms = {
+            'wps': 'wps_no',
+            'wps_no': 'wps_no',
+            'wps_number': 'wps_no',
+            'wps_no.': 'wps_no',
+            'job_trade': 'job_trade',
+            'trade': 'job_trade',
+            'position': 'position',
+            'process': 'process',
+            'material_group': 'material_group',
+            'material': 'material_group',
+            'material_grade': 'material_group',
+            'thickness_range': 'thickness_range',
+            'thickness': 'thickness_range',
+            'thk_range': 'thickness_range',
+            'status': 'status',
+            'wps_status': 'status',
+        }
+        return synonyms.get(s, s)
+
+    def _cell_text(value) -> str:
+        if value is None:
+            return ''
+        if isinstance(value, float) and math.isnan(value):
+            return ''
+        text = str(value).strip()
+        return '' if text.lower() in ('nan', 'none') else text
+
+    created_count = 0
+    updated_count = 0
+    errors: List[str] = []
+
+    for idx, row in enumerate(records, start=2):
+        try:
+            nrow = {_norm_key(k): v for k, v in (row or {}).items()}
+            wps_no = _cell_text(nrow.get('wps_no'))
+            if not wps_no:
+                raise ValueError('wps_no required')
+
+            job_trade = (_cell_text(nrow.get('job_trade')) or 'structure').lower()
+            if job_trade not in ('structure', 'pipe'):
+                raise ValueError("job_trade must be 'structure' or 'pipe'")
+
+            status = (_cell_text(nrow.get('status')) or 'active').lower()
+            if status not in ('active', 'inactive', 'pending', 'expired'):
+                status = 'active'
+
+            data = {
+                'project_id': project_id,
+                'wps_no': wps_no,
+                'job_trade': job_trade,
+                'position': _cell_text(nrow.get('position')) or None,
+                'process': _cell_text(nrow.get('process')) or None,
+                'material_group': _cell_text(nrow.get('material_group')) or None,
+                'thickness_range': _cell_text(nrow.get('thickness_range')) or None,
+                'status': status,
+            }
+
+            target = db.query(WPSRegister).filter(
+                WPSRegister.project_id == project_id,
+                WPSRegister.wps_no == wps_no
+            ).first()
+            if target:
+                for k, v in data.items():
+                    if k not in ('project_id', 'wps_no'):
+                        setattr(target, k, v)
+                updated_count += 1
+            else:
+                db.add(WPSRegister(**data))
+                created_count += 1
+        except Exception as e:
+            errors.append(f"Row {idx}: {str(e)}")
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to save WPS records: {str(e)}")
+
+    return {"created": created_count, "updated": updated_count, "errors": errors or None}
 
 @router.put("/wps-register/{wps_id}")
 def update_wps_register(

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Typography, Box, Button, Paper, Table, TableHead, TableRow, TableCell, TableBody, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, TextField, MenuItem, TablePagination, IconButton, Snackbar, Alert, InputAdornment, FormControlLabel, Checkbox, Tooltip } from '@mui/material';
-import { Edit, Delete, Search, Clear, Warning, Info, Download } from '@mui/icons-material';
+import { Edit, Delete, Search, Clear, Warning, Info, Download, Check, Close } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import ApiService from '../../services/api';
 import { NDTStatusRecord, NDTTest, NDTRequest, FinalInspection } from '../../types';
@@ -35,6 +35,17 @@ const NDTStatus: React.FC = () => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState<DisplayRow | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  type InlineForm = {
+    weld_site: string;
+    weld_size: string;
+    test_length: string;
+    ndt_type: string;
+    ndt_report_no: string;
+    ndt_result: string;
+    rejected_length: string;
+  };
+  const [inlineForms, setInlineForms] = useState<Record<string, InlineForm>>({});
+  const [inlineSaving, setInlineSaving] = useState<string | null>(null);
   const [editGroupKeys, setEditGroupKeys] = useState<string[]>([]);
   const [editGroupIndex, setEditGroupIndex] = useState<number>(0);
   
@@ -837,6 +848,77 @@ const NDTStatus: React.FC = () => {
     }
   };
 
+  const buildInlineForm = (d: DisplayRow): InlineForm => {
+    const rec = statusByFinal[d.final_id];
+    const tk = testsByKey.get(`${d.final_id}_${d.method || ''}`);
+    const text = (value: any) => (value === undefined || value === null || value === '-' ? '' : String(value));
+    return {
+      weld_site: rec?.weld_site || d.weld_site || '',
+      weld_size: text(rec?.weld_size ?? d.weld_size),
+      test_length: text(tk?.test_length ?? rec?.test_length),
+      ndt_type: d.method && d.method !== '-' ? d.method : (rec?.ndt_type || ''),
+      ndt_report_no: text(tk?.report_no || d.report_no || rec?.ndt_report_no),
+      ndt_result: text(tk?.result || d.result || rec?.ndt_result),
+      rejected_length: text(rec?.rejected_length ?? 0),
+    };
+  };
+
+  const toggleInlineEdit = (rowKey: string, d: DisplayRow, checked: boolean) => {
+    setSelectedKeys(prev => checked ? [...prev.filter(k => k !== rowKey), rowKey] : prev.filter(k => k !== rowKey));
+    setInlineForms(prev => {
+      const next = { ...prev };
+      if (checked) next[rowKey] = buildInlineForm(d);
+      else delete next[rowKey];
+      return next;
+    });
+  };
+
+  const cancelInlineEdit = (rowKey: string) => {
+    setSelectedKeys(prev => prev.filter(k => k !== rowKey));
+    setInlineForms(prev => {
+      const next = { ...prev };
+      delete next[rowKey];
+      return next;
+    });
+  };
+
+  const saveInlineEdit = async (rowKey: string, d: DisplayRow) => {
+    if (!selectedProject) return;
+    const form = inlineForms[rowKey];
+    if (!form) return;
+    const method = (form.ndt_type || '').trim();
+    const result = (form.ndt_result || '').toLowerCase();
+    const toNumber = (value: string) => (value === '' ? undefined : Number(value));
+    try {
+      setInlineSaving(rowKey);
+      let rec = statusByFinal[d.final_id];
+      if (!rec) {
+        await ApiService.ensureNDTStatusRecord(selectedProject.id, d.final_id);
+        const updated = await ApiService.getNDTStatus(selectedProject.id);
+        setRows(updated as any);
+        rec = (updated as any[]).find((x: any) => x.final_id === d.final_id);
+      }
+      if (!rec) throw new Error('Could not load the NDT status record for this joint');
+      await ApiService.updateNDTStatusRecord(selectedProject.id, rec.id, {
+        welder_no: rec.welder_no,
+        weld_size: toNumber(form.weld_size),
+        weld_site: form.weld_site,
+        ndt_type: method,
+        ndt_report_no: form.ndt_report_no,
+        ndt_result: result,
+        rejected_length: result === 'rejected' ? toNumber(form.rejected_length) ?? 0 : 0,
+        test_length: toNumber(form.test_length),
+      });
+      cancelInlineEdit(rowKey);
+      showSnackbar('NDT status updated successfully', 'success');
+      await load();
+    } catch (e: any) {
+      showSnackbar(e?.response?.data?.detail || e?.message || 'Failed to update record', 'error');
+    } finally {
+      setInlineSaving(null);
+    }
+  };
+
   return (
     <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1106,18 +1188,16 @@ const NDTStatus: React.FC = () => {
               const tk = testsByKey.get(`${d.final_id}_${d.method || ''}`);
               const rejectedLength = ((d.result || '').toLowerCase() === 'rejected') ? (r?.rejected_length || 0) : 0;
               const rowKey = `${makeKey(d.system_no, d.line_no, d.spool_no, d.joint_no, d.method)}-${d.final_id}-${idx}`;
+              const inlineForm = inlineForms[rowKey];
+              const isInlineEditing = Boolean(inlineForm);
+              const methodChoices = Array.from(new Set([...requestedMethods, inlineForm?.ndt_type].filter(Boolean))) as string[];
+              const resultChoices = Array.from(new Set(['accepted', 'rejected', 'pending', inlineForm?.ndt_result].filter(Boolean))) as string[];
               return (
                 <TableRow key={rowKey} selected={selectedKeys.includes(rowKey)}>
                   <TableCell padding="checkbox">
                     <Checkbox
                       checked={selectedKeys.includes(rowKey)}
-                      onChange={() => {
-                        setSelectedKeys(prev =>
-                          prev.includes(rowKey)
-                            ? prev.filter(key => key !== rowKey)
-                            : [...prev, rowKey]
-                        );
-                      }}
+                      onChange={(e) => toggleInlineEdit(rowKey, d, e.target.checked)}
                     />
                   </TableCell>
                   <TableCell>{d.system_no || '-'}</TableCell>
@@ -1128,13 +1208,83 @@ const NDTStatus: React.FC = () => {
                   <TableCell>{d.weld_type || '-'}</TableCell>
                   <TableCell>{finalById[d.final_id]?.inspection_category || 'type-I'}</TableCell>
                   <TableCell>{d.welder_no || r?.welder_no || '-'}</TableCell>
-                  <TableCell>{d.weld_site || '-'}</TableCell>
-                  <TableCell>{d.weld_size ?? '-'}</TableCell>
-                  <TableCell>{tk?.test_length ?? '-'}</TableCell>
-                  <TableCell>{d.method || '-'}</TableCell>
-                  <TableCell>{d.report_no || '-'}</TableCell>
                   <TableCell>
-                    {(() => {
+                    {isInlineEditing ? (
+                      <TextField
+                        select
+                        size="small"
+                        value={inlineForm!.weld_site}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], weld_site: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Weld site' }}
+                        sx={{ minWidth: 120 }}
+                      >
+                        <MenuItem value="shop weld">shop weld</MenuItem>
+                        <MenuItem value="float weld">float weld</MenuItem>
+                      </TextField>
+                    ) : (d.weld_site || '-')}
+                  </TableCell>
+                  <TableCell>
+                    {isInlineEditing ? (
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={inlineForm!.weld_size}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], weld_size: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Weld length' }}
+                        sx={{ width: 100 }}
+                      />
+                    ) : (d.weld_size ?? '-')}
+                  </TableCell>
+                  <TableCell>
+                    {isInlineEditing ? (
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={inlineForm!.test_length}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], test_length: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Test length' }}
+                        sx={{ width: 100 }}
+                      />
+                    ) : (tk?.test_length ?? '-')}
+                  </TableCell>
+                  <TableCell>
+                    {isInlineEditing ? (
+                      <TextField
+                        select
+                        size="small"
+                        value={inlineForm!.ndt_type}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], ndt_type: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Method' }}
+                        sx={{ minWidth: 90 }}
+                      >
+                        {methodChoices.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                      </TextField>
+                    ) : (d.method || '-')}
+                  </TableCell>
+                  <TableCell>
+                    {isInlineEditing ? (
+                      <TextField
+                        size="small"
+                        value={inlineForm!.ndt_report_no}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], ndt_report_no: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Report number' }}
+                        sx={{ width: 140 }}
+                      />
+                    ) : (d.report_no || '-')}
+                  </TableCell>
+                  <TableCell>
+                    {isInlineEditing ? (
+                      <TextField
+                        select
+                        size="small"
+                        value={inlineForm!.ndt_result}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], ndt_result: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Result' }}
+                        sx={{ minWidth: 120 }}
+                      >
+                        {resultChoices.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+                      </TextField>
+                    ) : (() => {
                       const label = d.result || '-';
                       const val = (label || '').toLowerCase();
                       if (val === 'accepted') {
@@ -1147,7 +1297,17 @@ const NDTStatus: React.FC = () => {
                     })()}
                   </TableCell>
                   <TableCell>
-                    {rejectedLength > 0 ? (
+                    {isInlineEditing ? (
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={inlineForm!.rejected_length}
+                        disabled={(inlineForm!.ndt_result || '').toLowerCase() !== 'rejected'}
+                        onChange={(e) => setInlineForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], rejected_length: e.target.value } }))}
+                        inputProps={{ 'aria-label': 'Rejected length' }}
+                        sx={{ width: 110 }}
+                      />
+                    ) : rejectedLength > 0 ? (
                       <Typography color="error" fontWeight="bold">
                         {rejectedLength} mm
                       </Typography>
@@ -1159,7 +1319,27 @@ const NDTStatus: React.FC = () => {
                   </TableCell>
                 {canEdit() && (
                   <TableCell>
-                    {(() => {
+                    {isInlineEditing ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => saveInlineEdit(rowKey, d)}
+                          disabled={inlineSaving === rowKey}
+                          aria-label="Save inline changes"
+                        >
+                          <Check />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => cancelInlineEdit(rowKey)}
+                          disabled={inlineSaving === rowKey}
+                          aria-label="Cancel inline changes"
+                        >
+                          <Close />
+                        </IconButton>
+                      </Box>
+                    ) : (() => {
                       const allowEdit = canEdit();
                       const allowDelete = canDelete();
                       return (

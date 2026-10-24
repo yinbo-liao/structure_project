@@ -1,5 +1,7 @@
 # schemas.py
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
+import re
+
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from enum import Enum
@@ -20,6 +22,27 @@ class InspectionCategory(str, Enum):
     TYPE_II = "type-II"
     TYPE_III = "type-III"
     SPECIAL = "Special"
+
+_INSPECTION_CATEGORY_ALIASES = {
+    'typei': 'type-I', 'type1': 'type-I',
+    'typeii': 'type-II', 'type2': 'type-II',
+    'typeiii': 'type-III', 'type3': 'type-III',
+    'special': 'Special',
+}
+
+def normalize_inspection_category(value):
+    """Map case/separator variants ("Type-I", "TYPE I", "type 1") to the canonical value.
+
+    Unknown values are returned unchanged so legacy rows still read back instead of
+    failing response validation.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    key = re.sub(r'[^a-z0-9]', '', text.casefold())
+    return _INSPECTION_CATEGORY_ALIASES.get(key, text)
 
 class InspectionStatus(str, Enum):
     PENDING = "pending"
@@ -47,6 +70,11 @@ class BaseSchema(BaseModel):
     """Base schema with common configuration"""
     model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
+    @field_validator('inspection_category', mode='before', check_fields=False)
+    @classmethod
+    def _normalize_inspection_category(cls, value):
+        return normalize_inspection_category(value)
+
 class TimestampSchema(BaseSchema):
     """Schema with timestamp fields"""
     created_at: Optional[datetime] = None
@@ -72,7 +100,7 @@ class JointFields(BaseSchema):
     weld_type: Optional[str] = None
     weld_length: Optional[float] = None
     weld_site: Optional[str] = None
-    inspection_category: Optional[InspectionCategory] = InspectionCategory.TYPE_I
+    inspection_category: Optional[Union[InspectionCategory, str]] = InspectionCategory.TYPE_I
 
 class MaterialFields(BaseSchema):
     """Material-related fields"""
@@ -291,7 +319,7 @@ class NDTRequestBase(BaseSchema):
     weld_length: Optional[float] =None
     weld_size: Optional[float] = None
     weld_process: Optional[str] = None
-    inspection_category: Optional[InspectionCategory] = InspectionCategory.TYPE_I
+    inspection_category: Optional[Union[InspectionCategory, str]] = InspectionCategory.TYPE_I
 
 # Structure NDT Request
 class StructureNDTRequestBase(NDTRequestBase):
@@ -326,7 +354,7 @@ class NDTStatusRecordBase(BaseSchema):
     ndt_report_no: Optional[str] = None
     ndt_result: Optional[str] = None
     rejected_length: Optional[float] = 0.0
-    inspection_category: Optional[InspectionCategory] = InspectionCategory.TYPE_I
+    inspection_category: Optional[Union[InspectionCategory, str]] = InspectionCategory.TYPE_I
 
 
 # Structure NDT Status

@@ -530,7 +530,7 @@ const MaterialRegister: React.FC = () => {
                   label="Structure Category"
                   value={formData.structure_category || ''}
                   onChange={(e) => setFormData({ ...formData, structure_category: e.target.value })}
-                  placeholder="e.g., Beam, Column, type-i, type-ii"
+                  placeholder="Type-I, Type-II, Type-III or Special"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

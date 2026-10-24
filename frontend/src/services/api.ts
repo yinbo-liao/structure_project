@@ -480,6 +480,15 @@ export class ApiService {
     return response.data;
   }
 
+  static async uploadWPSRegister(projectId: number, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(`/wps-register/upload?project_id=${projectId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
   static async updateWPSRegister(projectId: number, id: number, payload: any): Promise<any> {
     const response = await axios.put(`/wps-register/${id}`, { ...payload, project_id: projectId });
     return response.data;
